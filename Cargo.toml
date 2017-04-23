@@ -1,0 +1,6 @@
+[package]
+name = "dinpeg"
+version = "0.1.0"
+authors = ["maiquel <jleahred@gmail.com>"]
+
+[dependencies]
