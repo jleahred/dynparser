@@ -37,7 +37,7 @@ The input is a text with indentations.
 https://github.com/jleahred/indentation_flattener[indentation_flattener] will transform to
 a plain text with `PUSH_INDENT` and `POP_INDENT`
 
-For information about indentation format, check on 
+For information about indentation format, check on
 https://github.com/jleahred/indentation_flattener[indentation_flattener]
 
 
@@ -153,7 +153,7 @@ Therefore, the next one, is equivalent.
 [source, peg]
 ----
 main = def
-def 
+def
     = "def" _ func_name _ "(" _ params _ "):" _ eol+
     |           $INDENT(body)
 ----
@@ -170,13 +170,13 @@ of `PUSH_INDENT` and `POP_INDENT`...
 ----
 main = def
 
-def 
+def
     = "def" _ func_name _ "(" _ params _ "):" _  eol+
     |               $INDENT(stament*)
 
 func_name =  id
 
-params    
+params
     =  id _ "," _ params
     /  id
 
@@ -184,12 +184,12 @@ id  = [A-Za-z][A-Za-z0-9_]*
 eol = "\n"
 _   = " "*
 
-stament 
-    = expr 
+stament
+    = expr
     / if
 
-if 
-    = "if" _ expr _ ":" _ 
+if
+    = "if" _ expr _ ":" _
     |       $INDENT(stament*)
     |  "else:" _
     |       $INDENT(stament*)
@@ -204,13 +204,13 @@ be more clear factorizing...
 ----
 main = def
 
-def 
+def
     = "def" _ func_name _ "(" _ params _ "):" _  eol+
     |       body
 
 func_name = id
 
-params 
+params
     =  id _ "," _ params
     /  id
 
@@ -220,12 +220,12 @@ _   = " "*
 
 body = $INDENT(stament*)
 
-stament 
-    = expr 
+stament
+    = expr
     / if
 
-if 
-    =  "if" _ expr _ ":" _ 
+if
+    =  "if" _ expr _ ":" _
     |        body
     |  "else:" _
     |        body
@@ -238,7 +238,7 @@ with non indented grammar.
 .Not indented grammar, simple math expr validator
 [source, peg]
 ----
-expr 
+expr
     = [\+\-]? num operator expr
     / "(" expr ")" (operator expr)*
     / num
@@ -257,8 +257,8 @@ Next two examples are equivalent:
 
 [source, peg]
 ----
-if 
-    =  "if" _ expr _ ":" _ 
+if
+    =  "if" _ expr _ ":" _
     |        body
     |  "else:" _
     |        body
@@ -268,7 +268,7 @@ if
 ----
 if =
     >
-       "if" _ expr _ ":" _ 
+       "if" _ expr _ ":" _
              body
        "else:" _
              body
@@ -280,7 +280,60 @@ if =
 
 
 == Grammar elements
-pending...
+
+Grammar::
+A grammar is a sequence of rules
+----
+grammar = rule+
+----
+
+rule::
+Are composed of options of sequence of elements
+----
+rule = options
+----
+
+options::
+----
+options
+     = element_seq "/" options
+     / element_seq
+----
+
+
+element_seq::
+----
+element_seq
+    =  "(" _ element_seq _ ")" _  options
+    /  element " "+ element_seq
+    /  element
+----
+
+element::
+----
+element
+    = literal
+    / match
+    / dot
+----
+
+literal::
+----
+literal = "\"" (!"\"" .)  "\""
+----
+
+
+match::
+----
+match = "[" re "]"
+re = (!"]" .)+
+----
+
+
+.pending...
+----
+params, modifiers, negation (it doesn't move the possition)
+----
 
 
 
@@ -289,35 +342,35 @@ pending...
 [source, peg]
 ----
 pub expr
-    =  _ s:sum _    
+    =  _ s:sum _
     /  _ e:sexpr _       //  signed expresion  +1-2
 
 //  signed expressions
 //  trick on  e:sexpr?
-sexpr 
-    =   _ s:sign v:(par / atom) _  "*" _  r:fact  e:sexpr?  
-    /   _ s:sign v:(par / atom) _  "/" _  r:fact  e:sexpr?  
-    /   _ s:sign v:(par / atom) _  "+" _  r:sum             
-    /   _ s:sign v:(par / atom) _  "-" _  r:sum             
-    /   _ s:sign v:(par / atom)                             
+sexpr
+    =   _ s:sign v:(par / atom) _  "*" _  r:fact  e:sexpr?
+    /   _ s:sign v:(par / atom) _  "/" _  r:fact  e:sexpr?
+    /   _ s:sign v:(par / atom) _  "+" _  r:sum
+    /   _ s:sign v:(par / atom) _  "-" _  r:sum
+    /   _ s:sign v:(par / atom)
 
 
-sign 
-    = "+"    
-    / "-"    
+sign
+    = "+"
+    / "-"
 
-sum 
-    =  l:fact _ "+" _ r:sum   
-    /  l:fact _ "-" _ r:sum   
+sum
+    =  l:fact _ "+" _ r:sum
+    /  l:fact _ "-" _ r:sum
     /  fact
 
 fact
-    =  l:par _ "*" _ r:fact   
-    /  l:par _ "/" _ r:fact   
+    =  l:par _ "*" _ r:fact
+    /  l:par _ "/" _ r:fact
     /  par
 
-par 
-    = _ "(" _  e:expr _  ")" _   
+par
+    = _ "(" _  e:expr _  ")" _
     / atom
 
 atom
@@ -325,12 +378,12 @@ atom
     / fn
 
 //  number cannot have sign
-num 
-    = n:$([0-9]+ ("." [0-9]+)?)  
+num
+    = n:$([0-9]+ ("." [0-9]+)?)
 
 
-fn 
-    = "pow" _ "(" _ b:expr _ "," _ e:expr _ ")"  
+fn
+    = "pow" _ "(" _ b:expr _ "," _ e:expr _ ")"
 
 
 
