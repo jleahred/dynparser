@@ -1,10 +1,15 @@
 extern crate indentation_flattener;
 // use indentation_flattener::flatter;
 
+mod terminal;
 mod parser;
 
 
-include!(concat!(env!("OUT_DIR"), "/dinpeg.rs"));
+// include!(concat!(env!("OUT_DIR"), "/dinpeg.rs"));
+
+
+
+
 
 
 // #[test]
