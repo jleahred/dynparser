@@ -1,8 +1,57 @@
 extern crate indentation_flattener;
 // use indentation_flattener::flatter;
 
-mod terminal;
+use std::collections::HashMap;
+
+use expression::Expression;
+use parsing::{Parsing, ParsingText};
+
 mod parser;
+mod parsing;
+mod atom;
+mod expression;
+
+#[cfg(test)]
+mod tests;
+
+
+// -------------------------------------------------------------------------------------
+//  T Y P E S
+
+#[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
+pub struct Symbol(String);
+
+pub fn symbol(s: &str) -> Symbol {
+    Symbol(s.to_owned())
+}
+
+
+type Rules = HashMap<Symbol, Expression>;
+
+//  T Y P E S
+// -------------------------------------------------------------------------------------
+
+
+// -------------------------------------------------------------------------------------
+//  A P I
+
+pub fn parse(symbol: &Symbol, text: ParsingText, rules: &Rules) -> Result<(), String> {
+    let parsed = parser::parse(symbol, Parsing::new(&text.string()), rules);
+    match parsed {
+        Ok(_) => Ok(()),
+        Err(s) => Err(s),
+    }
+}
+
+//  A P I
+// -------------------------------------------------------------------------------------
+
+
+
+
+
+
+
 
 
 // include!(concat!(env!("OUT_DIR"), "/dinpeg.rs"));
