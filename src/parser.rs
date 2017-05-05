@@ -5,28 +5,47 @@
 // extern crate indentation_flattener;
 // use indentation_flattener::flatter
 
-use parsing::Parsing;
-use expression::Expression;
 use Symbol;
 use Rules;
+use Text2Parse;
 
 
 
+pub trait Parse {
+    fn parse(&self, text2parse: &Text2Parse, pars_pos: Possition) -> Result<Possition, String>;
+}
 
 
-pub fn parse(symbol: &Symbol, parsing: Parsing, rules: &Rules) -> Result<Parsing, String> {
-    let expr = rules.get(symbol).ok_or("undefined symbol")?;
 
+pub fn parse(text2parse: &Text2Parse,
+             symbol: &Symbol,
+             pars_pos: Possition,
+             rules: &Rules)
+             -> Result<Possition, String> {
+    let pars_pos = rules.get(symbol)
+        .ok_or("undefined symbol")?
+        .parse(text2parse, pars_pos)?;
 
-    let parsing = match expr {
-            &Expression::Atom(ref term) => term.parse(parsing),
-            _ => Err("Pending implementation".to_owned()),
-        }
-        ?;
-
-    if parsing.position.n == parsing.parsing_text.string().len() {
-        Ok(parsing)
+    if pars_pos.n == text2parse.string().len() {
+        Ok(pars_pos)
     } else {
         Err(format!("not consumed full input"))
+    }
+}
+
+
+#[derive(Debug, PartialEq, Default, Clone)]
+pub struct Possition {
+    pub n: usize,
+    pub col: usize,
+    pub row: usize,
+}
+
+
+
+
+impl Possition {
+    pub fn new() -> Self {
+        Possition { ..Possition::default() }
     }
 }

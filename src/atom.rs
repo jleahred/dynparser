@@ -1,4 +1,6 @@
-use parsing::Parsing;
+use parser;
+use parser::Parse;
+use Text2Parse;
 
 
 #[derive(Debug, PartialEq)]
@@ -10,41 +12,47 @@ pub enum Atom {
 }
 
 
-
-impl Atom {
-    pub fn parse(&self, parsing: Parsing) -> Result<Parsing, String> {
+impl Parse for Atom {
+    fn parse(&self,
+             text2parse: &Text2Parse,
+             pars_pos: parser::Possition)
+             -> Result<parser::Possition, String> {
         match self {
-            &Atom::Literal(ref s) => parse_literal(s, parsing),
-            &Atom::Dot => parse_dot(parsing),
+            &Atom::Literal(ref lit) => parse_literal(&text2parse, lit, pars_pos),
+            &Atom::Dot => parse_dot(&text2parse, pars_pos),
             _ => Err("pending implementation".to_owned()),
         }
     }
 }
 
 
-fn parse_literal(s: &str, mut parsing: Parsing) -> Result<Parsing, String> {
+fn parse_literal(text2parse: &Text2Parse,
+                 s: &str,
+                 mut pars_pos: parser::Possition)
+                 -> Result<parser::Possition, String> {
     let self_len = s.len();
-    let in_text = parsing.parsing_text
-        .string()
+    let in_text = text2parse.string()
         .chars()
-        .skip(parsing.position.n)
+        .skip(pars_pos.n)
         .take(self_len)
         .collect::<String>();
     if s == in_text {
-        parsing.position.n += self_len;
-        parsing.position.col += self_len;
-        Ok(parsing)
+        pars_pos.n += self_len;
+        pars_pos.col += self_len;
+        Ok(pars_pos)
     } else {
         Err("error parsing".to_owned())
     }
 }
 
-fn parse_dot(mut parsing: Parsing) -> Result<Parsing, String> {
-    match parsing.position.n < parsing.parsing_text.string().len() {
+fn parse_dot(text2parse: &Text2Parse,
+             mut pars_pos: parser::Possition)
+             -> Result<parser::Possition, String> {
+    match pars_pos.n < text2parse.string().len() {
         true => {
-            parsing.position.n += 1;
-            parsing.position.col += 1;
-            Ok(parsing)
+            pars_pos.n += 1;
+            pars_pos.col += 1;
+            Ok(pars_pos)
         }
         false => Err("expected any char on end of file".to_owned()),
     }

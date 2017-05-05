@@ -1,13 +1,13 @@
+// error with description possition, expected values
+
+
 extern crate indentation_flattener;
 // use indentation_flattener::flatter;
 
 use std::collections::HashMap;
 
 use expression::Expression;
-use parsing::{Parsing, ParsingText};
-
 mod parser;
-mod parsing;
 mod atom;
 mod expression;
 
@@ -25,6 +25,21 @@ pub fn symbol(s: &str) -> Symbol {
     Symbol(s.to_owned())
 }
 
+#[derive(Debug, PartialEq, Default)]
+pub struct Text2Parse(String);
+impl Text2Parse {
+    pub fn new(txt: &str) -> Self {
+        Text2Parse(txt.to_owned())
+    }
+    pub fn string(&self) -> &String {
+        &self.0
+    }
+}
+
+pub fn text2parse(txt: &str) -> Text2Parse {
+    Text2Parse(txt.to_owned())
+}
+
 
 type Rules = HashMap<Symbol, Expression>;
 
@@ -35,8 +50,8 @@ type Rules = HashMap<Symbol, Expression>;
 // -------------------------------------------------------------------------------------
 //  A P I
 
-pub fn parse(symbol: &Symbol, text: ParsingText, rules: &Rules) -> Result<(), String> {
-    let parsed = parser::parse(symbol, Parsing::new(&text.string()), rules);
+pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<(), String> {
+    let parsed = parser::parse(&text2parse, symbol, parser::Possition::new(), rules);
     match parsed {
         Ok(_) => Ok(()),
         Err(s) => Err(s),
