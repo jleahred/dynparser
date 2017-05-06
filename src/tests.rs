@@ -138,15 +138,10 @@ fn parse_symbol() {
     let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
     assert!(parsed.is_ok());
 
-    let rules = map!(symbol("main") => lit("aaaa"));
-    let parsed = parse(&text2parse("aaa"), &symbol("main"), &rules);
-    assert!(parsed.is_err());
-
-    let rules = map!(symbol("main") => lit("aaaa"));
-    let parsed = parse(&text2parse("aaaaa"), &symbol("main"), &rules);
-    assert!(parsed.is_err());
-
-    let rules = map!(symbol("main") => lit("aaaa"));
-    let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
+    let rules = map!(
+            symbol("main") => symref("inexistent"),
+            symbol("sa") => lit("aaaa")
+        );
+    let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
     assert!(parsed.is_err());
 }

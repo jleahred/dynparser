@@ -21,43 +21,42 @@ pub struct MultiExpr(pub Vec<Expression>);
 
 impl Parse for Expression {
     fn parse(&self,
-             pars_conf: &parser::Config,
-             pars_pos: parser::Possition)
-             -> Result<parser::Possition, Error> {
+             conf: &parser::Config,
+             status: parser::Status)
+             -> Result<parser::Status, Error> {
         match self {
-            &Expression::Simple(ref atom) => atom.parse(pars_conf, pars_pos),
-            &Expression::Or(MultiExpr(ref exprs)) => parse_or(pars_conf, exprs, pars_pos),
-            &Expression::And(MultiExpr(ref exprs)) => parse_and(pars_conf, exprs, pars_pos),
+            &Expression::Simple(ref atom) => atom.parse(conf, status),
+            &Expression::Or(MultiExpr(ref exprs)) => parse_or(conf, exprs, status),
+            &Expression::And(MultiExpr(ref exprs)) => parse_and(conf, exprs, status),
         }
     }
 }
 
 
-fn parse_or(pars_conf: &parser::Config,
+fn parse_or(conf: &parser::Config,
             exprs: &Vec<Expression>,
-            pars_pos: parser::Possition)
-            -> Result<parser::Possition, Error> {
+            status: parser::Status)
+            -> Result<parser::Status, Error> {
 
     let mut deep_error: Option<Error> = None;
     for e in exprs {
-        match e.parse(pars_conf, pars_pos.clone()) {
+        match e.parse(conf, status.clone()) {
             Ok(p) => return Ok(p),
-            Err(error) => deep_error = ::deep_error(&deep_error, &error),
+            Err(error) => deep_error = Some(::deep_error(&deep_error, &error)),
         }
     }
 
-    Err(error(&pars_pos,
-              "failed on or, pending getting best option for error message"))
+    Err(error(&status.pos, "emtpy or???"))
 }
 
 
-fn parse_and(pars_conf: &parser::Config,
+fn parse_and(conf: &parser::Config,
              exprs: &Vec<Expression>,
-             pars_pos: parser::Possition)
-             -> Result<parser::Possition, Error> {
-    let mut parst = pars_pos.clone();
+             status: parser::Status)
+             -> Result<parser::Status, Error> {
+    let mut parst = status.clone();
     for e in exprs {
-        parst = e.parse(pars_conf, parst.clone())?;
+        parst = e.parse(conf, parst.clone())?;
     }
     Ok(parst)
 }

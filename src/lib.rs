@@ -1,8 +1,7 @@
-// error with description possition, expected values
+// todo: in error, add info of parsing rule
 
 
 extern crate indentation_flattener;
-// use indentation_flattener::flatter;
 
 use std::collections::HashMap;
 
@@ -56,7 +55,7 @@ pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<
         text2parse: text2parse,
         rules: rules,
     };
-    let parsed = parser::parse(&config, symbol, parser::Possition::new());
+    let parsed = parser::parse(&config, symbol, parser::Status::new());
     match parsed {
         Ok(_) => Ok(()),
         Err(s) => Err(s),
@@ -86,18 +85,26 @@ fn error(pos: &parser::Possition, descr: &str) -> Error {
 }
 
 
-fn deep_error(err1: &Option<Error>, err2: &Error) -> Option<Error> {
+fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
+    use std::cmp::Ordering::{Equal, Less, Greater};
     match err1 {
         &Some(ref error) => {
-            match error.pos >= err2.pos {
-                true => Some(error.clone()),
-                false => Some(err2.clone()),
+            match error.pos.cmp(&err2.pos) {
+                Equal => {
+                    Error { descr: format!("{} {}", error.descr, err2.descr), ..error.clone() }
+                }
+                Greater => error.clone(),
+                Less => err2.clone(),
             }
         }
-        &None => Some(err2.clone()),
+        &None => err2.clone(),
     }
 }
 
+fn add_descr_error(mut error: Error, descr: &str) -> Error {
+    error.descr = format!("{} / {}", descr, error.descr);
+    error
+}
 
 
 

@@ -1,11 +1,5 @@
-// #![allow(dead_code)]
-// pending... remove
-
-
-// extern crate indentation_flattener;
-// use indentation_flattener::flatter
-
 use {Symbol, Rules, Text2Parse, Error, error};
+use parser;
 
 
 pub struct Config<'a> {
@@ -17,22 +11,21 @@ pub struct Config<'a> {
 
 
 pub trait Parse {
-    // fn parse(&self, text2parse: &Text2Parse, pars_pos: Possition) -> Result<Possition, Error>;
-    fn parse(&self, pars_conf: &Config, pars_pos: Possition) -> Result<Possition, Error>;
+    fn parse(&self, conf: &Config, status: parser::Status) -> Result<parser::Status, Error>;
 }
 
 
 
-pub fn parse(pars_conf: &Config, symbol: &Symbol, pars_pos: Possition) -> Result<Possition, Error> {
-    let pars_pos = pars_conf.rules
+pub fn parse(conf: &Config, symbol: &Symbol, status: parser::Status) -> Result<Status, Error> {
+    let status = conf.rules
         .get(symbol)
-        .ok_or(error(&pars_pos, "undefined symbol"))?
-        .parse(pars_conf, pars_pos)?;
+        .ok_or(error(&status.pos, &format!("undefined symbol {:?}", symbol)))?
+        .parse(conf, status)?;
 
-    if pars_pos.n == pars_conf.text2parse.string().len() {
-        Ok(pars_pos)
+    if status.pos.n == conf.text2parse.string().len() {
+        Ok(status)
     } else {
-        Err(error(&pars_pos, "not consumed full input"))
+        Err(error(&status.pos, "not consumed full input"))
     }
 }
 
@@ -44,13 +37,26 @@ pub struct Possition {
     pub row: usize,
 }
 
+#[derive(Debug, PartialEq, Default, Clone, PartialOrd)]
+pub struct Depth(pub u32);
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct Status {
     pub pos: Possition,
-    pub deep_error: Error,
+    pub depth: Depth,
+    pub deep_error: Option<Error>,
 }
 
+
+impl Status {
+    pub fn new() -> Self {
+        Status {
+            pos: Possition::new(),
+            depth: Depth(0),
+            deep_error: None,
+        }
+    }
+}
 
 
 

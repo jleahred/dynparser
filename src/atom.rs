@@ -1,26 +1,32 @@
-use {parser, Text2Parse, Error, error};
+use {parser, Text2Parse, Error, error, Symbol, symbol};
 use parser::Parse;
 
+
+const MAX_DEPTH: parser::Depth = parser::Depth(100);
 
 #[derive(Debug, PartialEq)]
 pub enum Atom {
     Literal(String),
-    Match,
+    Match(String, Vec<(char, char)>),
     Dot,
     Symbol(String),
+    Nothing,
 }
 
 
 impl Parse for Atom {
     fn parse(&self,
-             pars_conf: &parser::Config,
-             pars_pos: parser::Possition)
-             -> Result<parser::Possition, Error> {
+             conf: &parser::Config,
+             status: parser::Status)
+             -> Result<parser::Status, Error> {
         match self {
-            &Atom::Literal(ref lit) => parse_literal(&pars_conf.text2parse, lit, pars_pos),
-            &Atom::Dot => parse_dot(&pars_conf.text2parse, pars_pos),
-            &Atom::Symbol(ref sym) => parse_symbol(pars_conf, pars_pos),
-            _ => Err(error(&pars_pos, "pending implementation")),
+            &Atom::Literal(ref lit) => parse_literal(&conf.text2parse, lit, status),
+            &Atom::Dot => parse_dot(&conf.text2parse, status),
+            &Atom::Symbol(ref s) => parse_symbol(conf, &symbol(s), status),
+            &Atom::Match(ref chars, ref ch_ranges) => {
+                parse_match(&conf.text2parse, chars, ch_ranges, status)
+            }
+            &Atom::Nothing => Ok(status),
         }
     }
 }
@@ -28,46 +34,92 @@ impl Parse for Atom {
 
 fn parse_literal(text2parse: &Text2Parse,
                  s: &str,
-                 mut pars_pos: parser::Possition)
-                 -> Result<parser::Possition, Error> {
+                 mut status: parser::Status)
+                 -> Result<parser::Status, Error> {
     let self_len = s.len();
     let in_text = text2parse.string()
         .chars()
-        .skip(pars_pos.n)
+        .skip(status.pos.n)
         .take(self_len)
         .collect::<String>();
     if s == in_text {
-        pars_pos.n += self_len;
-        pars_pos.col += self_len;
-        Ok(pars_pos)
+        status.pos.n += self_len;
+        status.pos.col += self_len;
+        Ok(status)
     } else {
-        Err(error(&pars_pos, &format!("expected {}", s)))
+        Err(error(&status.pos, &format!("expected {}", s)))
     }
 }
 
-fn parse_dot(text2parse: &Text2Parse,
-             mut pars_pos: parser::Possition)
-             -> Result<parser::Possition, Error> {
-    match pars_pos.n < text2parse.string().len() {
+fn parse_dot(text2parse: &Text2Parse, mut status: parser::Status) -> Result<parser::Status, Error> {
+    match status.pos.n < text2parse.string().len() {
         true => {
-            pars_pos.n += 1;
-            pars_pos.col += 1;
-            Ok(pars_pos)
+            status.pos.n += 1;
+            status.pos.col += 1;
+            Ok(status)
         }
-        false => Err(error(&pars_pos, &format!("expected any char on end of file"))),
+        false => Err(error(&status.pos, &format!("expected any char on end of file"))),
     }
 }
 
 
-fn parse_symbol(pars_conf: &parser::Config,
-                mut pars_pos: parser::Possition)
-                -> Result<parser::Possition, Error> {
-    match pars_pos.n < pars_conf.text2parse.string().len() {
+fn parse_symbol(conf: &parser::Config,
+                symbol: &Symbol,
+                status: parser::Status)
+                -> Result<parser::Status, Error> {
+    let result = match status.depth > MAX_DEPTH {
         true => {
-            pars_pos.n += 1;
-            pars_pos.col += 1;
-            Ok(pars_pos)
+            Err(error(&status.pos,
+                      &format!("too depth processing symbol {:?}", symbol)))
         }
-        false => Err(error(&pars_pos, &format!("expected any char on end of file"))),
+        false => parser::parse(conf, symbol, status),
+    };
+
+    match result {
+        Ok(_) => result,
+        Err(error) => Err(::add_descr_error(error, &format!("paring rule <{:?}>", symbol))),
+    }
+}
+
+fn parse_match(text2parse: &Text2Parse,
+               chars: &String,
+               ch_ranges: &Vec<(char, char)>,
+               mut status: parser::Status)
+               -> Result<parser::Status, Error> {
+
+    fn match_ch(ch: char, chars: &String, ch_ranges: &Vec<(char, char)>) -> bool {
+        if chars.find(ch).is_some() {
+            true
+        } else {
+            for &(b, t) in ch_ranges {
+                if b < ch && ch < t {
+                    return true;
+                }
+            }
+            false
+        }
+    }
+    fn _error(status: &parser::Status, chars: &String, ch_ranges: &Vec<(char, char)>) -> Error {
+        error(&status.pos, &format!("expected {} {:?}", chars, ch_ranges))
+    }
+
+    let next_charv = text2parse.string()
+        .chars()
+        .skip(status.pos.n)
+        .take(1)
+        .collect::<Vec<char>>();
+    let next_char = next_charv.first();
+
+    match next_char {
+        Some(ch) => {
+            if match_ch(*ch, chars, ch_ranges) {
+                status.pos.n += 1;
+                status.pos.col += 1;
+                Ok(status)
+            } else {
+                Err(_error(&status, chars, ch_ranges))
+            }
+        }
+        None => Err(_error(&status, chars, ch_ranges)),
     }
 }
