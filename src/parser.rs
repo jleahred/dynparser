@@ -8,23 +8,28 @@
 use {Symbol, Rules, Text2Parse, Error, error};
 
 
-
-pub trait Parse {
-    fn parse(&self, text2parse: &Text2Parse, pars_pos: Possition) -> Result<Possition, Error>;
+pub struct Config<'a> {
+    pub text2parse: &'a Text2Parse,
+    pub rules: &'a Rules,
 }
 
 
 
-pub fn parse(text2parse: &Text2Parse,
-             symbol: &Symbol,
-             pars_pos: Possition,
-             rules: &Rules)
-             -> Result<Possition, Error> {
-    let pars_pos = rules.get(symbol)
-        .ok_or(error(&pars_pos, "undefined symbol"))?
-        .parse(text2parse, pars_pos)?;
 
-    if pars_pos.n == text2parse.string().len() {
+pub trait Parse {
+    // fn parse(&self, text2parse: &Text2Parse, pars_pos: Possition) -> Result<Possition, Error>;
+    fn parse(&self, pars_conf: &Config, pars_pos: Possition) -> Result<Possition, Error>;
+}
+
+
+
+pub fn parse(pars_conf: &Config, symbol: &Symbol, pars_pos: Possition) -> Result<Possition, Error> {
+    let pars_pos = pars_conf.rules
+        .get(symbol)
+        .ok_or(error(&pars_pos, "undefined symbol"))?
+        .parse(pars_conf, pars_pos)?;
+
+    if pars_pos.n == pars_conf.text2parse.string().len() {
         Ok(pars_pos)
     } else {
         Err(error(&pars_pos, "not consumed full input"))

@@ -41,6 +41,9 @@ pub struct Error {
     pub descr: String,
 }
 
+
+
+
 //  T Y P E S
 // -------------------------------------------------------------------------------------
 
@@ -49,7 +52,11 @@ pub struct Error {
 //  A P I
 
 pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<(), Error> {
-    let parsed = parser::parse(&text2parse, symbol, parser::Possition::new(), rules);
+    let config = parser::Config {
+        text2parse: text2parse,
+        rules: rules,
+    };
+    let parsed = parser::parse(&config, symbol, parser::Possition::new());
     match parsed {
         Ok(_) => Ok(()),
         Err(s) => Err(s),

@@ -15,21 +15,26 @@ use atom::Atom;
 use {symbol, parse, text2parse};
 use expression::{Expression, MultiExpr};
 
-pub fn lit(s: &str) -> Expression {
+fn lit(s: &str) -> Expression {
     Expression::Simple(Atom::Literal(s.to_owned()))
 }
 
-pub fn dot() -> Expression {
+fn dot() -> Expression {
     Expression::Simple(Atom::Dot)
 }
 
-pub fn or(exp_list: Vec<Expression>) -> Expression {
+fn or(exp_list: Vec<Expression>) -> Expression {
     Expression::Or(MultiExpr(exp_list))
 }
 
-pub fn and(exp_list: Vec<Expression>) -> Expression {
+fn and(exp_list: Vec<Expression>) -> Expression {
     Expression::And(MultiExpr(exp_list))
 }
+
+fn symref(s: &str) -> Expression {
+    Expression::Simple(Atom::Symbol(s.to_owned()))
+}
+
 
 
 
@@ -96,5 +101,52 @@ fn parse_and() {
     let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
     assert!(parsed.is_err());
     let parsed = parse(&text2parse("cccc"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+}
+
+
+#[test]
+fn parse_or_and() {
+    let rules = map!(symbol("main") => 
+            or(vec![
+                and(vec![lit("aaaa"), lit("cccc")]),
+                and(vec![lit("aaaa"), lit("bbbb")])
+            ])
+        );
+
+    let parsed = parse(&text2parse("aaaabbbb"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+    let parsed = parse(&text2parse("aaaacccc"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+
+    let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+    let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+    let parsed = parse(&text2parse("cccc"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+}
+
+
+#[test]
+fn parse_symbol() {
+    let rules = map!(
+            symbol("main") => symref("sa"),
+            symbol("sa") => lit("aaaa")
+        );
+    let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let rules = map!(symbol("main") => lit("aaaa"));
+    let parsed = parse(&text2parse("aaa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let rules = map!(symbol("main") => lit("aaaa"));
+    let parsed = parse(&text2parse("aaaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let rules = map!(symbol("main") => lit("aaaa"));
+    let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
     assert!(parsed.is_err());
 }
