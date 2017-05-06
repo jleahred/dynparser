@@ -1,0 +1,487 @@
+= DInPEG
+
+
+Dynamic INdentation PEG parser.
+
+I want a dynamic PEG parser, and I'm also interested to work with
+indentations.
+
+This project uses https://github.com/jleahred/indentation_flattener[indentation_flattener],
+and it will be used in DTC (Dynamic Text Compiler) pending... A process to transform text.
+Useful for create DSLs.
+
+
+
+== Usage
+
+Add to `cargo.toml`
+[source, toml]
+----
+[dependencies]
+pending...
+----
+
+See example below
+
+
+
+== Modifs
+
+0.1.0  First version
+
+
+== Input
+
+The input is a text with indentations.
+
+https://github.com/jleahred/indentation_flattener[indentation_flattener] will transform to
+a plain text with `PUSH_INDENT` and `POP_INDENT`
+
+For information about indentation format, check on
+https://github.com/jleahred/indentation_flattener[indentation_flattener]
+
+
+.Plain text Input
+[source, rust]
+----
+0
+     || 01a
+     01b
+     01c
+
+     02a
+     02b
+
+        |020a
+        ||020b
+
+        |  021a
+        |021b
+1a
+1b
+    11a
+    ||11b
+    11c
+
+    12a  ||
+    |12b  ||
+2a
+    21a
+    21b
+    |
+    |
+----
+
+.Input transformed from indentation_flattener
+[source, rust]
+----
+0
+\u{2}| 01a
+01b
+01c
+
+02a
+02b
+
+\u{2}020a
+|020b
+
+  021a
+021b
+\u{3}\u{3}1a
+1b
+\u{2}11a
+|11b
+11c
+
+12a  |
+12b  |
+\u{3}2a
+\u{2}21a
+21b
+
+
+
+\u{3}"));
+----
+
+Remember `\u{2}` means `PUSH_INDENT`, and `\u{3}` `POP_INDENT`
+
+
+== Grammar format
+
+Let's see by example:
+
+
+Let's try to define a grammar to parse next python code.
+
+[NOTE]
+Parsing python code is far from what I'm looking for, but it
+could be a good example to explain and test the grammar.
+
+
+.Simple Python code
+[source, python]
+----
+def foo(x):
+    if x == 0:
+        bar()
+        baz()
+    else:
+        qux(x)
+        foo(x - 1)
+----
+
+Could be something similar to...
+
+.Grammar for simple python code
+[source, peg]
+----
+main = def
+
+def = "def" _ func_name _ "(" _ params _ "):" _ eol+ $INDENT(body)
+----
+
+The grammar is indent-sensitive and white spaces and end-of-line are not relevant
+(except for marking different tokens)
+
+The rule can be written on one line (as before) or in an indented block.
+
+Therefore, the next one, is equivalent.
+
+.Grammar for simple python code
+[source, peg]
+----
+main = def
+def
+    = "def" _ func_name _ "(" _ params _ "):" _ eol+
+    |           $INDENT(body)
+----
+
+When we write $INDENT(<rule>), we are validating at this possition the existence
+of `PUSH_INDENT` and `POP_INDENT`...
+
+----
+\u{2}<rule>\u{3}
+----
+
+.Grammar for simple python code
+[source, peg]
+----
+main = def
+
+def
+    = "def" _ func_name _ "(" _ params _ "):" _  eol+
+    |               $INDENT(stament*)
+
+func_name =  id
+
+params
+    =  id _ "," _ params
+    /  id
+
+id  = [A-Za-z][A-Za-z0-9_]*
+eol = "\n"
+_   = " "*
+
+stament
+    = expr
+    / if
+
+if
+    = "if" _ expr _ ":" _
+    |       $INDENT(stament*)
+    |  "else:" _
+    |       $INDENT(stament*)
+----
+
+I kept `$INDENT(stament*)` in several lines to show how indent works. But it would
+be more clear factorizing...
+
+
+.Grammar for simple python code
+[source, peg]
+----
+main = def
+
+def
+    = "def" _ func_name _ "(" _ params _ "):" _  eol+
+    |       body
+
+func_name = id
+
+params
+    =  id _ "," _ params
+    /  id
+
+id  = [A-Za-z][A-Za-z0-9_]*
+eol = "\n"
+_   = " "*
+
+body = $INDENT(stament*)
+
+stament
+    = expr
+    / if
+
+if
+    =  "if" _ expr _ ":" _
+    |        body
+    |  "else:" _
+    |        body
+----
+
+
+Obviously if you don't use $INDENT(<...>) token, this will work
+with non indented grammar.
+
+.Not indented grammar, simple math expr validator
+[source, peg]
+----
+expr
+    = [\+\-]? num operator expr
+    / "(" expr ")" (operator expr)*
+    / num
+----
+
+
+=== Removing confusion from `|` and `/`
+
+`|` and `/` looks very similar.
+
+`|` at the beggining of line means start line,  and `/` means `or` on peg rule.
+
+To avoid confusion with these symbols, we can write with indentation blocks.
+
+Next two examples are equivalent:
+
+[source, peg]
+----
+if
+    =  "if" _ expr _ ":" _
+    |        body
+    |  "else:" _
+    |        body
+----
+
+[source, peg]
+----
+if =
+    >
+       "if" _ expr _ ":" _
+             body
+       "else:" _
+             body
+    >
+----
+
+
+
+
+
+== Grammar elements
+
+Grammar::
+A grammar is a sequence of rules
+----
+grammar = rule+
+----
+
+rule::
+Are composed of options of sequence of elements
+----
+rule = options
+----
+
+options::
+----
+options
+     = element_seq "/" options
+     / element_seq
+----
+
+
+element_seq::
+----
+element_seq
+    =  "(" _ element_seq _ ")" _  options
+    /  element " "+ element_seq
+    /  element
+----
+
+element::
+----
+element
+    = literal
+    / match
+    / dot
+----
+
+literal::
+----
+literal = "\"" (!"\"" .)  "\""
+----
+
+
+match::
+----
+match = "[" re "]"
+re = (!"]" .)+
+----
+
+
+.pending...
+----
+params, modifiers, negation (it doesn't move the possition)
+----
+
+
+
+
+.Not indented grammar, math expression
+[source, peg]
+----
+pub expr
+    =  _ s:sum _
+    /  _ e:sexpr _       //  signed expresion  +1-2
+
+//  signed expressions
+//  trick on  e:sexpr?
+sexpr
+    =   _ s:sign v:(par / atom) _  "*" _  r:fact  e:sexpr?
+    /   _ s:sign v:(par / atom) _  "/" _  r:fact  e:sexpr?
+    /   _ s:sign v:(par / atom) _  "+" _  r:sum
+    /   _ s:sign v:(par / atom) _  "-" _  r:sum
+    /   _ s:sign v:(par / atom)
+
+
+sign
+    = "+"
+    / "-"
+
+sum
+    =  l:fact _ "+" _ r:sum
+    /  l:fact _ "-" _ r:sum
+    /  fact
+
+fact
+    =  l:par _ "*" _ r:fact
+    /  l:par _ "/" _ r:fact
+    /  par
+
+par
+    = _ "(" _  e:expr _  ")" _
+    / atom
+
+atom
+    = num
+    / fn
+
+//  number cannot have sign
+num
+    = n:$([0-9]+ ("." [0-9]+)?)
+
+
+fn
+    = "pow" _ "(" _ b:expr _ "," _ e:expr _ ")"
+
+
+
+//  ------------------------------------------------------------
+//  spaces and comments
+_ = #quiet<(whitespace / eol / comment)*>
+
+/* Modeled after ECMA-262, 5th ed., 7.4. */
+comment
+  = "//" (!eolChar .)*
+  / "/*" (!"*/" .)* "*/"
+
+/* Modeled after ECMA-262, 5th ed., 7.3. */
+eol
+  = "\n"
+  / "\r\n"
+  / "\r"
+  / "\u{2028}"
+  / "\u{2029}"
+
+eolChar
+  = [\n\r\u{2028}\u{2029}]
+
+/* Modeled after ECMA-262, 5th ed., 7.2. */
+whitespace
+  = [ \t\u{00A0}\u{FEFF}\u{1680}\u{180E}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}] // \v\f removed
+//  spaces and comments
+//  ------------------------------------------------------------
+----
+
+
+
+
+
+
+
+== API
+
+It works with concrete types vs general types (as String, u32 or usize)
+
+
+Constants::
+[source, rust]
+----
+pending
+----
+
+
+Concrete types::
+[source, rust]
+----
+pending
+----
+
+
+Functions to call::
+[source, rust]
+----
+pending
+----
+
+
+
+Error type::
+[source, rust]
+----
+#[derive(Debug, PartialEq)]
+pub struct Error {
+    pub line: LineNum,
+    pub desc: String,
+}
+----
+
+
+Thats all
+
+
+Look into lib.rs
+
+
+== Examples
+
+You can look into tests.rs, there are several tests.
+
+
+.Simple example
+[source, rust]
+----
+pending...
+----
+
+
+
+.Complex example
+[source, rust]
+----
+pending...
+----
+
+More examples on tests.rs
+
