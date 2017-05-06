@@ -48,7 +48,10 @@ fn parse_or(conf: &parser::Config,
         }
     }
 
-    Err(error(&status.pos, "emtpy or???"))
+    match deep_error {
+        Some(err) => Err(err),
+        None => Err(error(&status.pos, "emtpy or???")),
+    }
 }
 
 

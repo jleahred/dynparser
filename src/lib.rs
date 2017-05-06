@@ -1,4 +1,6 @@
 // todo: ast
+// Err(Error { pos: Possition { n: 10, col: 10, row: 0 }, descr: "Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / negation error" }) __________
+//  add start and plus on expressions
 
 
 extern crate indentation_flattener;

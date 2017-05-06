@@ -23,6 +23,10 @@ fn dot() -> Expression {
     Expression::Simple(Atom::Dot)
 }
 
+// fn nothing() -> Expression {
+//     Expression::Simple(Atom::Nothing)
+// }
+
 fn or(exp_list: Vec<Expression>) -> Expression {
     Expression::Or(MultiExpr(exp_list))
 }
@@ -114,7 +118,7 @@ fn parse_and() {
 
 #[test]
 fn parse_or_and() {
-    let rules = map!(symbol("main") => 
+    let rules = map!(symbol("main") =>
             or(vec![
                 and(vec![lit("aaaa"), lit("cccc")]),
                 and(vec![lit("aaaa"), lit("bbbb")])
@@ -156,7 +160,7 @@ fn parse_symbol() {
 
 #[test]
 fn parse_negation() {
-    let rules = map!(symbol("main") => 
+    let rules = map!(symbol("main") =>
         and(vec![
             not(and(vec![lit("aaaa"), lit("bbbb")])),
             lit("aaaa"),
@@ -168,4 +172,32 @@ fn parse_negation() {
 
     let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
     assert!(parsed.is_ok());
+}
+
+#[test]
+fn parse_negation_dot_simulate_klein_start() {
+    let rules = map!(symbol("main") =>
+        or(vec![
+            and(vec![
+                    not(lit("~")),
+                    dot(),
+                    symref("main")
+            ]),
+            lit("~"),
+        ])
+    );
+
+    let parsed = parse(&text2parse("123456789~"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("123456789~abcd"), &symbol("main"), &rules);
+    println!("{:?} __________", parsed);
+    assert!(parsed.is_ok());
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("~123456789~abcd"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("123456789abcd"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
 }

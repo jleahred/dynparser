@@ -77,7 +77,7 @@ fn parse_symbol(conf: &parser::Config,
 
     match result {
         Ok(_) => result,
-        Err(error) => Err(::add_descr_error(error, &format!("paring rule <{:?}>", symbol))),
+        Err(error) => Err(::add_descr_error(error, &format!("{:?}", symbol))),
     }
 }
 
