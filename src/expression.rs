@@ -8,6 +8,7 @@ pub enum Expression {
     Simple(Atom),
     Or(MultiExpr),
     And(MultiExpr),
+    Not(Box<Expression>),
 }
 
 
@@ -28,6 +29,7 @@ impl Parse for Expression {
             &Expression::Simple(ref atom) => atom.parse(conf, status),
             &Expression::Or(MultiExpr(ref exprs)) => parse_or(conf, exprs, status),
             &Expression::And(MultiExpr(ref exprs)) => parse_and(conf, exprs, status),
+            &Expression::Not(ref exprs) => parse_negate(conf, exprs, status),
         }
     }
 }
@@ -59,4 +61,16 @@ fn parse_and(conf: &parser::Config,
         parst = e.parse(conf, parst.clone())?;
     }
     Ok(parst)
+}
+
+
+fn parse_negate(conf: &parser::Config,
+                expr: &Expression,
+                status: parser::Status)
+                -> Result<parser::Status, Error> {
+
+    match expr.parse(conf, status.clone()) {
+        Ok(result) => Err(error(&result.pos, "negation error")),
+        Err(_) => Ok(status),
+    }
 }

@@ -1,4 +1,4 @@
-// todo: in error, add info of parsing rule
+// todo: ast
 
 
 extern crate indentation_flattener;

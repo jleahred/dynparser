@@ -35,6 +35,10 @@ fn symref(s: &str) -> Expression {
     Expression::Simple(Atom::Symbol(s.to_owned()))
 }
 
+fn not(expr: Expression) -> Expression {
+    Expression::Not(Box::new(expr))
+}
+
 
 
 
@@ -80,6 +84,9 @@ fn parse_or() {
     let rules = map!(symbol("main") => or(vec![lit("aaaa"), lit("bbbb")]));
 
     let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
     assert!(parsed.is_ok());
 
 
@@ -144,4 +151,21 @@ fn parse_symbol() {
         );
     let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
     assert!(parsed.is_err());
+}
+
+
+#[test]
+fn parse_negation() {
+    let rules = map!(symbol("main") => 
+        and(vec![
+            not(and(vec![lit("aaaa"), lit("bbbb")])),
+            lit("aaaa"),
+        ])
+    );
+
+    let parsed = parse(&text2parse("aaaabbbb"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
 }
