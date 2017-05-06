@@ -12,9 +12,7 @@ macro_rules! map(
 
 
 use atom::Atom;
-use ::symbol;
-use ::parse;
-use text2parse;
+use {symbol, parse, text2parse};
 use expression::{Expression, MultiExpr};
 
 pub fn lit(s: &str) -> Expression {
@@ -27,6 +25,10 @@ pub fn dot() -> Expression {
 
 pub fn or(exp_list: Vec<Expression>) -> Expression {
     Expression::Or(MultiExpr(exp_list))
+}
+
+pub fn and(exp_list: Vec<Expression>) -> Expression {
+    Expression::And(MultiExpr(exp_list))
 }
 
 
@@ -76,6 +78,23 @@ fn parse_or() {
     assert!(parsed.is_ok());
 
 
+    let parsed = parse(&text2parse("cccc"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+}
+
+
+#[test]
+fn parse_and() {
+    let rules = map!(symbol("main") => and(vec![lit("aaaa"), lit("bbbb")]));
+
+    let parsed = parse(&text2parse("aaaabbbb"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+
+    let parsed = parse(&text2parse("aaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+    let parsed = parse(&text2parse("bbbb"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
     let parsed = parse(&text2parse("cccc"), &symbol("main"), &rules);
     assert!(parsed.is_err());
 }

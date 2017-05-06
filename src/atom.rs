@@ -1,6 +1,5 @@
-use parser;
+use {parser, Text2Parse, Error, error};
 use parser::Parse;
-use Text2Parse;
 
 
 #[derive(Debug, PartialEq)]
@@ -16,11 +15,11 @@ impl Parse for Atom {
     fn parse(&self,
              text2parse: &Text2Parse,
              pars_pos: parser::Possition)
-             -> Result<parser::Possition, String> {
+             -> Result<parser::Possition, Error> {
         match self {
             &Atom::Literal(ref lit) => parse_literal(&text2parse, lit, pars_pos),
             &Atom::Dot => parse_dot(&text2parse, pars_pos),
-            _ => Err("pending implementation".to_owned()),
+            _ => Err(error(&pars_pos, "pending implementation")),
         }
     }
 }
@@ -29,7 +28,7 @@ impl Parse for Atom {
 fn parse_literal(text2parse: &Text2Parse,
                  s: &str,
                  mut pars_pos: parser::Possition)
-                 -> Result<parser::Possition, String> {
+                 -> Result<parser::Possition, Error> {
     let self_len = s.len();
     let in_text = text2parse.string()
         .chars()
@@ -41,19 +40,19 @@ fn parse_literal(text2parse: &Text2Parse,
         pars_pos.col += self_len;
         Ok(pars_pos)
     } else {
-        Err("error parsing".to_owned())
+        Err(error(&pars_pos, &format!("expected {}", s)))
     }
 }
 
 fn parse_dot(text2parse: &Text2Parse,
              mut pars_pos: parser::Possition)
-             -> Result<parser::Possition, String> {
+             -> Result<parser::Possition, Error> {
     match pars_pos.n < text2parse.string().len() {
         true => {
             pars_pos.n += 1;
             pars_pos.col += 1;
             Ok(pars_pos)
         }
-        false => Err("expected any char on end of file".to_owned()),
+        false => Err(error(&pars_pos, &format!("expected any char on end of file"))),
     }
 }
