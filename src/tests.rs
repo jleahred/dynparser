@@ -191,8 +191,6 @@ fn parse_negation_dot_simulate_klein_start() {
     assert!(parsed.is_ok());
 
     let parsed = parse(&text2parse("123456789~abcd"), &symbol("main"), &rules);
-    println!("{:?} __________", parsed);
-    assert!(parsed.is_ok());
     assert!(parsed.is_err());
 
     let parsed = parse(&text2parse("~123456789~abcd"), &symbol("main"), &rules);

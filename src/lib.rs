@@ -1,7 +1,8 @@
 // todo: ast
-// Err(Error { pos: Possition { n: 10, col: 10, row: 0 }, descr: "Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / Symbol(\"main\") / negation error" }) __________
 //  add start and plus on expressions
 
+
+const TRUNCATE_ERROR: usize = 100;
 
 extern crate indentation_flattener;
 
@@ -88,9 +89,9 @@ fn error(pos: &parser::Possition, descr: &str) -> Error {
 
 
 fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
-    use std::cmp::Ordering::{Equal, Less, Greater};
-    match err1 {
+    let mut result = match err1 {
         &Some(ref error) => {
+            use std::cmp::Ordering::{Equal, Less, Greater};
             match error.pos.cmp(&err2.pos) {
                 Equal => {
                     Error { descr: format!("{} {}", error.descr, err2.descr), ..error.clone() }
@@ -100,11 +101,22 @@ fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
             }
         }
         &None => err2.clone(),
-    }
+    };
+
+    let result_len = result.descr.len();
+    if result_len > TRUNCATE_ERROR {
+        result.descr = format!("...{}",
+                               result.descr
+                                   .chars()
+                                   .skip(result_len - TRUNCATE_ERROR)
+                                   .take(TRUNCATE_ERROR)
+                                   .collect::<String>());
+    };
+    result
 }
 
 fn add_descr_error(mut error: Error, descr: &str) -> Error {
-    error.descr = format!("{} / {}", descr, error.descr);
+    error.descr = format!("{} > {}", descr, error.descr);
     error
 }
 
