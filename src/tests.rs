@@ -13,7 +13,7 @@ macro_rules! map(
 
 use atom::Atom;
 use {symbol, parse, text2parse};
-use expression::{Expression, MultiExpr};
+use expression::{Expression, MultiExpr, NRep};
 
 fn lit(s: &str) -> Expression {
     Expression::Simple(Atom::Literal(s.to_owned()))
@@ -43,7 +43,9 @@ fn not(expr: Expression) -> Expression {
     Expression::Not(Box::new(expr))
 }
 
-
+fn repeat(expr: Expression, min: NRep, max: Option<NRep>) -> Expression {
+    Expression::Repeat(Box::new(expr), min, max)
+}
 
 
 
@@ -198,4 +200,48 @@ fn parse_negation_dot_simulate_klein_start() {
 
     let parsed = parse(&text2parse("123456789abcd"), &symbol("main"), &rules);
     assert!(parsed.is_err());
+}
+
+#[test]
+fn parse_repeating() {
+    let rules = map!(symbol("main") =>
+        repeat(lit("a"), NRep(1), Some(NRep(5)))
+    );
+
+    let parsed = parse(&text2parse("aaaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("a"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("aaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse(""), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("aaaaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+}
+
+#[test]
+fn parse_klein() {
+    let rules = map!(symbol("main") =>
+        repeat(lit("a"), NRep(0), None)
+    );
+
+    let parsed = parse(&text2parse("aaaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("a"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("aaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse(""), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("aaaaaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
 }

@@ -88,20 +88,27 @@ fn parse_negate(conf: &parser::Config,
 fn parse_repeat(conf: &parser::Config,
                 expr: &Expression,
                 status: parser::Status,
-                min: NRep,
-                omax: Option<NRep>)
+                min: &NRep,
+                omax: &Option<NRep>)
                 -> Result<parser::Status, Error> {
 
-    let parse_repeat_max = |max| 1;
-    let parse_repeat_no_limit = || 1;
+    let max_reached = |i| omax.as_ref().map_or(false, |ref m| i >= m.0);
+    let last_ok_or =
+        |lok: Option<parser::Status>, ref status| lok.as_ref().unwrap_or(&status).clone();
 
-    let (repeated, end_status) = match omax {
-        Some(max) => parse_repeat_max(max),
-        None => parse_repeat_no_limit(),
-    };
+    let mut opt_lastokst = None;
+    for i in 1.. {
+        let st = last_ok_or(opt_lastokst.clone(), status.clone());
+        let last_result = expr.parse(conf, st);
 
-    match repeated.0 >= min.0 {
-        true => Ok(status),
-        false => Err(error(&status.pos, &format!("not enought repetitions {:?}", expr))),
+        opt_lastokst = last_result.clone().ok().or(opt_lastokst);
+        if max_reached(i) || last_result.is_err() {
+            match (i > min.0, opt_lastokst) {
+                (true, Some(lok)) => return Ok(lok.clone()),
+                (true, None) => return Ok(status),
+                (_, _) => return Err(error(&status.pos, "not enougth repetitions")),
+            }
+        }
     }
+    Err(error(&status.pos, "stupid line waitting for #37339"))
 }
