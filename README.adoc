@@ -15,7 +15,7 @@ Add to `cargo.toml`
 pending...
 ----
 
-See example below
+See examples below
 
 
 
@@ -86,13 +86,26 @@ Or conditions `/`
 main = "hello" / "hi"
 ----
 
+[NOTE]
+Indentation sensitive
+
 .Or multiline
 [source, peg]
 ----
 main
     = "hello"
     / "hi"
+    / "hola"
 ----
+
+.Or multiline 2
+[source, peg]
+----
+main = "hello"
+     / "hi"
+     / "hola"
+----
+
 
 .Or disorganized
 [source, peg]
@@ -126,6 +139,14 @@ main
     " world"
 ----
 
+.Multiline3
+[source, peg]
+----
+main = ("hello" / "hi")
+     " world"
+----
+
+
 It is recomended to use or operator `/` on each new line and `=` kept on first line, like
 
 
@@ -153,18 +174,17 @@ zero_or_many = "b"*
 
 Negation will not move current possition
 
-Next example is consume till get an "a"
+Next example will consume all chars till get an "a"
 
 .Negation
 [source, peg]
 ----
-main = (!"a" .)*
+main = (!"a" .)* "a"
 ----
 
 .Consume till
 [source, peg]
 ----
-main    = comment*
 comment = "//" (!"\n" .)*
         / "/*" (!"*/" .)* "*/"
 ----
@@ -185,6 +205,7 @@ a_or_b_or_digit  = [ab0-9]
 
 
 Simple recursion
+
 .one or more "a" recursive
 [source, peg]
 ----
@@ -304,8 +325,50 @@ More examples on tests.rs
 
 == Hacking the code
 
+The grammar is a set of rules
 
 [source, rust]
 ----
 type Rules = HashMap<Symbol, Expression>;
+----
+
+A Symbol is just a String
+[source, rust]
+----
+#[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
+pub struct Symbol(pub String);
+----
+
+
+An expression can be one of...
+
+[source, rust]
+----
+#[derive(Debug)]
+pub enum Expression {
+    Simple(Atom),
+    Or(MultiExpr),
+    And(MultiExpr),
+    Not(Box<Expression>),
+    Repeat(Box<Expression>, NRep, Option<NRep>), //  min max
+}
+----
+
+An atom can be just...
+
+[source, rust]
+----
+#[derive(Debug, PartialEq)]
+pub enum Atom {
+    Literal(String),
+    Match(String, Vec<(char, char)>),
+    Dot,
+    Symbol(String),
+    Nothing,
+}
+----
+
+
+[source, rust]
+----
 ----

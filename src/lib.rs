@@ -20,7 +20,7 @@ mod tests;
 //  T Y P E S
 
 #[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
-pub struct Symbol(String);
+pub struct Symbol(pub String);
 
 pub fn symbol(s: &str) -> Symbol {
     Symbol(s.to_owned())
