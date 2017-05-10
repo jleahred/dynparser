@@ -1,5 +1,4 @@
 // todo: ast
-//  add start and plus on expressions
 
 
 const TRUNCATE_ERROR: usize = 100;
@@ -28,7 +27,7 @@ pub fn symbol(s: &str) -> Symbol {
 }
 
 #[derive(Debug, PartialEq, Default)]
-pub struct Text2Parse(String);
+pub struct Text2Parse(pub String);
 
 pub fn text2parse(txt: &str) -> Text2Parse {
     Text2Parse(txt.to_owned())
@@ -71,14 +70,6 @@ pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<
 
 
 
-impl Text2Parse {
-    pub fn new(txt: &str) -> Self {
-        Text2Parse(txt.to_owned())
-    }
-    pub fn string(&self) -> &String {
-        &self.0
-    }
-}
 
 fn error(pos: &parser::Possition, descr: &str) -> Error {
     Error {

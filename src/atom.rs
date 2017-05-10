@@ -37,7 +37,7 @@ fn parse_literal(text2parse: &Text2Parse,
                  mut status: parser::Status)
                  -> Result<parser::Status, Error> {
     let self_len = s.len();
-    let in_text = text2parse.string()
+    let in_text = text2parse.0
         .chars()
         .skip(status.pos.n)
         .take(self_len)
@@ -52,7 +52,7 @@ fn parse_literal(text2parse: &Text2Parse,
 }
 
 fn parse_dot(text2parse: &Text2Parse, mut status: parser::Status) -> Result<parser::Status, Error> {
-    match status.pos.n < text2parse.string().len() {
+    match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.n += 1;
             status.pos.col += 1;
@@ -67,18 +67,14 @@ fn parse_symbol(conf: &parser::Config,
                 symbol: &Symbol,
                 status: parser::Status)
                 -> Result<parser::Status, Error> {
-    let result = match status.depth > MAX_DEPTH {
-        true => {
-            Err(error(&status.pos,
-                      &format!("too depth processing symbol {:?}", symbol)))
+    match status.depth > MAX_DEPTH {
+            true => {
+                Err(error(&status.pos,
+                          &format!("too depth processing symbol {:?}", symbol)))
+            }
+            false => parser::parse(conf, symbol, status),
         }
-        false => parser::parse(conf, symbol, status),
-    };
-
-    match result {
-        Ok(_) => result,
-        Err(error) => Err(::add_descr_error(error, &format!("{:?}", symbol))),
-    }
+        .map_err(|error| ::add_descr_error(error, &format!("{:?}", symbol)))
 }
 
 fn parse_match(text2parse: &Text2Parse,
@@ -99,27 +95,24 @@ fn parse_match(text2parse: &Text2Parse,
             false
         }
     }
-    fn _error(status: &parser::Status, chars: &String, ch_ranges: &Vec<(char, char)>) -> Error {
-        error(&status.pos, &format!("expected {} {:?}", chars, ch_ranges))
-    }
+    let _error = error(&status.pos.clone(),
+                       &format!("expected {} {:?}", chars, ch_ranges));
 
-    let next_charv = text2parse.string()
+    let next_char = text2parse.0
         .chars()
         .skip(status.pos.n)
-        .take(1)
-        .collect::<Vec<char>>();
-    let next_char = next_charv.first();
+        .next();
 
     match next_char {
         Some(ch) => {
-            if match_ch(*ch, chars, ch_ranges) {
+            if match_ch(ch, chars, ch_ranges) {
                 status.pos.n += 1;
                 status.pos.col += 1;
                 Ok(status)
             } else {
-                Err(_error(&status, chars, ch_ranges))
+                Err(_error)
             }
         }
-        None => Err(_error(&status, chars, ch_ranges)),
+        None => Err(_error),
     }
 }

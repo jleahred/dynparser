@@ -22,10 +22,9 @@ pub fn parse(conf: &Config, symbol: &Symbol, status: parser::Status) -> Result<S
         .ok_or(error(&status.pos, &format!("undefined symbol {:?}", symbol)))?
         .parse(conf, status)?;
 
-    if status.pos.n == conf.text2parse.string().len() {
-        Ok(status)
-    } else {
-        Err(error(&status.pos, "not consumed full input"))
+    match status.pos.n == conf.text2parse.0.len() {
+        true => Ok(status),
+        false => Err(error(&status.pos, "not consumed full input")),
     }
 }
 
