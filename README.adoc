@@ -42,7 +42,7 @@ Examples below
 `symbol`:: On right, it's an string without quotes
 `.`:: Any char
 `"..."`:: Literal delimited by quotes
-`space`:: Rule concatenation (and operation)
+`space`:: Separate tokens and Rule concatenation (and operation)
 `/`:: Or operation
 `(...)`:: A expression composed of sub expresions
 `?`:: One optional
@@ -372,3 +372,50 @@ pub enum Atom {
 [source, rust]
 ----
 ----
+
+=== A grammar for the grammar
+
+[source, peg]
+----
+grammar = rule+
+
+rule    = symbol  >_  "=" >_ expr  _EI?
+
+>_ = " " / _BI
+_BI = {02}
+_EI = {03}
+----
+
+As you can see, indentation is admited but not exaustively checked.
+
+The library https://github.com/jleahred/indentation_flattener[indentation_flattener]
+will check and produce valid text.
+
+Here we relax the verification to keep the grammar as simple as possible.
+
+A grammar is a set of rules, where a rule is the symbol name followed by an expression.
+
+The expression...
+
+[source, peg]
+----
+expr            =   or_expr
+
+or_expr         =   and_expr    ("/"  or_expr)*
+
+and_expr        =   simpl_par_expr   (" "  and_expr)*
+
+simpl_par_expr  =   (simple / parenth_expr)
+
+parenth_expr    =   "("  expr ")"
+
+
+simple      =   atom
+
+negate_expr =   "!"  expr
+
+klein_expr  =   expr "*"
+
+plus_expr   =   expr "+"
+----
+
