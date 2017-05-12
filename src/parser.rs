@@ -64,3 +64,44 @@ impl Possition {
         Possition { ..Possition::default() }
     }
 }
+
+
+pub mod tools {
+
+    pub use atom::Atom;
+    pub use expression::{Expression, MultiExpr, NRep};
+
+
+    pub fn lit(s: &str) -> Expression {
+        Expression::Simple(Atom::Literal(s.to_owned()))
+    }
+
+    pub fn dot() -> Expression {
+        Expression::Simple(Atom::Dot)
+    }
+
+    // fn nothing() -> Expression {
+    //     Expression::Simple(Atom::Nothing)
+    // }
+
+    pub fn or(exp_list: Vec<Expression>) -> Expression {
+        Expression::Or(MultiExpr(exp_list))
+    }
+
+    pub fn and(exp_list: Vec<Expression>) -> Expression {
+        Expression::And(MultiExpr(exp_list))
+    }
+
+    pub fn symref(s: &str) -> Expression {
+        Expression::Simple(Atom::Symbol(s.to_owned()))
+    }
+
+    pub fn not(expr: Expression) -> Expression {
+        Expression::Not(Box::new(expr))
+    }
+
+    pub fn repeat(expr: Expression, min: NRep, max: Option<NRep>) -> Expression {
+        Expression::Repeat(Box::new(expr), min, max)
+    }
+
+}

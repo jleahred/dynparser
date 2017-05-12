@@ -11,41 +11,9 @@ macro_rules! map(
 );
 
 
-use atom::Atom;
-use {symbol, parse, text2parse};
-use expression::{Expression, MultiExpr, NRep};
-
-fn lit(s: &str) -> Expression {
-    Expression::Simple(Atom::Literal(s.to_owned()))
-}
-
-fn dot() -> Expression {
-    Expression::Simple(Atom::Dot)
-}
-
-// fn nothing() -> Expression {
-//     Expression::Simple(Atom::Nothing)
-// }
-
-fn or(exp_list: Vec<Expression>) -> Expression {
-    Expression::Or(MultiExpr(exp_list))
-}
-
-fn and(exp_list: Vec<Expression>) -> Expression {
-    Expression::And(MultiExpr(exp_list))
-}
-
-fn symref(s: &str) -> Expression {
-    Expression::Simple(Atom::Symbol(s.to_owned()))
-}
-
-fn not(expr: Expression) -> Expression {
-    Expression::Not(Box::new(expr))
-}
-
-fn repeat(expr: Expression, min: NRep, max: Option<NRep>) -> Expression {
-    Expression::Repeat(Box::new(expr), min, max)
-}
+use parser::tools::*;
+use {symbol, text2parse, parse};
+use expression::NRep;
 
 
 

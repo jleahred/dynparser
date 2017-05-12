@@ -28,9 +28,12 @@ See examples below
 
 === Grammar
 
-The grammar is indentation sensitive.
+pending... The grammar is indentation sensitive.
 
-You can check de indentation special cases in https://github.com/jleahred/indentation_flattener[indentation_flattener]
+pending... You can check de indentation special cases in https://github.com/jleahred/indentation_flattener[indentation_flattener]
+
+pending... It doesn't look necessary to work with indentation on Grammar
+
 
 
 ==== Rule elements enumeration
@@ -80,6 +83,7 @@ hi   = "Hello world"
 ----
 
 Or conditions `/`
+
 .Or
 [source, peg]
 ----
@@ -147,7 +151,7 @@ main = ("hello" / "hi")
 ----
 
 
-It is recomended to use or operator `/` on each new line and `=` kept on first line, like
+It is recomended to use or operator `/` on each new line and `=` on first line, like
 
 
 .Multiline organized
@@ -167,8 +171,8 @@ main = ("hello" / "hi")  " world"?
 .Repetitions
 [source, peg]
 ----
-main = one_or_more_a / zero_or_many_b
-one_or_more = "a"+
+main         = one_or_more_a / zero_or_many_b
+one_or_more  = "a"+
 zero_or_many = "b"*
 ----
 
@@ -441,7 +445,7 @@ or_expr         =   and_expr     ("/"  or_expr)*
 and_expr        =   compl_expr   (" "  and_expr)*
 
 compl_expr      =   "!" simpl_par
-                /   simpl_par ("*" "+")
+                /   simpl_par ("*" / "+")
 
 simpl_par       =   (simple / parenth_expr)
 
@@ -473,7 +477,7 @@ atom    =   literal
         /   symbol
 
 literal =   "\""  (!"\"" .)*  "\""
-match   =   "["  ((.  -  .)  /  (.))+   "]"
+match   =   "["  ((.  "-"  .)  /  (.))+   "]"
 dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
 ----
@@ -499,7 +503,7 @@ or_expr         =   and_expr    (_ "/"  _  or_expr)*
 and_expr        =   compl_expr  (  " "  _  and_expr)*
 
 compl_expr      =   "!" simpl_par
-                /   simpl_par ("*" "+")
+                /   simpl_par ("*" / "+")
 
 simpl_par       =   (simple / parenth_expr)
 
@@ -515,7 +519,7 @@ atom    =   literal
         /   symbol
 
 literal =   "\""  (!"\"" .)*  "\""
-match   =   "["  ((.  -  .)  /  (.))+   "]"
+match   =   "["  ((.  "-"  .)  /  (.))+   "]"
 dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
 
@@ -525,7 +529,7 @@ _BI = "\u{02}"      //  begin indentation
 _EI = "\u{03}"      //  end indentation
 
 _   =  (" " 
-    /   "/n"
+    /   "\n"
     /   comment)*
 
 comment =  "//" (!"/n" .) "/n"
