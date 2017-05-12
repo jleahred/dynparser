@@ -375,15 +375,21 @@ pub enum Atom {
 
 === A grammar for the grammar
 
+A grammar to define the grammar to be parsed by de parser. ;-P
+
+I will define the grammar using the this parser grammar definition rules.
+
+
 [source, peg]
 ----
 grammar = rule+
 
-rule    = symbol  >_  "=" >_ expr  _EI?
+rule    = symbol  _  "="  _>   expr  _EI?
 
->_ = " " / _BI
-_BI = {02}
-_EI = {03}
+_> = _  /  _BI
+_BI = "\u{02}"      //  begin indentation
+_EI = "\u{03}"      //  end indentation
+_   = " "*
 ----
 
 As you can see, indentation is admited but not exaustively checked.
@@ -395,27 +401,133 @@ Here we relax the verification to keep the grammar as simple as possible.
 
 A grammar is a set of rules, where a rule is the symbol name followed by an expression.
 
-The expression...
+About the expression.
+
+As you know, it's important to accept valid inputs, but also it's important to 
+build an AST with proper pritority.
+
+Next grammar:
+
+[source, peg]
+----
+main    =  "A" "B"  /  "B" "C"
+----
+
+It's equivalent to:
+
+[source, peg]
+----
+main    =  ("A" "B")  /  ("B" "C")
+----
+
+
+And not to:
+
+[source, peg]
+----
+main    =  (("A" "B")  /  "B") "C"
+----
+
+To represent this priority, the expression rule has to be defined in a descendant
+priority way:
+
 
 [source, peg]
 ----
 expr            =   or_expr
 
-or_expr         =   and_expr    ("/"  or_expr)*
+or_expr         =   and_expr     ("/"  or_expr)*
 
-and_expr        =   simpl_par_expr   (" "  and_expr)*
+and_expr        =   compl_expr   (" "  and_expr)*
 
-simpl_par_expr  =   (simple / parenth_expr)
+compl_expr      =   "!" simpl_par
+                /   simpl_par ("*" "+")
+
+simpl_par       =   (simple / parenth_expr)
+
 
 parenth_expr    =   "("  expr ")"
-
-
-simple      =   atom
-
-negate_expr =   "!"  expr
-
-klein_expr  =   expr "*"
-
-plus_expr   =   expr "+"
+simple          =   atom
 ----
 
+Descendant definition
+
+[horizontal]
+simpl_par::     It's an atom or a parenthesis experssion
+
+compl_expr::    Complete expresssion. It's a full subtree expression +
+                It can have negation or (zero or more or one or more)
+
+and_expr::      Sequence of expressions separated by space
+
+or_expr::       Sequence of expression separated by "/"
+
+
+Now, it's the `atom` turn:
+
+[source, peg]
+----
+atom    =   literal
+        /   match
+        /   dot
+        /   symbol
+
+literal =   "\""  (!"\"" .)*  "\""
+match   =   "["  ((.  -  .)  /  (.))+   "]"
+dot     =   "."
+symbol  =   [a-zA-Z0-9_]+
+----
+
+
+Hey, what about comments?
+
+What about non significative spaces and carry return?
+
+It will be defined on "_" symbol
+
+
+[source, peg]
+----
+grammar         =   rule+
+
+rule            =   symbol  _  "="  _>   expr  _EI?
+
+expr            =   or_expr
+
+or_expr         =   and_expr    (_ "/"  _  or_expr)*
+
+and_expr        =   compl_expr  (  " "  _  and_expr)*
+
+compl_expr      =   "!" simpl_par
+                /   simpl_par ("*" "+")
+
+simpl_par       =   (simple / parenth_expr)
+
+
+parenth_expr    =   "("  _  expr  _  ")"
+simple          =   atom
+
+
+
+atom    =   literal
+        /   match
+        /   dot
+        /   symbol
+
+literal =   "\""  (!"\"" .)*  "\""
+match   =   "["  ((.  -  .)  /  (.))+   "]"
+dot     =   "."
+symbol  =   [a-zA-Z0-9_]+
+
+
+_>  = _  /  _BI
+_BI = "\u{02}"      //  begin indentation
+_EI = "\u{03}"      //  end indentation
+
+_   =  (" " 
+    /   "/n"
+    /   comment)*
+
+comment =  "//" (!"/n" .) "/n"
+        /  "/*" (!"*/" .) "*/"
+----

@@ -1,5 +1,6 @@
 // todo: ast
-
+//  before parsing, check if rules are complete
+//  no missing rules, no defined but not used rules
 
 const TRUNCATE_ERROR: usize = 100;
 
