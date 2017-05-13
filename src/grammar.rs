@@ -21,7 +21,8 @@ pub fn grammar() -> Rules {
         symbol("grammar")   =>  repeat(symref("rule"), NRep(1), None)
 
         , symbol("rule")    =>  and(vec![
-                                        symref("rule"),
+                                        symref("_"),
+                                        symref("symbol"),
                                         symref("_"),
                                         lit   ("="),
                                         symref("_"),
@@ -63,19 +64,21 @@ pub fn grammar() -> Rules {
                                         ]),
                                         and(vec![
                                             symref("simpl_par"),
-                                            or(vec![
-                                                lit("*"),
-                                                lit("+")
-                                            ]),
-                                        ]),
+                                            repeat(
+                                                or(vec![
+                                                    lit("*"),
+                                                    lit("+")
+                                                ]),
+                                            NRep(0), None),
+                                        ])
                                     ])
 
         , symbol("simpl_par") =>    or(vec![
-                                        symref("simpl_par"),
+                                        symref("simple"),
                                         symref("parenth_expr")
                                     ])
 
-        , symbol("simpl_par") =>    and(vec![
+        , symbol("parenth_expr") =>    and(vec![
                                         lit("("),
                                         lit("_"),
                                         symref("expr"),
@@ -92,7 +95,7 @@ pub fn grammar() -> Rules {
                                         symref("symbol")
                                     ])
 
-        , symbol("literal") =>      or(vec![
+        , symbol("literal") =>      and(vec![
                                         lit("\""),
                                         repeat(
                                             and(vec![
@@ -122,10 +125,12 @@ pub fn grammar() -> Rules {
 
         , symbol("dot") =>          lit(".")
 
-        //, symbol("symbol") =>       lit(".")
+        , symbol("symbol") =>       repeat(
+                                        match_ch("_", vec![('a', 'z'), ('0','9')]),
+                                        NRep(1), None)
 
         , symbol("_") =>            repeat(
-                                        and(vec![
+                                        or(vec![
                                             lit(" "),
                                             lit("\n"),
                                             symref("comment")

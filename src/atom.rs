@@ -2,7 +2,7 @@ use {parser, Text2Parse, Error, error, Symbol, symbol};
 use parser::Parse;
 
 
-const MAX_DEPTH: parser::Depth = parser::Depth(100);
+const MAX_DEPTH: parser::Depth = parser::Depth(500);
 
 #[derive(Debug, PartialEq)]
 pub enum Atom {
@@ -22,7 +22,8 @@ impl Parse for Atom {
         match self {
             &Atom::Literal(ref lit) => parse_literal(&conf.text2parse, lit, status),
             &Atom::Dot => parse_dot(&conf.text2parse, status),
-            &Atom::Symbol(ref s) => parse_symbol(conf, &symbol(s), status),
+            &Atom::Symbol(ref s) => parse_symbol(conf, &symbol(s), status.inc_depth()),
+
             &Atom::Match(ref chars, ref ch_ranges) => {
                 parse_match(&conf.text2parse, chars, ch_ranges, status)
             }
@@ -36,6 +37,7 @@ fn parse_literal(text2parse: &Text2Parse,
                  s: &str,
                  mut status: parser::Status)
                  -> Result<parser::Status, Error> {
+    println!("parsing... l.{}, status:{:?}", s, status);
     let self_len = s.len();
     let in_text = text2parse.0
         .chars()
@@ -52,6 +54,7 @@ fn parse_literal(text2parse: &Text2Parse,
 }
 
 fn parse_dot(text2parse: &Text2Parse, mut status: parser::Status) -> Result<parser::Status, Error> {
+    println!("parsing... dot.{}, status:{:?}", ".", status);
     match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.n += 1;
@@ -63,18 +66,25 @@ fn parse_dot(text2parse: &Text2Parse, mut status: parser::Status) -> Result<pars
 }
 
 
-fn parse_symbol(conf: &parser::Config,
-                symbol: &Symbol,
-                status: parser::Status)
-                -> Result<parser::Status, Error> {
+pub fn parse_symbol(conf: &parser::Config,
+                    symbol: &Symbol,
+                    status: parser::Status)
+                    -> Result<parser::Status, Error> {
+    println!("parsing... sym.{}, status:{:?}", symbol.0, status);
+
     match status.depth > MAX_DEPTH {
             true => {
                 Err(error(&status.pos,
-                          &format!("too depth processing symbol {:?}", symbol)))
+                          &format!("too depth processing symbol {}", symbol.0)))
             }
-            false => parser::parse(conf, symbol, status),
+            false => {
+                conf.rules
+                    .get(symbol)
+                    .ok_or(error(&status.pos, &format!("undefined symbol {}", symbol.0)))?
+                    .parse(conf, status)
+            }
         }
-        .map_err(|error| ::add_descr_error(error, &format!("{:?}", symbol)))
+        .map_err(|error| ::add_descr_error(error, &format!("s.{}", symbol.0)))
 }
 
 fn parse_match(text2parse: &Text2Parse,
@@ -82,13 +92,17 @@ fn parse_match(text2parse: &Text2Parse,
                ch_ranges: &Vec<(char, char)>,
                mut status: parser::Status)
                -> Result<parser::Status, Error> {
+    println!("parsing... match.{},{:?} status:{:?}",
+             chars,
+             ch_ranges,
+             status);
 
     fn match_ch(ch: char, chars: &String, ch_ranges: &Vec<(char, char)>) -> bool {
         if chars.find(ch).is_some() {
             true
         } else {
             for &(b, t) in ch_ranges {
-                if b < ch && ch < t {
+                if b <= ch && ch <= t {
                     return true;
                 }
             }

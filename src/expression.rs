@@ -1,6 +1,6 @@
 use atom::Atom;
 use parser::Parse;
-use {parser, Error, error};
+use {parser, Error, error, add_descr_error};
 
 
 #[derive(Debug)]
@@ -47,15 +47,24 @@ fn parse_or(conf: &parser::Config,
             status: parser::Status)
             -> Result<parser::Status, Error> {
 
-    let mut deep_error: Option<Error> = None;
+    println!("parsing>>>>>>>> or {:?}  {:?}", exprs, status);
+
+    // let mut deep_error: Option<Error> = None;
+    let mut err = None;//error(&status.pos, "parsing or: ");
     for e in exprs {
-        match e.parse(conf, status.clone()) {
-            Ok(p) => return Ok(p),
-            Err(error) => deep_error = Some(::deep_error(&deep_error, &error)),
+        match (e.parse(conf, status.clone()), err) {
+            (Ok(p), _) => return Ok(p),
+            (Err(perr), None) => {
+                err = Some(error(&status.pos, &format!("parsing or:\n  {}", perr)))
+            }
+            // deep_error = Some(::deep_error(&deep_error, &error)),
+            (Err(perr), Some(prev_err)) => {
+                err = Some(add_descr_error(prev_err, &format!("\n  or {}", perr)))
+            }
         }
     }
 
-    match deep_error {
+    match err {
         Some(err) => Err(err),
         None => Err(error(&status.pos, "emtpy or???")),
     }
@@ -66,9 +75,15 @@ fn parse_and(conf: &parser::Config,
              exprs: &Vec<Expression>,
              status: parser::Status)
              -> Result<parser::Status, Error> {
+    println!("parsing>>>>>>>>  and {:?}  {:?}", exprs, status);
+
     let mut parst = status.clone();
     for e in exprs {
-        parst = e.parse(conf, parst.clone())?;
+        // pending...
+        let temp = e.parse(conf, parst.clone());
+        println!("temp_________________ {:?}", temp);
+        parst = temp?;
+        // parst = e.parse(conf, parst.clone())?;
     }
     Ok(parst)
 }
@@ -91,24 +106,55 @@ fn parse_repeat(conf: &parser::Config,
                 min: &NRep,
                 omax: &Option<NRep>)
                 -> Result<parser::Status, Error> {
+    println!("parsing...repeat {:?}, {:?}  {:?}", min, omax, status);
 
-    let max_reached = |i| omax.as_ref().map_or(false, |ref m| i >= m.0);
+    let max_reached = |i| omax.as_ref().map_or(false, |ref m| i + 1 >= m.0);
     let last_ok_or =
         |lok: Option<parser::Status>, ref status| lok.as_ref().unwrap_or(&status).clone();
 
     let mut opt_lastokst = None;
-    for i in 1.. {
+    for i in 0.. {
         let st = last_ok_or(opt_lastokst.clone(), status.clone());
+        // println!("parsing>>>>>repeat {:?}, {:?}  {:?}", min, omax, st);
         let last_result = expr.parse(conf, st);
 
         opt_lastokst = last_result.clone().ok().or(opt_lastokst);
-        if max_reached(i) || last_result.is_err() {
-            match (i > min.0, opt_lastokst) {
-                (true, Some(lok)) => return Ok(lok.clone()),
-                (true, None) => return Ok(status),
-                (_, _) => return Err(error(&status.pos, "not enougth repetitions")),
+        match (max_reached(i), i >= min.0, last_result.is_ok(), opt_lastokst.clone()) {
+            (_, false, false, _) => {
+                return Err(error(&status.pos,
+                                 &format!("not enougth repetitions. {:?}", last_result)))
             }
+            (true, true, _, Some(lok)) => {
+                println!("******************");
+                return Ok(lok);
+            }
+            (false, true, false, Some(lok)) => {
+                println!(".....");
+                return Ok(lok);
+            }
+            (false, true, false, None) => {
+                println!("//////////////////////////////////// {:?}", status);
+
+                return Ok(status);
+            }
+            (_, _, _, _) => (),
+            // {
+            //     return Err(error(&status.pos,
+            //                      &format!("not enougth repetitions. {:?}", last_result)))
+            // }
         }
+
+        // if max_reached(i) || last_result.is_err() {
+        //     match (i > min.0, opt_lastokst.clone()) {
+        //         (true, None) => return Ok(status),
+        //         (true, Some(st)) => return Ok(st),
+        //         (_, _) => //return last_result
+        //         {
+        //             return Err(error(&status.pos,
+        //                              &format!("not enougth repetitions. {:?}", last_result)))
+        //         }
+        //     }
+        // }
     }
     Err(error(&status.pos, "stupid line waitting for #37339"))
 }

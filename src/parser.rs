@@ -1,5 +1,6 @@
 use {Symbol, Rules, Text2Parse, Error, error};
 use parser;
+use atom::parse_symbol;
 
 
 pub struct Config<'a> {
@@ -17,29 +18,32 @@ pub trait Parse {
 
 
 pub fn parse(conf: &Config, symbol: &Symbol, status: parser::Status) -> Result<Status, Error> {
-    let status = conf.rules
-        .get(symbol)
-        .ok_or(error(&status.pos, &format!("undefined symbol {:?}", symbol)))?
-        .parse(conf, status)?;
 
-    match status.pos.n == conf.text2parse.0.len() {
-        true => Ok(status),
-        false => Err(error(&status.pos, "not consumed full input")),
+    let final_status = parse_symbol(conf, symbol, status)?;
+
+    match final_status.pos.n == conf.text2parse.0.len() {
+        true => Ok(final_status),
+        false => {
+            Err(error(&final_status.pos,
+                      &format!("not consumed full input {} of {}",
+                               final_status.pos.n,
+                               conf.text2parse.0.len())))
+        }
     }
 }
 
 
-#[derive(Debug, PartialEq, Default, Clone, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
 pub struct Possition {
     pub n: usize,
-    pub col: usize,
     pub row: usize,
+    pub col: usize,
 }
 
-#[derive(Debug, PartialEq, Default, Clone, PartialOrd)]
+#[derive(Debug, PartialEq, Clone, PartialOrd)]
 pub struct Depth(pub u32);
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Status {
     pub pos: Possition,
     pub depth: Depth,
@@ -55,13 +59,21 @@ impl Status {
             deep_error: None,
         }
     }
+
+    pub fn inc_depth(&self) -> Self {
+        Status { depth: Depth(self.depth.0 + 1), ..self.clone() }
+    }
 }
 
 
 
 impl Possition {
     pub fn new() -> Self {
-        Possition { ..Possition::default() }
+        Possition {
+            n: 0,
+            col: 1,
+            row: 1,
+        }
     }
 }
 
@@ -102,6 +114,10 @@ pub mod tools {
 
     pub fn repeat(expr: Expression, min: NRep, max: Option<NRep>) -> Expression {
         Expression::Repeat(Box::new(expr), min, max)
+    }
+
+    pub fn match_ch(chars: &str, ranges: Vec<(char, char)>) -> Expression {
+        Expression::Simple(Atom::Match(chars.to_owned(), ranges))
     }
 
 }

@@ -1,12 +1,11 @@
 // todo: ast
-//  match example and function on tools
 //  before parsing, check if rules are complete
 //  no missing rules, no defined but not used rules
 //  remove indentation reference???
 
 
 
-const TRUNCATE_ERROR: usize = 100;
+const TRUNCATE_ERROR: usize = 2000;
 
 // extern crate indentation_flattener;
 
@@ -16,7 +15,7 @@ use expression::Expression;
 mod parser;
 mod atom;
 mod expression;
-mod grammar;
+pub mod grammar;
 
 
 
@@ -44,7 +43,7 @@ pub fn text2parse(txt: &str) -> Text2Parse {
 
 type Rules = HashMap<Symbol, Expression>;
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Error {
     pub pos: parser::Possition,
     pub descr: String,
@@ -87,6 +86,18 @@ fn error(pos: &parser::Possition, descr: &str) -> Error {
 }
 
 
+fn truncate_error_msg(mut err_msg: String) -> String {
+    let result_len = err_msg.len();
+    if result_len > TRUNCATE_ERROR {
+        err_msg = format!("...{}",
+                          err_msg.chars()
+                              .skip(result_len - TRUNCATE_ERROR)
+                              .take(TRUNCATE_ERROR)
+                              .collect::<String>());
+    };
+    err_msg
+}
+
 fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
     let mut result = match err1 {
         &Some(ref error) => {
@@ -102,21 +113,25 @@ fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
         &None => err2.clone(),
     };
 
-    let result_len = result.descr.len();
-    if result_len > TRUNCATE_ERROR {
-        result.descr = format!("...{}",
-                               result.descr
-                                   .chars()
-                                   .skip(result_len - TRUNCATE_ERROR)
-                                   .take(TRUNCATE_ERROR)
-                                   .collect::<String>());
-    };
+    result.descr = truncate_error_msg(result.descr);
     result
 }
 
 fn add_descr_error(mut error: Error, descr: &str) -> Error {
     error.descr = format!("{} > {}", descr, error.descr);
+    error.descr = truncate_error_msg(error.descr);
     error
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f,
+               "in pos: r:{}, c:{}, n:{}   ->  {}",
+               self.pos.row,
+               self.pos.col,
+               self.pos.n,
+               self.descr)
+    }
 }
 
 

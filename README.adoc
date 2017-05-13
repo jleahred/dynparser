@@ -503,7 +503,7 @@ or_expr         =   and_expr    (_ "/"  _  or_expr)*
 and_expr        =   compl_expr  (  " "  _  and_expr)*
 
 compl_expr      =   "!" simpl_par
-                /   simpl_par ("*" / "+")
+                /   simpl_par ("*" / "+")?
 
 simpl_par       =   (simple / parenth_expr)
 
