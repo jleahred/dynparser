@@ -125,12 +125,18 @@ fn add_descr_error(mut error: Error, descr: &str) -> Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f,
-               "in pos: r:{}, c:{}, n:{}   ->  {}",
-               self.pos.row,
-               self.pos.col,
-               self.pos.n,
-               self.descr)
+        let mut res = write!(f,
+                             "in pos: r:{}, c:{}, n:{}   -> ",
+                             self.pos.row,
+                             self.pos.col,
+                             self.pos.n);
+
+        for line in self.descr.lines() {
+            if line.is_empty() == false {
+                res = write!(f, "    {}\n", line);
+            }
+        }
+        res
     }
 }
 

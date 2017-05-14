@@ -49,25 +49,51 @@ fn parse_or(conf: &parser::Config,
 
     println!("parsing>>>>>>>> or {:?}  {:?}", exprs, status);
 
-    // let mut deep_error: Option<Error> = None;
-    let mut err = None;//error(&status.pos, "parsing or: ");
+
+
+    // let mut err = None;//error(&status.pos, "parsing or: ");
+    let mut errs = vec![];
     for e in exprs {
-        match (e.parse(conf, status.clone()), err) {
-            (Ok(p), _) => return Ok(p),
-            (Err(perr), None) => {
-                err = Some(error(&status.pos, &format!("parsing or:\n  {}", perr)))
-            }
-            // deep_error = Some(::deep_error(&deep_error, &error)),
-            (Err(perr), Some(prev_err)) => {
-                err = Some(add_descr_error(prev_err, &format!("\n  or {}", perr)))
-            }
+        match e.parse(conf, status.clone()) {
+            Ok(p) => return Ok(p),
+            Err(perr) => errs.push(error(&perr.pos, &format!("{}", perr.descr))),
         }
     }
 
-    match err {
-        Some(err) => Err(err),
-        None => Err(error(&status.pos, "emtpy or???")),
+    let mut error = error(&status.pos, "\nbegin parsing or");
+    for e in errs {
+        error.descr = format!("{}\n{}", error.descr, e);
     }
+    error.descr = format!("{}end parsing or", error.descr);
+
+    Err(error)
+
+    // match err {
+    //     Some(err) => Err(err),
+    //     None => Err(error(&status.pos, "emtpy or???")),
+    // }
+
+
+
+    // // let mut deep_error: Option<Error> = None;
+    // let mut err = None;//error(&status.pos, "parsing or: ");
+    // for e in exprs {
+    //     match (e.parse(conf, status.clone()), err) {
+    //         (Ok(p), _) => return Ok(p),
+    //         (Err(perr), None) => {
+    //             err = Some(error(&status.pos, &format!("parsing or:\n  {}", perr)))
+    //         }
+    //         // deep_error = Some(::deep_error(&deep_error, &error)),
+    //         (Err(perr), Some(prev_err)) => {
+    //             err = Some(add_descr_error(prev_err, &format!("\n  or {}", perr)))
+    //         }
+    //     }
+    // }
+
+    // match err {
+    //     Some(err) => Err(err),
+    //     None => Err(error(&status.pos, "emtpy or???")),
+    // }
 }
 
 
@@ -119,25 +145,28 @@ fn parse_repeat(conf: &parser::Config,
         let last_result = expr.parse(conf, st);
 
         opt_lastokst = last_result.clone().ok().or(opt_lastokst);
-        match (max_reached(i), i >= min.0, last_result.is_ok(), opt_lastokst.clone()) {
-            (_, false, false, _) => {
-                return Err(error(&status.pos,
-                                 &format!("not enougth repetitions. {:?}", last_result)))
+
+        match (i >= min.0, max_reached(i), last_result, opt_lastokst.clone()) {
+            (false, _, Err(err), _) => {
+                return Err(error(&status.pos, &format!("not enougth repetitions. {}", err)))
             }
+            (false, _, Ok(_), _) => (),
             (true, true, _, Some(lok)) => {
                 println!("******************");
                 return Ok(lok);
             }
-            (false, true, false, Some(lok)) => {
-                println!(".....");
+            (true, true, _, None) => {
+                return Err(error(&status.pos, &format!("Inconsistency repeat. {:?}", expr)))
+            }
+            (true, false, Ok(_), _) => (),
+            (true, false, Err(_), Some(lok)) => {
+                println!("******************");
                 return Ok(lok);
             }
-            (false, true, false, None) => {
-                println!("//////////////////////////////////// {:?}", status);
-
+            (true, false, Err(_), None) => {
+                println!("******************");
                 return Ok(status);
             }
-            (_, _, _, _) => (),
             // {
             //     return Err(error(&status.pos,
             //                      &format!("not enougth repetitions. {:?}", last_result)))
@@ -145,13 +174,31 @@ fn parse_repeat(conf: &parser::Config,
         }
 
         // if max_reached(i) || last_result.is_err() {
-        //     match (i > min.0, opt_lastokst.clone()) {
+        //     match (i >= min.0, opt_lastokst.clone()) {
         //         (true, None) => return Ok(status),
         //         (true, Some(st)) => return Ok(st),
         //         (_, _) => //return last_result
         //         {
         //             return Err(error(&status.pos,
-        //                              &format!("not enougth repetitions. {:?}", last_result)))
+        //                              &format!("not enougth repetitions. ")))
+        //         }
+        //     }
+        // }
+
+        // if max_reached(i) {
+        //     match (i >= min.0, last_result, opt_lastokst.clone()) {
+        //         (true, Err(_), None) => return Ok(status),
+        //         (true, Err(_), Some(st)) => return Ok(st),
+        //         (true, Ok(st), _) => return Ok(st),
+        //         (false, Ok(st), _ ) => return Err(error(&status.pos,
+        //                              &format!("Inconsistent repeat rule {:?} ", expr)))
+        //         (false, Err(err), _) => return Err(err),
+
+
+        //         (_, _) => //return last_result
+        //         {
+        //             return Err(error(&status.pos,
+        //                              &format!("not enougth repetitions. ")))
         //         }
         //     }
         // }
