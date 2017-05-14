@@ -80,9 +80,9 @@ pub fn grammar() -> Rules {
 
         , symbol("parenth_expr") =>    and(vec![
                                         lit("("),
-                                        lit("_"),
+                                        symref("_"),
                                         symref("expr"),
-                                        lit("_"),
+                                        symref("_"),
                                         lit(")")
                                     ])
 

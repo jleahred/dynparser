@@ -150,14 +150,12 @@ fn parse_repeat(conf: &parser::Config,
             (false, _, Err(err), _) => {
                 return Err(error(&status.pos, &format!("not enougth repetitions. {}", err)))
             }
-            (false, _, Ok(_), _) => (),
             (true, true, _, Some(lok)) => {
                 println!("******************");
                 return Ok(lok);
             }
-            (true, true, _, None) => {
-                return Err(error(&status.pos, &format!("Inconsistency repeat. {:?}", expr)))
-            }
+            (true, true, _, None) => return Ok(status),
+            (false, _, Ok(_), _) => (),
             (true, false, Ok(_), _) => (),
             (true, false, Err(_), Some(lok)) => {
                 println!("******************");
