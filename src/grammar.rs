@@ -67,7 +67,8 @@ pub fn grammar() -> Rules {
                                             repeat(
                                                 or(vec![
                                                     lit("*"),
-                                                    lit("+")
+                                                    lit("+"),
+                                                    lit("?"),
                                                 ]),
                                             NRep(0), Some(NRep(1))),
                                         ])

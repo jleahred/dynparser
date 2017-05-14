@@ -490,3 +490,34 @@ fn parse_question_mark() {
     let parsed = parse(&text2parse("b"), &symbol("main"), &rules);
     assert!(parsed.is_err());
 }
+
+#[test]
+fn parse_question_mark2() {
+    let rules = map!(symbol("main") =>
+        and(vec![
+            lit("aaa"),
+            repeat(
+                    lit("b"),
+                    NRep(0), Some(NRep(1))
+            )
+        ])
+    );
+
+    let parsed = parse(&text2parse("aaa"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse("aaab"), &symbol("main"), &rules);
+    assert!(parsed.is_ok());
+
+    let parsed = parse(&text2parse(""), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("aa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("ab"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+
+    let parsed = parse(&text2parse("b"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
+}

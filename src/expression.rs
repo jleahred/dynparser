@@ -55,8 +55,12 @@ fn parse_or(conf: &parser::Config,
     }
 
     let mut error = error(&status.pos, "\nbegin parsing or");
+    let max_deep = errs.iter().fold(0, |acc, e| ::std::cmp::max(acc, e.pos.n));
+
     for e in errs {
-        error.descr = format!("{}\n{}", error.descr, e);
+        if e.pos.n == max_deep {
+            error.descr = format!("{}\n{}", error.descr, e);
+        }
     }
     error.descr = format!("{}end parsing or", error.descr);
 

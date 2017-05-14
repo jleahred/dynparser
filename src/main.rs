@@ -7,7 +7,7 @@ use dynparser::{symbol, text2parse, parse};
 
 
 fn main() {
-    let parsed = parse(&text2parse(r#"main = ( hello )"#),
+    let parsed = parse(&text2parse(r#"main="hello"? a"#),
                        &symbol("grammar"),
                        &grammar());
 
