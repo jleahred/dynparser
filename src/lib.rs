@@ -4,6 +4,7 @@
 //  remove indentation reference???
 //  update line and column when parsing
 //  remove error not consume all input, let it error on pos...
+//  let symbols with any char
 
 
 

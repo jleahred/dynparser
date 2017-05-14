@@ -27,7 +27,11 @@ pub fn grammar() -> Rules {
                                         lit   ("="),
                                         symref("_"),
                                         symref("expr"),
-                                        symref("_")
+                                        //symref("_"),
+                                        or(vec![
+                                            symref("_eol"),
+                                            symref("eof")
+                                        ])
                                     ])
 
         , symbol("expr")    =>    symref("or_expr")
@@ -103,7 +107,7 @@ pub fn grammar() -> Rules {
                                                 not(lit("\"")),
                                                 dot()
                                             ]),
-                                            NRep(0), None
+                                            NRep(1), None
                                         ),
                                         lit("\"")
                                     ])
@@ -145,13 +149,24 @@ pub fn grammar() -> Rules {
                                         NRep(0), None
                                     )
 
+        , symbol("_eol") =>         and(vec![
+                                        or(vec![
+                                            repeat(lit(" "), NRep(0), None),
+                                            symref("comment")
+                                        ]),
+                                        symref("_")
+                                    ])
+
         , symbol("comment") =>      or(vec![
                                         and(vec![
                                             lit("//"),
-                                            and(vec![
-                                                not(lit("\n")),
-                                                dot()
-                                            ]),
+                                            repeat(
+                                                and(vec![
+                                                    not(lit("\n")),
+                                                    dot()
+                                                ]),
+                                                NRep(0), None
+                                            ),
                                             lit("\n")
                                         ]),
                                         and(vec![

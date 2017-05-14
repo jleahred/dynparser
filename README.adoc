@@ -204,6 +204,7 @@ number  = digit+ ("." digit+)?
 digit   = [0-9]
 a_or_b  = [ab]
 id      = [_a-zA-Z][_a-zA-Z0-9]*
+
 a_or_b_or_digit  = [ab0-9]
 ----
 
@@ -494,7 +495,7 @@ It will be defined on "_" symbol
 ----
 grammar         =   rule+
 
-rule            =   symbol  _  "="  _>   expr  _EI?
+rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
 
 expr            =   or_expr
 
@@ -518,20 +519,19 @@ atom    =   literal
         /   dot
         /   symbol
 
-literal =   "\""  (!"\"" .)*  "\""
+literal =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
 match   =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
 dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
 
 
-_>  = _  /  _BI
-_BI = "\u{02}"      //  begin indentation
-_EI = "\u{03}"      //  end indentation
-
 _   =  (" " 
     /   "\n"
     /   comment)*
 
-comment =  "//" (!"/n" .) "/n"
-        /  "/*" (!"*/" .) "*/"
+_eol = " "*  "\n"
+     / comment
+
+comment =  "//" (!"/n" .)* "/n"
+        /  "/*" (!"*/" .)* "*/"
 ----

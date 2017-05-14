@@ -154,3 +154,38 @@ fn match_chars() {
     };
     assert!(parsed.is_ok());
 }
+
+#[test]
+fn simple_recursion() {
+    let parsed = parse(&text2parse(r#"
+            as  = "a" as
+                / "a"
+
+            //  simplified with `+`
+            ak = "a"+
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    match parsed.clone() {
+        Err(err) => println!("error... {} ___________", err),
+        Ok(res) => println!("Ok... {:?} ___________", res),
+    };
+    assert!(parsed.is_ok());
+}
+
+#[test]
+fn recursion_parenth() {
+    let parsed = parse(&text2parse(r#"
+            match_par = "(" match_par ")"
+                    / "(" ")"
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    match parsed.clone() {
+        Err(err) => println!("error... {} ___________", err),
+        Ok(res) => println!("Ok... {:?} ___________", res),
+    };
+    assert!(parsed.is_ok());
+}

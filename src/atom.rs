@@ -10,6 +10,7 @@ pub enum Atom {
     Match(String, Vec<(char, char)>),
     Dot,
     Symbol(String),
+    EOF,
     Nothing,
 }
 
@@ -28,6 +29,7 @@ impl Parse for Atom {
                 parse_match(&conf.text2parse, chars, ch_ranges, status)
             }
             &Atom::Nothing => Ok(status),
+            &Atom::EOF => parse_eof(&conf.text2parse, status),
         }
     }
 }
@@ -120,5 +122,13 @@ fn parse_match(text2parse: &Text2Parse,
             }
         }
         None => Err(_error),
+    }
+}
+
+fn parse_eof(text2parse: &Text2Parse, status: parser::Status) -> Result<parser::Status, Error> {
+    if status.pos.n == text2parse.0.len() {
+        Ok(status)
+    } else {
+        Err(error(&status.pos.clone(), &format!("expected eof. ")))
     }
 }
