@@ -2,6 +2,8 @@
 //  before parsing, check if rules are complete
 //  no missing rules, no defined but not used rules
 //  remove indentation reference???
+//  update line and column when parsing
+//  remove error not consume all input, let it error on pos...
 
 
 

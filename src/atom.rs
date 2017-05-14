@@ -48,7 +48,8 @@ fn parse_literal(text2parse: &Text2Parse,
         status.pos.col += self_len;
         Ok(status)
     } else {
-        Err(error(&status.pos, &format!("expected {}", s)))
+        Err(error(&status.pos,
+                  &format!("lit. expected {:?}, got {:?}", s, in_text)))
     }
 }
 
@@ -101,7 +102,7 @@ fn parse_match(text2parse: &Text2Parse,
         }
     }
     let _error = error(&status.pos.clone(),
-                       &format!("expected {} {:?}", chars, ch_ranges));
+                       &format!("match. expected {} {:?}", chars, ch_ranges));
 
     let next_char = text2parse.0
         .chars()

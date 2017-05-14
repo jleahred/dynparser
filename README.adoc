@@ -502,8 +502,8 @@ or_expr         =   and_expr    (_ "/"  _  or_expr)*
 
 and_expr        =   compl_expr  (  " "  _  and_expr)*
 
-compl_expr      =   "!" simpl_par
-                /   simpl_par ("*" / "+")?
+compl_expr      =   simpl_par ("*" / "+")?
+                /   "!" simpl_par
 
 simpl_par       =   (simple / parenth_expr)
 
@@ -519,7 +519,7 @@ atom    =   literal
         /   symbol
 
 literal =   "\""  (!"\"" .)*  "\""
-match   =   "["  ((.  "-"  .)  /  (.))+   "]"
+match   =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
 dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
 

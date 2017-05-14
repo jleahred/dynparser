@@ -59,10 +59,6 @@ pub fn grammar() -> Rules {
 
         , symbol("compl_expr") =>   or(vec![
                                         and(vec![
-                                            repeat(lit("!"), NRep(0), Some(NRep(1))),
-                                            symref("simpl_par")
-                                        ]),
-                                        and(vec![
                                             symref("simpl_par"),
                                             repeat(
                                                 or(vec![
@@ -71,7 +67,11 @@ pub fn grammar() -> Rules {
                                                     lit("?"),
                                                 ]),
                                             NRep(0), Some(NRep(1))),
-                                        ])
+                                        ]),
+                                        and(vec![
+                                            repeat(lit("!"), NRep(0), Some(NRep(1))),
+                                            symref("simpl_par")
+                                        ]),
                                     ])
 
         , symbol("simpl_par") =>    or(vec![
@@ -117,7 +117,10 @@ pub fn grammar() -> Rules {
                                                     lit("-"),
                                                     dot()
                                                 ]),
-                                                dot()
+                                                and(vec![
+                                                    not(lit("]")),
+                                                    dot()
+                                                ])
                                             ]),
                                             NRep(1), None
                                         ),

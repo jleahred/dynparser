@@ -89,7 +89,62 @@ fn multiline_org() {
 
 #[test]
 fn one_optional() {
-    let parsed = parse(&text2parse(r#"main=hello?"#),
+    let parsed = parse(&text2parse(r#"
+            main = ("hello" / "hi")  " world"?
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    assert!(parsed.is_ok());
+}
+
+
+#[test]
+fn repetitions() {
+    let parsed = parse(&text2parse(r#"
+            main         = one_or_more_a / zero_or_many_b
+            one_or_more  = "a"+
+            zero_or_many = "b"*
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    assert!(parsed.is_ok());
+}
+
+#[test]
+fn negation() {
+    let parsed = parse(&text2parse(r#"
+            main = (!"a" .)* "a"
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    assert!(parsed.is_ok());
+}
+
+#[test]
+fn consume_till() {
+    let parsed = parse(&text2parse(r#"
+            comment = "//" (!"\n" .)*
+                    / "/*" (!"*/" .)* "*/"
+        "#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    assert!(parsed.is_ok());
+}
+
+#[test]
+fn match_chars() {
+    let parsed = parse(&text2parse(r#"
+            number  = digit+ ("." digit+)?
+            digit   = [0-9]
+            a_or_b  = [ab]
+            id      = [_a-zA-Z] [_a-zA-Z0-9]*
+
+            a_or_b_or_digit  = [ab0-9]
+        "#),
                        &symbol("grammar"),
                        &grammar());
 
