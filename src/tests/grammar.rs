@@ -62,10 +62,6 @@ fn parenthesis0() {
     let parsed = parse(&text2parse(r#"main = ( hello )"#),
                        &symbol("grammar"),
                        &rules);
-    match parsed.clone() {
-        Err(err) => println!("error... {} ___________", err),
-        Ok(res) => println!("Ok... {:?} ___________", res),
-    };
 
     assert!(parsed.is_ok());
 }
@@ -80,6 +76,5 @@ fn parenthesis1() {
                        &symbol("grammar"),
                        &rules);
 
-    println!("{:?} ***************", parsed);
     assert!(parsed.is_ok());
 }

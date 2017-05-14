@@ -37,7 +37,6 @@ fn parse_literal(text2parse: &Text2Parse,
                  s: &str,
                  mut status: parser::Status)
                  -> Result<parser::Status, Error> {
-    println!("parsing... l.{}, status:{:?}", s, status);
     let self_len = s.len();
     let in_text = text2parse.0
         .chars()
@@ -54,7 +53,6 @@ fn parse_literal(text2parse: &Text2Parse,
 }
 
 fn parse_dot(text2parse: &Text2Parse, mut status: parser::Status) -> Result<parser::Status, Error> {
-    println!("parsing... dot.{}, status:{:?}", ".", status);
     match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.n += 1;
@@ -70,8 +68,6 @@ pub fn parse_symbol(conf: &parser::Config,
                     symbol: &Symbol,
                     status: parser::Status)
                     -> Result<parser::Status, Error> {
-    println!("parsing... sym.{}, status:{:?}", symbol.0, status);
-
     match status.depth > MAX_DEPTH {
             true => {
                 Err(error(&status.pos,
@@ -92,11 +88,6 @@ fn parse_match(text2parse: &Text2Parse,
                ch_ranges: &Vec<(char, char)>,
                mut status: parser::Status)
                -> Result<parser::Status, Error> {
-    println!("parsing... match.{},{:?} status:{:?}",
-             chars,
-             ch_ranges,
-             status);
-
     fn match_ch(ch: char, chars: &String, ch_ranges: &Vec<(char, char)>) -> bool {
         if chars.find(ch).is_some() {
             true

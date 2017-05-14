@@ -479,18 +479,14 @@ fn parse_question_mark() {
     assert!(parsed.is_ok());
 
     let parsed = parse(&text2parse(""), &symbol("main"), &rules);
-    match parsed.clone() {
-        Err(err) => println!("error... {} ___________", err),
-        Ok(res) => println!("Ok... {:?} ___________", res),
-    };
     assert!(parsed.is_ok());
 
-    // let parsed = parse(&text2parse("aa"), &symbol("main"), &rules);
-    // assert!(parsed.is_ok());
+    let parsed = parse(&text2parse("aa"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
 
-    // let parsed = parse(&text2parse("ab"), &symbol("main"), &rules);
-    // assert!(parsed.is_ok());
+    let parsed = parse(&text2parse("ab"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
 
-    // let parsed = parse(&text2parse("b"), &symbol("main"), &rules);
-    // assert!(parsed.is_ok());
+    let parsed = parse(&text2parse("b"), &symbol("main"), &rules);
+    assert!(parsed.is_err());
 }

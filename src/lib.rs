@@ -98,24 +98,6 @@ fn truncate_error_msg(mut err_msg: String) -> String {
     err_msg
 }
 
-fn deep_error(err1: &Option<Error>, err2: &Error) -> Error {
-    let mut result = match err1 {
-        &Some(ref error) => {
-            use std::cmp::Ordering::{Equal, Less, Greater};
-            match error.pos.cmp(&err2.pos) {
-                Equal => {
-                    Error { descr: format!("{} {}", error.descr, err2.descr), ..error.clone() }
-                }
-                Greater => error.clone(),
-                Less => err2.clone(),
-            }
-        }
-        &None => err2.clone(),
-    };
-
-    result.descr = truncate_error_msg(result.descr);
-    result
-}
 
 fn add_descr_error(mut error: Error, descr: &str) -> Error {
     error.descr = format!("{} > {}", descr, error.descr);
@@ -125,18 +107,18 @@ fn add_descr_error(mut error: Error, descr: &str) -> Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut res = write!(f,
-                             "in pos: r:{}, c:{}, n:{}   -> ",
-                             self.pos.row,
-                             self.pos.col,
-                             self.pos.n);
+        let _ = write!(f,
+                       "in pos: r:{}, c:{}, n:{}   -> ",
+                       self.pos.row,
+                       self.pos.col,
+                       self.pos.n);
 
         for line in self.descr.lines() {
             if line.is_empty() == false {
-                res = write!(f, "    {}\n", line);
+                let _ = write!(f, "    {}\n", line);
             }
         }
-        res
+        Ok(())
     }
 }
 
