@@ -27,7 +27,6 @@ pub fn grammar() -> Rules {
                                         lit   ("="),
                                         symref("_"),
                                         symref("expr"),
-                                        //symref("_"),
                                         or(vec![
                                             symref("_eol"),
                                             symref("eof")

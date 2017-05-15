@@ -5,6 +5,7 @@
 //  update line and column when parsing
 //  remove error not consume all input, let it error on pos...
 //  let symbols with any char
+//  ast on it's own file
 
 
 
@@ -28,6 +29,57 @@ mod tests;
 
 // -------------------------------------------------------------------------------------
 //  T Y P E S
+
+
+
+#[allow(non_snake_case)]
+pub mod AST {
+    #[derive(Debug)]
+    pub struct Kind(pub String);
+
+    #[derive(Debug)]
+    pub struct Val(pub String);
+
+    #[derive(Debug)]
+    pub struct Node {
+        pub kind: Kind,
+        pub val: Val,
+        pub nodes: Box<Vec<Node>>,
+    }
+
+    impl Node {
+        pub fn new(kind: Kind, val: Val) -> Self {
+            Node {
+                kind: kind,
+                val: val,
+                nodes: Box::new(vec![]),
+            }
+        }
+        pub fn merge(mut self, nwnode: Node) -> Self {
+            self.nodes.push(nwnode);
+            self
+        }
+        // pub fn prune(mut self) -> Self {
+        //     // match self.nodes.pop() {
+        //     //     Some(mut child) => {
+        //     //         if child.kind.0 == "" {
+        //     //             match child.nodes.pop() {
+        //     //                 Some(childchild) => self.nodes = childchild.nodes,
+        //     //                 _ => (),
+        //     //             }
+        //     //         };
+        //     //         child.prune();
+        //     //     }
+        //     //     _ => (),
+        //     // };
+        //     self
+        // }
+    }
+    pub fn from_strs(k: &str, v: &str) -> Node {
+        Node::new(Kind(k.to_owned()), Val(v.to_owned()))
+    }
+}
+
 
 #[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
 pub struct Symbol(pub String);
@@ -62,14 +114,14 @@ pub struct Error {
 // -------------------------------------------------------------------------------------
 //  A P I
 
-pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<(), Error> {
+pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<AST::Node, Error> {
     let config = parser::Config {
         text2parse: text2parse,
         rules: rules,
     };
     let parsed = parser::parse(&config, symbol, parser::Status::new());
     match parsed {
-        Ok(_) => Ok(()),
+        Ok((_, ast_node)) => Ok(ast_node),
         Err(s) => Err(s),
     }
 }
@@ -79,12 +131,27 @@ pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<
 
 
 
+pub fn get_begin_line_pos(pos: &parser::Possition, text2parse: &Text2Parse) -> String {
+    text2parse.0
+        .chars()
+        .take(pos.n2)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .take_while(|ch| *ch != '\n')
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect()
+}
 
-
-fn error(pos: &parser::Possition, descr: &str) -> Error {
+fn error(pos: &parser::Possition, descr: &str, text2parse: &Text2Parse) -> Error {
     Error {
         pos: pos.clone(),
-        descr: descr.to_owned(),
+        descr: format!("{}  on line: {} <{}>",
+                       descr.to_owned(),
+                       pos.row,
+                       get_begin_line_pos(pos, text2parse)),
     }
 }
 
@@ -114,7 +181,7 @@ impl std::fmt::Display for Error {
                        "in pos: r:{}, c:{}, n:{}   -> ",
                        self.pos.row,
                        self.pos.col,
-                       self.pos.n);
+                       self.pos.n2);
 
         for line in self.descr.lines() {
             if line.is_empty() == false {
@@ -124,6 +191,7 @@ impl std::fmt::Display for Error {
         Ok(())
     }
 }
+
 
 
 //  pending remove...

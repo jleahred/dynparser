@@ -148,10 +148,6 @@ fn match_chars() {
                        &symbol("grammar"),
                        &grammar());
 
-    match parsed.clone() {
-        Err(err) => println!("error... {} ___________", err),
-        Ok(res) => println!("Ok... {:?} ___________", res),
-    };
     assert!(parsed.is_ok());
 }
 
@@ -167,10 +163,6 @@ fn simple_recursion() {
                        &symbol("grammar"),
                        &grammar());
 
-    match parsed.clone() {
-        Err(err) => println!("error... {} ___________", err),
-        Ok(res) => println!("Ok... {:?} ___________", res),
-    };
     assert!(parsed.is_ok());
 }
 
@@ -183,9 +175,5 @@ fn recursion_parenth() {
                        &symbol("grammar"),
                        &grammar());
 
-    match parsed.clone() {
-        Err(err) => println!("error... {} ___________", err),
-        Ok(res) => println!("Ok... {:?} ___________", res),
-    };
     assert!(parsed.is_ok());
 }

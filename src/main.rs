@@ -6,52 +6,55 @@ use dynparser::grammar::grammar;
 use dynparser::{symbol, text2parse, parse};
 
 
+
 fn main() {
-    let parsed = parse(&text2parse(r#"
-grammar         =   rule+
+    // let parsed = parse(&text2parse(r#"
+    //         grammar         =   rule+
 
-rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
+    //         rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
 
-expr            =   or_expr
+    //         expr            =   or_expr
 
-or_expr         =   and_expr    (_ "/"  _  or_expr)*
+    //         or_expr         =   and_expr    (_ "/"  _  or_expr)*
 
-and_expr        =   compl_expr  (  " "  _  and_expr)*
+    //         and_expr        =   compl_expr  (  " "  _  and_expr)*
 
-compl_expr      =   simpl_par ("*" / "+")?
-                /   "!" simpl_par
+    //         compl_expr      =   simpl_par ("*" / "+")?
+    //                         /   "!" simpl_par
 
-simpl_par       =   (simple / parenth_expr)
-
-
-parenth_expr    =   "("  _  expr  _  ")"
-simple          =   atom
+    //         simpl_par       =   (simple / parenth_expr)
 
 
-
-atom    =   literal
-        /   match
-        /   dot
-        /   symbol
-
-//literal =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
-// match   =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
-// dot     =   "."
-// symbol  =   [a-zA-Z0-9_]+
+    //         parenth_expr    =   "("  _  expr  _  ")"
+    //         simple          =   atom
 
 
-// _   =  (" " 
-//     /   "\n"
-//     /   comment)*
 
-// _eol = " "*  "\n"
-//      / comment
+    //         atom    =   literal
+    //                 /   match
+    //                 /   dot
+    //                 /   symbol
 
-comment =  "//" (!"/n" .)* "/n"
-        /  "/*" (!"*/" .)* "*/"
-"#),
-                       &symbol("grammar"),
-                       &grammar());
+    //         literal =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
+    //         match   =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
+    //         dot     =   "."
+    //         symbol  =   [a-zA-Z0-9_]+
+
+
+    //         _   =  (" "
+    //             /   "\n"
+    //             /   comment)*
+
+    //         _eol = " "*  "\n"
+    //             / comment
+
+    //         comment =  "//" (!"/n" .)* "/n"
+    //                 /  "/*" (!"*/" .)* "*/"
+    //     "#),
+    //                    &symbol("grammar"),
+    //                    &grammar());
+
+    let parsed = parse(&text2parse(r#"h=w"#), &symbol("grammar"), &grammar());
 
     match parsed {
         Err(err) => println!("error... {} ___________", err),

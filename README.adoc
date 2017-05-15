@@ -90,9 +90,6 @@ Or conditions `/`
 main = "hello" / "hi"
 ----
 
-[NOTE]
-Indentation sensitive
-
 .Or multiline
 [source, peg]
 ----
@@ -245,8 +242,6 @@ Hey, I'm a text parser, I need a text to parse ;-P
 If you want to parse text indentation sensitive, I recomend you the lib
 https://github.com/jleahred/indentation_flattener[indentation_flattener]
 
-In fact, as you saw before, I work with a grammar indented sensitive and I use this library.
-
 The only consideration about the text to parse, is the type. It's not a generic String, it has to be
 a more concrete `Text2Parse`
 
@@ -391,16 +386,8 @@ grammar = rule+
 
 rule    = symbol  _  "="  _>   expr  _EI?
 
-_> = _  /  _BI
-_BI = "\u{02}"      //  begin indentation
-_EI = "\u{03}"      //  end indentation
 _   = " "*
 ----
-
-As you can see, indentation is admited but not exaustively checked.
-
-The library https://github.com/jleahred/indentation_flattener[indentation_flattener]
-will check and produce valid text.
 
 Here we relax the verification to keep the grammar as simple as possible.
 
@@ -525,7 +512,7 @@ dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
 
 
-_   =  (" " 
+_   =  (" "
     /   "\n"
     /   comment)*
 

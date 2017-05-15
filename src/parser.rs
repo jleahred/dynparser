@@ -1,4 +1,4 @@
-use {Symbol, Rules, Text2Parse, Error, error};
+use {Symbol, Rules, Text2Parse, Error, error, AST};
 use parser;
 use atom::parse_symbol;
 
@@ -12,22 +12,29 @@ pub struct Config<'a> {
 
 
 pub trait Parse {
-    fn parse(&self, conf: &Config, status: parser::Status) -> Result<parser::Status, Error>;
+    fn parse(&self,
+             conf: &Config,
+             status: parser::Status)
+             -> Result<(parser::Status, AST::Node), Error>;
 }
 
 
 
-pub fn parse(conf: &Config, symbol: &Symbol, status: parser::Status) -> Result<Status, Error> {
+pub fn parse(conf: &Config,
+             symbol: &Symbol,
+             status: parser::Status)
+             -> Result<(parser::Status, AST::Node), Error> {
 
     let final_status = parse_symbol(conf, symbol, status)?;
 
-    match final_status.pos.n == conf.text2parse.0.len() {
+    match final_status.0.pos.n2 == conf.text2parse.0.len() {
         true => Ok(final_status),
         false => {
-            Err(error(&final_status.pos,
+            Err(error(&final_status.0.pos,
                       &format!("not consumed full input {} of {}",
-                               final_status.pos.n,
-                               conf.text2parse.0.len())))
+                               final_status.0.pos.n2,
+                               conf.text2parse.0.len()),
+                      conf.text2parse))
         }
     }
 }
@@ -35,7 +42,7 @@ pub fn parse(conf: &Config, symbol: &Symbol, status: parser::Status) -> Result<S
 
 #[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
 pub struct Possition {
-    pub n: usize,
+    pub n2: usize,
     pub row: usize,
     pub col: usize,
 }
@@ -47,7 +54,6 @@ pub struct Depth(pub u32);
 pub struct Status {
     pub pos: Possition,
     pub depth: Depth,
-    pub deep_error: Option<Error>,
 }
 
 
@@ -56,7 +62,6 @@ impl Status {
         Status {
             pos: Possition::new(),
             depth: Depth(0),
-            deep_error: None,
         }
     }
 
@@ -70,10 +75,34 @@ impl Status {
 impl Possition {
     pub fn new() -> Self {
         Possition {
-            n: 0,
+            n2: 0,
             col: 1,
             row: 1,
         }
+    }
+    fn inc_ch(&mut self, ch: char) -> &Self {
+        match ch {
+            '\n' => {
+                self.n2 += 1;
+                self.col = 0;
+                self.row += 1;
+            }
+            _ => {
+                self.n2 += 1;
+                self.col += 1;
+            }
+        };
+        self
+    }
+    pub fn inc_char(&mut self, text2parse: &Text2Parse) -> &Self {
+        let n = self.n2;
+        self.inc_ch(text2parse.0.chars().nth(n).unwrap_or('?'))
+    }
+    pub fn inc_chars(&mut self, s: &str) -> &Self {
+        for ch in s.chars() {
+            self.inc_ch(ch);
+        }
+        self
     }
 }
 
