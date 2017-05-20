@@ -395,7 +395,7 @@ A grammar is a set of rules, where a rule is the symbol name followed by an expr
 
 About the expression.
 
-As you know, it's important to accept valid inputs, but also it's important to 
+As you know, it's important to accept valid inputs, but also it's important to
 build an AST with proper pritority.
 
 Next grammar:
@@ -522,3 +522,44 @@ _eol = " "*  "\n"
 comment =  "//" (!"/n" .)* "/n"
         /  "/*" (!"*/" .)* "*/"
 ----
+
+That's ok an works fine, but error messages...
+
+In order to improve error messages, it's necessary to modify the grammar.
+
+
+[source, rust]
+----
+    let parsed = parse(&text2parse(r#"h= asdf (hi"#),
+                       &symbol("grammar"),
+                       &grammar());
+
+    match parsed {
+        Err(err) => println!("error... {} ___________", err),
+        Ok(res) => println!("Ok... {:?} ___________", res),
+    };
+----
+
+It produces
+
+[source]
+----
+error... in pos: r:1, c:9, n:8   >h= asdf <  -> unexpected >(hi<
+----
+
+The reason is on
+
+[source, peg]
+----
+...
+and_expr        =   compl_expr  (  " "  _  and_expr)*
+...
+----
+
+Here, we said, "hey, try to look for a sequence, or not `*`"
+
+And is not, then the parser say, I matched the rule, I have to continue verifying other
+branches. But there are no brunches valid, then the parser ends not consuming all the input.
+
+To solve it, we have to modify the grammar in order to force evaluation.
+

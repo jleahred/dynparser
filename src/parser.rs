@@ -27,13 +27,17 @@ pub fn parse(conf: &Config,
 
     let final_status = parse_symbol(conf, symbol, status)?;
 
-    match final_status.0.pos.n2 == conf.text2parse.0.len() {
+    match final_status.0.pos.n == conf.text2parse.0.len() {
         true => Ok(final_status),
         false => {
             Err(error(&final_status.0.pos,
-                      &format!("not consumed full input {} of {}",
-                               final_status.0.pos.n2,
-                               conf.text2parse.0.len()),
+                      &format!("unexpected >{}<",
+                               conf.text2parse
+                                   .0
+                                   .chars()
+                                   .skip(final_status.0.pos.n)
+                                   .take(conf.text2parse.0.len() - final_status.0.pos.n)
+                                   .collect::<String>()),
                       conf.text2parse))
         }
     }
@@ -42,7 +46,7 @@ pub fn parse(conf: &Config,
 
 #[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
 pub struct Possition {
-    pub n2: usize,
+    pub n: usize,
     pub row: usize,
     pub col: usize,
 }
@@ -75,7 +79,7 @@ impl Status {
 impl Possition {
     pub fn new() -> Self {
         Possition {
-            n2: 0,
+            n: 0,
             col: 1,
             row: 1,
         }
@@ -83,19 +87,19 @@ impl Possition {
     fn inc_ch(&mut self, ch: char) -> &Self {
         match ch {
             '\n' => {
-                self.n2 += 1;
+                self.n += 1;
                 self.col = 0;
                 self.row += 1;
             }
             _ => {
-                self.n2 += 1;
+                self.n += 1;
                 self.col += 1;
             }
         };
         self
     }
     pub fn inc_char(&mut self, text2parse: &Text2Parse) -> &Self {
-        let n = self.n2;
+        let n = self.n;
         self.inc_ch(text2parse.0.chars().nth(n).unwrap_or('?'))
     }
     pub fn inc_chars(&mut self, s: &str) -> &Self {

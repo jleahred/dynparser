@@ -54,17 +54,22 @@ fn parse_or(conf: &parser::Config,
         }
     }
 
-    let mut error = error(&status.pos, "\nbegin parsing or", conf.text2parse);
-    let max_deep = errs.iter().fold(0, |acc, e| ::std::cmp::max(acc, e.pos.n2));
+    let max_deep = errs.iter().fold(0, |acc, e| ::std::cmp::max(acc, e.pos.n));
+    errs.retain(|ref e| e.pos.n == max_deep);
 
-    for e in errs {
-        if e.pos.n2 == max_deep {
-            error.descr = format!("{}\n{}", error.descr, e);
+    if errs.len() == 1 {
+        Err(errs[0].clone())    //  it's safe
+    } else {
+        let mut error = error(&status.pos, "", conf.text2parse);
+        for e in errs {
+            if e.pos.n == max_deep {
+                error.descr = format!("{}  {}", error.descr, e.descr_indented());
+                error.pos = e.pos;
+            }
         }
+        // error.descr = format!("{}end parsing or", error.descr);
+        Err(error)
     }
-    error.descr = format!("{}end parsing or", error.descr);
-
-    Err(error)
 }
 
 
@@ -136,13 +141,13 @@ fn parse_repeat(conf: &parser::Config,
 
         match (i >= min.0, max_reached(i), opt_lasterror.clone(), opt_lastokst.clone()) {
             (false, _, Some::<Error>(err), _) => {
-                return Err(error(&status.pos,
-                                 &format!("trying repeat., {}", err),
+                return Err(error(&err.pos,
+                                 &format!("trying repeat., {}", err.descr),
                                  conf.text2parse))
             }
+            (false, _, None, _) => (),
             (true, true, _, Some(lok)) => return Ok((lok, ast(ast_nodes))),
             (true, true, _, None) => return Ok((status, ast(ast_nodes))),
-            (false, _, None, _) => (),
             (true, false, None, _) => (),
             (true, false, Some(_), Some(lok)) => return Ok((lok, ast(ast_nodes))),
             (true, false, Some(_), None) => return Ok((status, ast(ast_nodes))),

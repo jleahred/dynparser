@@ -40,7 +40,7 @@ fn parse_literal(text2parse: &Text2Parse,
     let self_len = s.len();
     let in_text = text2parse.0
         .chars()
-        .skip(status.pos.n2)
+        .skip(status.pos.n)
         .take(self_len)
         .collect::<String>();
     if s == in_text {
@@ -65,7 +65,7 @@ fn parse_dot(text2parse: &Text2Parse,
             .to_string()
     };
 
-    match status.pos.n2 < text2parse.0.len() {
+    match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.inc_char(text2parse);
             Ok((status, AST::from_strs("dot", &current_char())))
@@ -126,7 +126,7 @@ fn parse_match(text2parse: &Text2Parse,
 
     let next_char = text2parse.0
         .chars()
-        .skip(status.pos.n2)
+        .skip(status.pos.n)
         .next();
 
     match next_char {
@@ -145,7 +145,7 @@ fn parse_match(text2parse: &Text2Parse,
 fn parse_eof(text2parse: &Text2Parse,
              status: parser::Status)
              -> Result<(parser::Status, AST::Node), Error> {
-    if status.pos.n2 == text2parse.0.len() {
+    if status.pos.n == text2parse.0.len() {
         Ok((status, AST::from_strs("eof", "")))
     } else {
         Err(error(&status.pos.clone(), &format!("expected eof. "), text2parse))
