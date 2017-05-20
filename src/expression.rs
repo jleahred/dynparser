@@ -120,32 +120,32 @@ fn parse_repeat(conf: &parser::Config,
         |lok: Option<parser::Status>, ref status| lok.as_ref().unwrap_or(&status).clone();
 
     let mut opt_lastokst = None;
+    let mut opt_lasterror = None;
     let mut ast_nodes = Box::new(vec![]);
     for i in 0.. {
         let st = last_ok_or(opt_lastokst.clone(), status.clone());
         let last_result = expr.parse(conf, st);
-        let last_result_error = last_result.is_err();
 
         match last_result {
             Ok((st, ast_node)) => {
                 opt_lastokst = Some(st);
                 ast_nodes.push(ast_node);
             }
-            Err(_) => (),
+            Err(err) => opt_lasterror = Some(err),
         }
 
-        match (i >= min.0, max_reached(i), last_result_error, opt_lastokst.clone()) {
-            (false, _, true, _) => {
+        match (i >= min.0, max_reached(i), opt_lasterror.clone(), opt_lastokst.clone()) {
+            (false, _, Some::<Error>(err), _) => {
                 return Err(error(&status.pos,
-                                 &format!("not enougth repetitions."),
+                                 &format!("trying repeat., {}", err),
                                  conf.text2parse))
             }
             (true, true, _, Some(lok)) => return Ok((lok, ast(ast_nodes))),
             (true, true, _, None) => return Ok((status, ast(ast_nodes))),
-            (false, _, false, _) => (),
-            (true, false, false, _) => (),
-            (true, false, true, Some(lok)) => return Ok((lok, ast(ast_nodes))),
-            (true, false, true, None) => return Ok((status, ast(ast_nodes))),
+            (false, _, None, _) => (),
+            (true, false, None, _) => (),
+            (true, false, Some(_), Some(lok)) => return Ok((lok, ast(ast_nodes))),
+            (true, false, Some(_), None) => return Ok((status, ast(ast_nodes))),
         }
     }
     Err(error(&status.pos,

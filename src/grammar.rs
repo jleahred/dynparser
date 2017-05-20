@@ -72,7 +72,7 @@ pub fn grammar() -> Rules {
                                             NRep(0), Some(NRep(1))),
                                         ]),
                                         and(vec![
-                                            repeat(lit("!"), NRep(0), Some(NRep(1))),
+                                            lit("!"),
                                             symref("simpl_par")
                                         ]),
                                     ])
