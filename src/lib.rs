@@ -1,5 +1,4 @@
 // todo: ast
-//  ast on it's own file
 //  before parsing, check if rules are complete
 //  no missing rules, no defined but not used rules
 //  remove indentation reference???
@@ -19,11 +18,15 @@ const TRUNCATE_ERROR: usize = 2000;
 
 use std::collections::HashMap;
 
-use expression::Expression;
 mod parser;
 mod atom;
 mod expression;
+pub mod ast;
 pub mod grammar;
+
+
+use expression::Expression;
+
 
 
 
@@ -34,88 +37,7 @@ mod tests;
 // -------------------------------------------------------------------------------------
 //  T Y P E S
 
-
-
-#[allow(non_snake_case)]
-pub mod AST {
-    #[derive(Debug)]
-    pub struct K(pub String);
-
-    #[derive(Debug)]
-    pub struct V(pub String);
-
-    #[derive(Debug)]
-    pub struct Node {
-        pub kind: K,
-        pub val: V,
-        pub nodes: Box<Vec<Node>>,
-    }
-
-    impl Node {
-        pub fn new(kind: K, val: V) -> Self {
-            Node {
-                kind: kind,
-                val: val,
-                nodes: Box::new(vec![]),
-            }
-        }
-        pub fn merge(mut self, nwnode: Node) -> Self {
-            self.nodes.push(nwnode);
-            self
-        }
-
-        #[must_use]
-        pub fn get_pruned(mut self) -> Self {
-            fn to_be_pruned(node: &Node) -> bool {
-                let prune_kind = match node.kind.0.as_ref() {
-                    "repeat" => true,
-                    "and" => true,
-                    // "lit" => true,
-                    "match" => true,
-                    "atom" => true,
-                    "compl_expr" => true,
-                    _ => false,
-                };
-                let prune_val = match node.val.0.as_ref() {
-                    "_" => true,
-                    "or_expr" => true,
-                    "and_expr" => true,
-                    "compl_expr" => true,
-                    _ => false,
-                };
-                prune_kind || prune_val
-            };
-
-
-            let mut located_prune = true;
-            while located_prune {
-                located_prune = false;
-                let mut new_nodes = Box::new(vec![]);
-                self.nodes.reverse();
-                while let Some(mut node) = self.nodes.pop() {
-                    match to_be_pruned(&node) {
-                        true => {
-                            located_prune = true;
-                            node.nodes.reverse();
-                            while let Some(n) = node.nodes.pop() {
-                                new_nodes.push(n)
-                            }
-                        }
-                        false => new_nodes.push(node.get_pruned()),
-                    }
-                }
-                self.nodes = new_nodes;
-            }
-
-            self
-        }
-    }
-
-    pub fn from_strs(k: &str, v: &str) -> Node {
-        Node::new(K(k.to_owned()), V(v.to_owned()))
-    }
-}
-
+//  see ast.rs
 
 #[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
 pub struct Symbol(pub String);
@@ -141,17 +63,16 @@ pub struct Error {
     pub line_text: String,
 }
 
-
-
-
 //  T Y P E S
 // -------------------------------------------------------------------------------------
+
+
 
 
 // -------------------------------------------------------------------------------------
 //  A P I
 
-pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<AST::Node, Error> {
+pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<ast::Node, Error> {
     let config = parser::Config {
         text2parse: text2parse,
         rules: rules,
@@ -241,221 +162,3 @@ impl Error {
 
 //  pending remove...
 pub use grammar::grammar;
-
-
-
-#[test]
-fn prune_emtpy_root() {
-    use AST::{Node, K, V};
-    let root = Node::new(K("root".to_owned()), V("".to_owned()));
-    let pruned = root.get_pruned();
-
-    assert!(format!("{:?}", pruned) == r#"Node { kind: K("root"), val: V(""), nodes: [] }"#);
-}
-
-#[test]
-fn prune_nothing_to_prune() {
-    use AST::{Node, K, V};
-    let root = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("child".to_owned()),
-                                 val: V("aaa".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-    let pruned = root.get_pruned();
-
-    assert!(format!("{:?}", pruned) ==
-        r#"Node { kind: K("root"), val: V(""), nodes: [Node { kind: K("child"), val: V("aaa"), nodes: [] }] }"#);
-}
-
-
-#[test]
-fn prune_repeat_no_child() {
-    use AST::{Node, K, V};
-    let root = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("repeat".to_owned()),
-                                 val: V("".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-    let pruned = root.get_pruned();
-
-    assert!(format!("{:?}", pruned) == r#"Node { kind: K("root"), val: V(""), nodes: [] }"#);
-}
-
-
-#[test]
-fn prune_repeat_one_child() {
-    use AST::{Node, K, V};
-    let root = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("repeat".to_owned()),
-                                 val: V("".to_owned()),
-                                 nodes: Box::new(vec![Node {
-                                                          kind: K("aaa".to_owned()),
-                                                          val: V("aaa".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                             }]),
-    };
-    let pruned = root.get_pruned();
-
-    let result = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("aaa".to_owned()),
-                                 val: V("aaa".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-
-    assert!(format!("{:?}", pruned) == format!("{:?}", result));
-}
-
-
-#[test]
-fn prune_repeat_two_child() {
-    use AST::{Node, K, V};
-    let root = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("repeat".to_owned()),
-                                 val: V("".to_owned()),
-                                 nodes: Box::new(vec![Node {
-                                                          kind: K("aaa".to_owned()),
-                                                          val: V("aaa".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      },
-                                                      Node {
-                                                          kind: K("bbb".to_owned()),
-                                                          val: V("bbb".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                             }]),
-    };
-    let pruned = root.get_pruned();
-
-    let result = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("aaa".to_owned()),
-                                 val: V("aaa".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             },
-                             Node {
-                                 kind: K("bbb".to_owned()),
-                                 val: V("bbb".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-
-    assert!(format!("{:?}", pruned) == format!("{:?}", result));
-}
-
-#[test]
-fn prune_repeat_two_child_two_grandchild() {
-    use AST::{Node, K, V};
-    let root = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("repeat".to_owned()),
-                                 val: V("".to_owned()),
-                                 nodes: Box::new(vec![Node {
-                                                          kind: K("aaa".to_owned()),
-                                                          val: V("aaa".to_owned()),
-                                                          nodes: Box::new(vec![Node {
-                                                          kind: K("ab".to_owned()),
-                                                          val: V("ab".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      },
-                                                      Node {
-                                                          kind: K("bc".to_owned()),
-                                                          val: V("bc".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                                                      },
-                                                      Node {
-                                                          kind: K("bbb".to_owned()),
-                                                          val: V("bbb".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                             }]),
-    };
-    let pruned = root.get_pruned();
-
-    let result = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("aaa".to_owned()),
-                                 val: V("aaa".to_owned()),
-                                 nodes: Box::new(vec![Node {
-                                                          kind: K("ab".to_owned()),
-                                                          val: V("ab".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      },
-                                                      Node {
-                                                          kind: K("bc".to_owned()),
-                                                          val: V("bc".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                             },
-                             Node {
-                                 kind: K("bbb".to_owned()),
-                                 val: V("bbb".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-
-    assert!(format!("{:?}", pruned) == format!("{:?}", result));
-}
-
-
-#[test]
-fn prune_two_nested_repeat_one_child() {
-    use AST::{Node, K, V};
-    let root =
-        Node {
-            kind: K("root".to_owned()),
-            val: V("".to_owned()),
-            nodes: Box::new(vec![Node {
-                                     kind: K("repeat".to_owned()),
-                                     val: V("".to_owned()),
-                                     nodes: Box::new(vec![Node {
-                                                              kind: K("repeat".to_owned()),
-                                                              val: V("".to_owned()),
-                                                              nodes: Box::new(vec![Node {
-                                                          kind: K("aaa".to_owned()),
-                                                          val: V("aaa".to_owned()),
-                                                          nodes: Box::new(vec![]),
-                                                      }]),
-                                                          }]),
-                                 }]),
-        };
-    let pruned = root.get_pruned();
-
-    let result = Node {
-        kind: K("root".to_owned()),
-        val: V("".to_owned()),
-        nodes: Box::new(vec![Node {
-                                 kind: K("aaa".to_owned()),
-                                 val: V("aaa".to_owned()),
-                                 nodes: Box::new(vec![]),
-                             }]),
-    };
-
-    println!("{:?} ____________", pruned);
-    assert!(format!("{:?}", pruned) == format!("{:?}", result));
-}

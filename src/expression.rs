@@ -1,6 +1,7 @@
 use atom::Atom;
 use parser::Parse;
-use {parser, Error, error, AST};
+use {parser, Error, error};
+use ast;
 
 
 #[derive(Debug)]
@@ -28,7 +29,7 @@ impl Parse for Expression {
     fn parse(&self,
              conf: &parser::Config,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
         match self {
             &Expression::Simple(ref atom) => atom.parse(conf, status),
             &Expression::Or(MultiExpr(ref exprs)) => parse_or(conf, exprs, status),
@@ -45,7 +46,7 @@ impl Parse for Expression {
 fn parse_or(conf: &parser::Config,
             exprs: &Vec<Expression>,
             status: parser::Status)
-            -> Result<(parser::Status, AST::Node), Error> {
+            -> Result<(parser::Status, ast::Node), Error> {
     let mut errs = vec![];
     for e in exprs {
         match e.parse(conf, status.clone()) {
@@ -76,11 +77,11 @@ fn parse_or(conf: &parser::Config,
 fn parse_and(conf: &parser::Config,
              exprs: &Vec<Expression>,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
     let ast = |ast_nodes| {
-        AST::Node {
-            kind: AST::K("and".to_owned()),
-            val: AST::V("".to_owned()),
+        ast::Node {
+            kind: ast::K("and".to_owned()),
+            val: ast::V("".to_owned()),
             nodes: Box::new(ast_nodes),
         }
     };
@@ -99,11 +100,11 @@ fn parse_and(conf: &parser::Config,
 fn parse_negate(conf: &parser::Config,
                 expr: &Expression,
                 status: parser::Status)
-                -> Result<(parser::Status, AST::Node), Error> {
+                -> Result<(parser::Status, ast::Node), Error> {
 
     match expr.parse(conf, status.clone()) {
         Ok(result) => Err(error(&result.0.pos, "negation error", conf.text2parse)),
-        Err(_) => Ok((status, AST::from_strs("not", ""))),
+        Err(_) => Ok((status, ast::from_strs("not", ""))),
     }
 }
 
@@ -112,11 +113,11 @@ fn parse_repeat(conf: &parser::Config,
                 status: parser::Status,
                 min: &NRep,
                 omax: &Option<NRep>)
-                -> Result<(parser::Status, AST::Node), Error> {
+                -> Result<(parser::Status, ast::Node), Error> {
     let ast = |ast_nodes| {
-        AST::Node {
-            kind: AST::K("repeat".to_owned()),
-            val: AST::V("".to_owned()),
+        ast::Node {
+            kind: ast::K("repeat".to_owned()),
+            val: ast::V("".to_owned()),
             nodes: ast_nodes,
         }
     };

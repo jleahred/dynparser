@@ -1,6 +1,7 @@
-use {Symbol, Rules, Text2Parse, Error, error, AST};
+use {Symbol, Rules, Text2Parse, Error, error};
 use parser;
 use atom::parse_symbol;
+use ast;
 
 
 pub struct Config<'a> {
@@ -15,7 +16,7 @@ pub trait Parse {
     fn parse(&self,
              conf: &Config,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error>;
+             -> Result<(parser::Status, ast::Node), Error>;
 }
 
 
@@ -23,7 +24,7 @@ pub trait Parse {
 pub fn parse(conf: &Config,
              symbol: &Symbol,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
 
     let final_status = parse_symbol(conf, symbol, status)?;
 

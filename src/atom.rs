@@ -1,5 +1,6 @@
-use {parser, Text2Parse, Error, error, Symbol, symbol, AST};
+use {parser, Text2Parse, Error, error, Symbol, symbol};
 use parser::Parse;
+use ast;
 
 
 const MAX_DEPTH: parser::Depth = parser::Depth(50000);
@@ -18,7 +19,7 @@ impl Parse for Atom {
     fn parse(&self,
              conf: &parser::Config,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
         match self {
             &Atom::Literal(ref lit) => parse_literal(&conf.text2parse, lit, status),
             &Atom::Dot => parse_dot(&conf.text2parse, status),
@@ -36,7 +37,7 @@ impl Parse for Atom {
 fn parse_literal(text2parse: &Text2Parse,
                  s: &str,
                  mut status: parser::Status)
-                 -> Result<(parser::Status, AST::Node), Error> {
+                 -> Result<(parser::Status, ast::Node), Error> {
     let self_len = s.len();
     let in_text = text2parse.0
         .chars()
@@ -45,7 +46,7 @@ fn parse_literal(text2parse: &Text2Parse,
         .collect::<String>();
     if s == in_text {
         status.pos.inc_chars(&in_text);
-        Ok((status, AST::from_strs("lit", s)))
+        Ok((status, ast::from_strs("lit", s)))
     } else {
         Err(error(&status.pos,
                   &format!("lit. expected {:?}, got {:?}", s, in_text),
@@ -55,7 +56,7 @@ fn parse_literal(text2parse: &Text2Parse,
 
 fn parse_dot(text2parse: &Text2Parse,
              mut status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
     let current_char = || {
         text2parse.0
             .chars()
@@ -68,7 +69,7 @@ fn parse_dot(text2parse: &Text2Parse,
     match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.inc_char(text2parse);
-            Ok((status, AST::from_strs("dot", &current_char())))
+            Ok((status, ast::from_strs("dot", &current_char())))
         }
         false => {
             Err(error(&status.pos,
@@ -82,7 +83,7 @@ fn parse_dot(text2parse: &Text2Parse,
 pub fn parse_symbol(conf: &parser::Config,
                     symbol: &Symbol,
                     status: parser::Status)
-                    -> Result<(parser::Status, AST::Node), Error> {
+                    -> Result<(parser::Status, ast::Node), Error> {
     match status.depth > MAX_DEPTH {
             true => {
                 panic!("Too depth processing symbol.")
@@ -99,7 +100,7 @@ pub fn parse_symbol(conf: &parser::Config,
                     .parse(conf, status)
             }
         }
-        .map(|(nwst, nwast)| (nwst, AST::from_strs("symref", &symbol.0).merge(nwast)))
+        .map(|(nwst, nwast)| (nwst, ast::from_strs("symref", &symbol.0).merge(nwast)))
         .map_err(|error| ::add_descr_error(error, &format!("s.{}", symbol.0)))
 }
 
@@ -107,7 +108,7 @@ fn parse_match(text2parse: &Text2Parse,
                chars: &String,
                ch_ranges: &Vec<(char, char)>,
                mut status: parser::Status)
-               -> Result<(parser::Status, AST::Node), Error> {
+               -> Result<(parser::Status, ast::Node), Error> {
     fn match_ch(ch: char, chars: &String, ch_ranges: &Vec<(char, char)>) -> bool {
         if chars.find(ch).is_some() {
             true
@@ -133,7 +134,7 @@ fn parse_match(text2parse: &Text2Parse,
         Some(ch) => {
             if match_ch(ch, chars, ch_ranges) {
                 status.pos.inc_char(text2parse);
-                Ok((status, AST::from_strs("match", &ch.to_string())))
+                Ok((status, ast::from_strs("match", &ch.to_string())))
             } else {
                 Err(_error)
             }
@@ -144,9 +145,9 @@ fn parse_match(text2parse: &Text2Parse,
 
 fn parse_eof(text2parse: &Text2Parse,
              status: parser::Status)
-             -> Result<(parser::Status, AST::Node), Error> {
+             -> Result<(parser::Status, ast::Node), Error> {
     if status.pos.n == text2parse.0.len() {
-        Ok((status, AST::from_strs("eof", "")))
+        Ok((status, ast::from_strs("eof", "")))
     } else {
         Err(error(&status.pos.clone(), &format!("expected eof. "), text2parse))
     }
