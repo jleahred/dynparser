@@ -79,8 +79,8 @@ fn parse_and(conf: &parser::Config,
              -> Result<(parser::Status, AST::Node), Error> {
     let ast = |ast_nodes| {
         AST::Node {
-            kind: AST::Kind("and".to_owned()),
-            val: AST::Val("".to_owned()),
+            kind: AST::K("and".to_owned()),
+            val: AST::V("".to_owned()),
             nodes: Box::new(ast_nodes),
         }
     };
@@ -115,8 +115,8 @@ fn parse_repeat(conf: &parser::Config,
                 -> Result<(parser::Status, AST::Node), Error> {
     let ast = |ast_nodes| {
         AST::Node {
-            kind: AST::Kind("repeat".to_owned()),
-            val: AST::Val("".to_owned()),
+            kind: AST::K("repeat".to_owned()),
+            val: AST::V("".to_owned()),
             nodes: ast_nodes,
         }
     };

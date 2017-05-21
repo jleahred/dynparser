@@ -99,7 +99,7 @@ pub fn parse_symbol(conf: &parser::Config,
                     .parse(conf, status)
             }
         }
-        .map(|(nwst, nwast)| (nwst, AST::from_strs("symbol", &symbol.0).merge(nwast)))
+        .map(|(nwst, nwast)| (nwst, AST::from_strs("symref", &symbol.0).merge(nwast)))
         .map_err(|error| ::add_descr_error(error, &format!("s.{}", symbol.0)))
 }
 

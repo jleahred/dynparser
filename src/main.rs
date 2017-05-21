@@ -54,9 +54,7 @@ fn main() {
     //                    &symbol("grammar"),
     //                    &grammar());
 
-    let parsed = parse(&text2parse(r#"h= asdf (hi"#),
-                       &symbol("grammar"),
-                       &grammar());
+    let parsed = parse(&text2parse(r#"h=a (b"#), &symbol("grammar"), &grammar());
 
     match parsed {
         Err(err) => println!("error... {} ___________", err),
