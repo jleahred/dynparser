@@ -1,30 +1,4 @@
 // todo: ast
-//  deep error info
-//  simplify next code
-// match (i >= min.0, max_reached(i), opt_lasterror.clone(), opt_lastokst.clone()) {
-//     (false, _, Some::<Error>(err), _) => {
-//         return Err(error(&err.pos,
-//                          &format!("trying repeat., {}", err.descr),
-//                          conf.text2parse))
-//     }
-//     (false, _, None, _) => (),
-//     (true, true, Some(lerr), Some(lok)) => {
-//         return Ok((lok.update_deep_error(&lerr), ast(ast_nodes)))
-//     }
-//     (true, true, None, Some(lok)) => return Ok((lok, ast(ast_nodes))),
-//     (true, true, Some(lerr), None) => {
-//         return Ok((status.update_deep_error(&lerr), ast(ast_nodes)))
-//     }
-//     (true, true, None, None) => return Ok((status, ast(ast_nodes))),
-//     (true, false, None, _) => (),
-//     (true, false, Some(lerr), Some(lok)) => {
-//         return Ok((lok.update_deep_error(&lerr), ast(ast_nodes)))
-//     }
-//     (true, false, Some(lerr), None) => {
-//         return Ok((status.update_deep_error(&lerr), ast(ast_nodes)))
-//     }
-// }
-
 //  generate code for parsing (grammar.rs)
 //  prune with a lambda
 //  extend grammar to deal better with errors (error result)

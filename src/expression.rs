@@ -47,32 +47,11 @@ fn parse_or(conf: &parser::Config,
             exprs: &Vec<Expression>,
             status: parser::Status)
             -> Result<(parser::Status, ast::Node), Error> {
-    let get_deep_error = |oerr1: Option<Error>, oerr2: Option<Error>| {
-        match (oerr1, oerr2) {
-            (Some(err1), Some(err2)) => {
-                if err1.pos.n > err2.pos.n {
-                    Some(err1)
-                } else {
-                    Some(err2)
-                }
-            }
-            (Some(err1), None) => Some(err1),
-            (None, Some(err2)) => Some(err2),
-            (None, None) => None,
-        }
-    };
     let mut errs = vec![];
-    let mut deep_error = None;
     for e in exprs {
         match e.parse(conf, status.clone()) {
-            Ok((mut s, n)) => {
-                s.deep_error = get_deep_error(s.deep_error.clone(), deep_error);
-                return Ok((s, n));
-            }
-            Err(perr) => {
-                deep_error = get_deep_error(deep_error, Some(perr.clone()));
-                errs.push(error(&perr.pos, &perr.descr, conf.text2parse));
-            }
+            Ok(p) => return Ok(p),
+            Err(perr) => errs.push(error(&perr.pos, &perr.descr, conf.text2parse)),
         }
     }
 
@@ -168,21 +147,15 @@ fn parse_repeat(conf: &parser::Config,
                                  conf.text2parse))
             }
             (false, _, None, _) => (),
-            (true, true, Some(lerr), Some(lok)) => {
+            (true, _, Some(lerr), Some(lok)) => {
                 return Ok((lok.update_deep_error(&lerr), ast(ast_nodes)))
+            }
+            (true, _, Some(lerr), None) => {
+                return Ok((status.update_deep_error(&lerr), ast(ast_nodes)))
             }
             (true, true, None, Some(lok)) => return Ok((lok, ast(ast_nodes))),
-            (true, true, Some(lerr), None) => {
-                return Ok((status.update_deep_error(&lerr), ast(ast_nodes)))
-            }
             (true, true, None, None) => return Ok((status, ast(ast_nodes))),
             (true, false, None, _) => (),
-            (true, false, Some(lerr), Some(lok)) => {
-                return Ok((lok.update_deep_error(&lerr), ast(ast_nodes)))
-            }
-            (true, false, Some(lerr), None) => {
-                return Ok((status.update_deep_error(&lerr), ast(ast_nodes)))
-            }
         }
     }
     Err(error(&status.pos,
