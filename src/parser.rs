@@ -26,19 +26,24 @@ pub fn parse(conf: &Config,
              status: parser::Status)
              -> Result<(parser::Status, ast::Node), Error> {
 
-    let final_status = parse_symbol(conf, symbol, status)?;
+    let final_result = parse_symbol(conf, symbol, status)?;
 
-    match final_status.0.pos.n == conf.text2parse.0.len() {
-        true => Ok(final_status),
+    match final_result.0.pos.n == conf.text2parse.0.len() {
+        true => Ok(final_result),
         false => {
-            Err(error(&final_status.0.pos,
-                      &format!("unexpected >{}<",
+            let sdeep_error = match final_result.0.deep_error {
+                Some(error) => format!("\n  {}", error),
+                None => "".to_owned(),
+            };
+            Err(error(&final_result.0.pos,
+                      &format!("unexpected >{}< {}",
                                conf.text2parse
                                    .0
                                    .chars()
-                                   .skip(final_status.0.pos.n)
-                                   .take(conf.text2parse.0.len() - final_status.0.pos.n)
-                                   .collect::<String>()),
+                                   .skip(final_result.0.pos.n)
+                                   .take(conf.text2parse.0.len() - final_result.0.pos.n)
+                                   .collect::<String>(),
+                               sdeep_error),
                       conf.text2parse))
         }
     }
@@ -74,6 +79,20 @@ impl Status {
 
     pub fn inc_depth(&self) -> Self {
         Status { depth: Depth(self.depth.0 + 1), ..self.clone() }
+    }
+
+    pub fn update_deep_error(mut self, error: &Error) -> Self {
+        self.deep_error = match self.deep_error {
+            Some(ref derr) => {
+                if error.pos.n > derr.pos.n {
+                    Some(error.clone())
+                } else {
+                    self.deep_error.clone()
+                }
+            }
+            None => Some(error.clone()),
+        };
+        self
     }
 }
 
