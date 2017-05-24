@@ -59,7 +59,7 @@ fn parse_or(conf: &parser::Config,
     errs.retain(|ref e| e.pos.n == max_deep);
 
     if errs.len() == 1 {
-        Err(errs[0].clone())    //  it's safe
+        Err(errs[0].clone())    //  [0]  it's safe
     } else {
         let mut error = error(&status.pos, "", conf.text2parse);
         for e in errs {

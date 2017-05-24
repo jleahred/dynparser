@@ -59,6 +59,7 @@ pub struct Depth(pub u32);
 pub struct Status {
     pub pos: Possition,
     pub depth: Depth,
+    pub deep_error: Option<Error>,
 }
 
 
@@ -67,6 +68,7 @@ impl Status {
         Status {
             pos: Possition::new(),
             depth: Depth(0),
+            deep_error: None,
         }
     }
 

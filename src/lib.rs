@@ -1,15 +1,16 @@
 // todo: ast
-//  before parsing, check if rules are complete
-//  no missing rules, no defined but not used rules
-//  remove indentation reference???
-//  let symbols with any char
+//  deep error info
 //  generate code for parsing (grammar.rs)
 //  prune with a lambda
 //  extend grammar to deal better with errors (error result)
 //  add in status last deep error to deal with not consumed all input error
 //      by example...  h=a (b
-//  test and verify depp control
+//  test and verify deep control (stop if too deep)
 //  remove not necessary dependencies
+//  before parsing, check if rules are complete
+//  no missing rules, no defined but not used rules
+//  remove indentation reference???
+//  let symbols with any char
 
 
 const TRUNCATE_ERROR: usize = 2000;
