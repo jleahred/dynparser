@@ -46,7 +46,7 @@ fn parse_literal(text2parse: &Text2Parse,
         .collect::<String>();
     if s == in_text {
         status.pos.inc_chars(&in_text);
-        Ok((status, ast::from_strs("lit", s)))
+        Ok((status, ast::Node::new_valstr(ast::K::ALit, s)))
     } else {
         Err(error(&status.pos,
                   &format!("lit. expected {:?}, got {:?}", s, in_text),
@@ -69,7 +69,7 @@ fn parse_dot(text2parse: &Text2Parse,
     match status.pos.n < text2parse.0.len() {
         true => {
             status.pos.inc_char(text2parse);
-            Ok((status, ast::from_strs("dot", &current_char())))
+            Ok((status, ast::Node::new_valstr(ast::K::ADot, &current_char())))
         }
         false => {
             Err(error(&status.pos,
@@ -100,7 +100,9 @@ pub fn parse_symbol(conf: &parser::Config,
                     .parse(conf, status)
             }
         }
-        .map(|(nwst, nwast)| (nwst, ast::from_strs("symref", &symbol.0).merge(nwast)))
+        .map(|(nwst, nwast)| {
+            (nwst, ast::Node::new_valstr(ast::K::ASymbref, &symbol.0).merge(nwast))
+        })
         .map_err(|error| ::add_descr_error(error, &format!("s.{}", symbol.0)))
 }
 
@@ -134,7 +136,7 @@ fn parse_match(text2parse: &Text2Parse,
         Some(ch) => {
             if match_ch(ch, chars, ch_ranges) {
                 status.pos.inc_char(text2parse);
-                Ok((status, ast::from_strs("match", &ch.to_string())))
+                Ok((status, ast::Node::new_valstr(ast::K::AMatch, &ch.to_string())))
             } else {
                 Err(_error)
             }
@@ -147,7 +149,7 @@ fn parse_eof(text2parse: &Text2Parse,
              status: parser::Status)
              -> Result<(parser::Status, ast::Node), Error> {
     if status.pos.n == text2parse.0.len() {
-        Ok((status, ast::from_strs("eof", "")))
+        Ok((status, ast::Node::new_valstr(ast::K::AEof, "")))
     } else {
         Err(error(&status.pos.clone(), &format!("expected eof. "), text2parse))
     }

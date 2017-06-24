@@ -523,10 +523,11 @@ comment =  "//" (!"/n" .)* "/n"
         /  "/*" (!"*/" .)* "*/"
 ----
 
-That's ok an works fine, but error messages...
+That's ok an works fine, but we can inprove error messages...
 
-In order to improve error messages, it's necessary to modify the grammar.
+In order to improve error messages, would be interesting to modify the grammar.
 
+Look this code:
 
 [source, rust]
 ----
@@ -540,7 +541,10 @@ In order to improve error messages, it's necessary to modify the grammar.
     };
 ----
 
-It produces
+At the beggining it finished with no errors, but not consuming the hole input.
+Wich is an error.
+
+Showing an error informing that we didn't consume full input, is not the best.
 
 [source]
 ----
@@ -559,7 +563,38 @@ and_expr        =   compl_expr  (  " "  _  and_expr)*
 Here, we said, "hey, try to look for a sequence, or not `*`"
 
 And is not, then the parser say, I matched the rule, I have to continue verifying other
-branches. But there are no brunches valid, then the parser ends not consuming all the input.
+previus branches. But there are no previus partial applied brunchs.
+Then the parser ends not consuming all the input.
 
-To solve it, we have to modify the grammar in order to force evaluation.
+To improve this message, I added deep_error on Status for these situations
 
+[source, rust]
+----
+pub struct Status {
+    pub pos: Possition,
+    pub depth: Depth,
+    pub deep_error: Option<Error>,
+}
+----
+
+Now the new error message in these circunstances will be:
+
+[source]
+----
+error... in pos: r:1, c:7, n:6   >h=a (b<  -> s.and_expr > s.compl_expr > s.simpl_par > s.parenth_expr > lit. expected ")", got ""
+----
+
+Much better!!!
+
+In any case, to improve error messages, would be interesting to have something like:
+
+[source, peg]
+----
+parenth_expr    =   "("  _  expr  _  ")"
+                /   "("  _  expr  _      -> error("mismatch parenthesis")
+----
+
+The or brunch will execute if there is no closing parenthesis and we can
+write an specific error message.
+
+This is annotated on todo: for future revisions

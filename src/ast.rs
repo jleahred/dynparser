@@ -3,11 +3,26 @@
 // -------------------------------------------------------------------------------------
 //  T Y P E S
 
-#[derive(Debug)]
-pub struct K(pub String);
+#[derive(Debug, Clone, Copy)]
+pub enum K {
+    Root,
+    ESimple,
+    EOr,
+    EAnd,
+    ENot,
+    ERepeat,
+    ALit,
+    AMatch,
+    ADot,
+    ASymbref,
+    AEof,
+}
+
+// pub struct K(pub String);
 
 #[derive(Debug)]
 pub struct V(pub String);
+
 
 #[derive(Debug)]
 pub struct Node {
@@ -29,41 +44,30 @@ impl Node {
             nodes: Box::new(vec![]),
         }
     }
+    pub fn new_valstr(kind: K, val: &str) -> Self {
+        Node {
+            kind: kind,
+            val: V(val.to_owned()),
+            nodes: Box::new(vec![]),
+        }
+    }
     pub fn merge(mut self, nwnode: Node) -> Self {
         self.nodes.push(nwnode);
         self
     }
 
+
     #[must_use]
-    pub fn get_pruned(mut self) -> Self {
-        fn to_be_pruned(node: &Node) -> bool {
-            let prune_kind = match node.kind.0.as_ref() {
-                "repeat" => true,
-                "and" => true,
-                // "lit" => true,
-                "match" => true,
-                "atom" => true,
-                "compl_expr" => true,
-                _ => false,
-            };
-            let prune_val = match node.val.0.as_ref() {
-                "_" => true,
-                "or_expr" => true,
-                "and_expr" => true,
-                "compl_expr" => true,
-                _ => false,
-            };
-            prune_kind || prune_val
-        };
-
-
+    pub fn get_pruned<LP>(mut self, lp: &LP) -> Self
+        where LP: Fn(&K, &str) -> bool
+    {
         let mut located_prune = true;
         while located_prune {
             located_prune = false;
             let mut new_nodes = Box::new(vec![]);
             self.nodes.reverse();
             while let Some(mut node) = self.nodes.pop() {
-                match to_be_pruned(&node) {
+                match lp(&node.kind, node.val.0.as_ref()) {
                     true => {
                         located_prune = true;
                         node.nodes.reverse();
@@ -71,7 +75,7 @@ impl Node {
                             new_nodes.push(n)
                         }
                     }
-                    false => new_nodes.push(node.get_pruned()),
+                    false => new_nodes.push(node.get_pruned(lp)),
                 }
             }
             self.nodes = new_nodes;
@@ -79,8 +83,4 @@ impl Node {
 
         self
     }
-}
-
-pub fn from_strs(k: &str, v: &str) -> Node {
-    Node::new(K(k.to_owned()), V(v.to_owned()))
 }

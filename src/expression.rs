@@ -80,7 +80,7 @@ fn parse_and(conf: &parser::Config,
              -> Result<(parser::Status, ast::Node), Error> {
     let ast = |ast_nodes| {
         ast::Node {
-            kind: ast::K("and".to_owned()),
+            kind: ast::K::EAnd,
             val: ast::V("".to_owned()),
             nodes: Box::new(ast_nodes),
         }
@@ -104,7 +104,7 @@ fn parse_negate(conf: &parser::Config,
 
     match expr.parse(conf, status.clone()) {
         Ok(result) => Err(error(&result.0.pos, "negation error", conf.text2parse)),
-        Err(_) => Ok((status, ast::from_strs("not", ""))),
+        Err(_) => Ok((status, ast::Node::new_valstr(ast::K::ENot, ""))),
     }
 }
 
@@ -116,7 +116,7 @@ fn parse_repeat(conf: &parser::Config,
                 -> Result<(parser::Status, ast::Node), Error> {
     let ast = |ast_nodes| {
         ast::Node {
-            kind: ast::K("repeat".to_owned()),
+            kind: ast::K::ERepeat,
             val: ast::V("".to_owned()),
             nodes: ast_nodes,
         }

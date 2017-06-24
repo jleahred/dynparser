@@ -1,15 +1,19 @@
 // todo: ast
-//  generate code for parsing (grammar.rs)
 //  prune with a lambda
-//  extend grammar to deal better with errors (error result)
-//  add in status last deep error to deal with not consumed all input error
-//      by example...  h=a (b
+//  generate code for parsing (grammar.rs)
 //  test and verify deep control (stop if too deep)
-//  remove not necessary dependencies
+
+//  let symbols with any several chars??
+//  extend grammar to deal better with errors (error result) -> # error...
 //  before parsing, check if rules are complete
 //  no missing rules, no defined but not used rules
-//  remove indentation reference???
-//  let symbols with any char
+
+
+// done:
+//  remove not necessary dependencies
+//  remove indentation reference
+
+
 
 
 const TRUNCATE_ERROR: usize = 2000;
@@ -73,13 +77,31 @@ pub struct Error {
 //  A P I
 
 pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<ast::Node, Error> {
+    let check2prune = |kind: &ast::K, val: &str| {
+        let prune_kind = match kind {
+            &ast::K::ERepeat => true,
+            &ast::K::EAnd => true,
+            // &ast::K::a_lit => true,
+            &ast::K::AMatch => true,
+            _ => false,
+        };
+        let prune_val = match val {
+            // "_" => true,
+            // "or_expr" => true,
+            // "and_expr" => true,
+            // "compl_expr" => true,
+            _ => false,
+        };
+        prune_kind || prune_val
+
+    };
     let config = parser::Config {
         text2parse: text2parse,
         rules: rules,
     };
     let parsed = parser::parse(&config, symbol, parser::Status::new());
     match parsed {
-        Ok((_, ast_node)) => Ok(ast_node.get_pruned()),
+        Ok((_, ast_node)) => Ok(ast_node.get_pruned(&check2prune)),
         Err(s) => Err(s),
     }
 }
@@ -157,8 +179,3 @@ impl Error {
         r
     }
 }
-
-
-
-//  pending remove...
-pub use grammar::grammar;

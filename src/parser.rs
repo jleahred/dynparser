@@ -31,20 +31,20 @@ pub fn parse(conf: &Config,
     match final_result.0.pos.n == conf.text2parse.0.len() {
         true => Ok(final_result),
         false => {
-            let sdeep_error = match final_result.0.deep_error {
-                Some(error) => format!("\n  {}", error),
-                None => "".to_owned(),
-            };
-            Err(error(&final_result.0.pos,
-                      &format!("unexpected >{}< {}",
-                               conf.text2parse
-                                   .0
-                                   .chars()
-                                   .skip(final_result.0.pos.n)
-                                   .take(conf.text2parse.0.len() - final_result.0.pos.n)
-                                   .collect::<String>(),
-                               sdeep_error),
-                      conf.text2parse))
+            match final_result.0.deep_error {
+                Some(error) => Err(error),
+                None => {
+                    Err(error(&final_result.0.pos,
+                              &format!("unexpected >{}<",
+                                       conf.text2parse
+                                           .0
+                                           .chars()
+                                           .skip(final_result.0.pos.n)
+                                           .take(conf.text2parse.0.len() - final_result.0.pos.n)
+                                           .collect::<String>()),
+                              conf.text2parse))
+                }
+            }
         }
     }
 }
