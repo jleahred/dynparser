@@ -24,16 +24,30 @@ See examples below
 0.1.0  First version
 
 
+== TODO/DONE
+
+=== TODO
+* Add on ast, type and text
+* generate code for parsing (grammar.rs)
+* test and verify deep control (stop if too deep)
+* keep or remove default prunning?? now it's commented on lib.rs
+
+* let symbols with any several chars??
+* extend grammar to deal better with errors (error result) -> # error...
+* define variables
+* define "transformation rules"
+* before parsing, check if rules are complete
+* no missing rules, no defined but not used rules
+
+=== DONE
+* prune with a lambda
+* remove not necessary dependencies
+* remove indentation reference
+
+
 == Input
 
 === Grammar
-
-pending... The grammar is indentation sensitive.
-
-pending... You can check de indentation special cases in https://github.com/jleahred/indentation_flattener[indentation_flattener]
-
-pending... It doesn't look necessary to work with indentation on Grammar
-
 
 
 ==== Rule elements enumeration
@@ -255,9 +269,44 @@ pub struct Text2Parse(pub String);
 
 == Output
 
-AST
+=== AST
 
-pending...
+Well, you can see code on... let say `ast.rs` (not surprising)
+
+[source, rust]
+----
+#[derive(Debug)]
+pub struct Node {
+    pub kind: K,
+    pub val: V,
+    pub nodes: Box<Vec<Node>>,
+}
+----
+
+An ast, is a `root` node, witch have subnodes and recursivily, we got a tree.
+
+Next are the kind types of a node.
+
+[source, rust]
+----
+pub enum K {
+    Root,
+    EAnd,
+    ENot,
+    ERepeat,
+    ALit,
+    AMatch,
+    ADot,
+    ASymbref,
+    AEof,
+}
+----
+
+The ones who start with `Exxx` are `Expressions` nodes. Starting with `Axxxx` we have the atom
+nodes.
+
+With method `get_pruned` we can remove non interesting nodes.
+
 
 
 

@@ -6,8 +6,6 @@
 #[derive(Debug, Clone, Copy)]
 pub enum K {
     Root,
-    ESimple,
-    EOr,
     EAnd,
     ENot,
     ERepeat,
@@ -18,7 +16,6 @@ pub enum K {
     AEof,
 }
 
-// pub struct K(pub String);
 
 #[derive(Debug)]
 pub struct V(pub String);

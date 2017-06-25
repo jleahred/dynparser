@@ -1,17 +1,3 @@
-// todo: ast
-//  prune with a lambda
-//  generate code for parsing (grammar.rs)
-//  test and verify deep control (stop if too deep)
-
-//  let symbols with any several chars??
-//  extend grammar to deal better with errors (error result) -> # error...
-//  before parsing, check if rules are complete
-//  no missing rules, no defined but not used rules
-
-
-// done:
-//  remove not necessary dependencies
-//  remove indentation reference
 
 
 
@@ -77,31 +63,32 @@ pub struct Error {
 //  A P I
 
 pub fn parse(text2parse: &Text2Parse, symbol: &Symbol, rules: &Rules) -> Result<ast::Node, Error> {
-    let check2prune = |kind: &ast::K, val: &str| {
-        let prune_kind = match kind {
-            &ast::K::ERepeat => true,
-            &ast::K::EAnd => true,
-            // &ast::K::a_lit => true,
-            &ast::K::AMatch => true,
-            _ => false,
-        };
-        let prune_val = match val {
-            // "_" => true,
-            // "or_expr" => true,
-            // "and_expr" => true,
-            // "compl_expr" => true,
-            _ => false,
-        };
-        prune_kind || prune_val
+    // let check2prune = |kind: &ast::K, val: &str| {
+    //     let prune_kind = match kind {
+    //         &ast::K::ERepeat => true,
+    //         &ast::K::EAnd => true,
+    //         // &ast::K::a_lit => true,
+    //         // &ast::K::AMatch => true,
+    //         _ => false,
+    //     };
+    //     let prune_val = match val {
+    //         // "_" => true,
+    //         // "or_expr" => true,
+    //         // "and_expr" => true,
+    //         // "compl_expr" => true,
+    //         _ => false,
+    //     };
+    //     prune_kind || prune_val
 
-    };
+    // };
     let config = parser::Config {
         text2parse: text2parse,
         rules: rules,
     };
     let parsed = parser::parse(&config, symbol, parser::Status::new());
     match parsed {
-        Ok((_, ast_node)) => Ok(ast_node.get_pruned(&check2prune)),
+        // Ok((_, ast_node)) => Ok(ast_node.get_pruned(&check2prune)),
+        Ok((_, ast_node)) => Ok(ast_node),
         Err(s) => Err(s),
     }
 }
