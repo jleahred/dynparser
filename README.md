@@ -1,294 +1,258 @@
-= DynParser
-
+# DynParser
 
 A small and simple Dynamic Parser
 
+NOT COMPLETED. WORKING ON!!!
 
-
-
-== Usage
+## Usage
 
 Add to `cargo.toml`
-[source, toml]
-----
+
+```toml
 [dependencies]
 pending...
-----
+```
 
-See examples below
+Watch examples below
 
+## Modifications
 
+0.1.0 Not completed
 
-== Modifs
+## TODO/DONE
 
-0.1.0  First version
+### TODO
 
+* mostly all
 
-== TODO/DONE
+### DONE
 
-=== TODO
-* Add on ast, type and text
-* generate code for parsing (grammar.rs)
-* test and verify deep control (stop if too deep)
-* keep or remove default prunning?? now it's commented on lib.rs
+* --
 
-* let symbols with any several chars??
-* extend grammar to deal better with errors (error result) -> # error...
-* define variables
-* define "transformation rules"
-* before parsing, check if rules are complete
-* no missing rules, no defined but not used rules
+## Input
 
-=== DONE
-* prune with a lambda
-* remove not necessary dependencies
-* remove indentation reference
+### Grammar
 
-
-== Input
-
-=== Grammar
-
-
-==== Rule elements enumeration
+#### Rule elements enumeration
 
 Examples below
 
-[horizontal]
-`=`:: On left, symbol, on right expresion defining symbol
-`symbol`:: On right, it's an string without quotes
-`.`:: Any char
-`"..."`:: Literal delimited by quotes
-`space`:: Separate tokens and Rule concatenation (and operation)
-`/`:: Or operation
-`(...)`:: A expression composed of sub expresions
-`?`:: One optional
-`*`:: Repeat 0 or more
-`+`:: Repeat 1 or more
-`!`:: negate expression
-`[...]`:: Match chars. It's a list or ranges (or both)
-`->`:: pending...
-`:`:: pending...
+| token    | Description                                            |
+| -------- | ------------------------------------------------------ |
+| `=`      | On left, symbol, on right expresion defining symbol    |
+| `symbol` | On right, it's an string without quotes                |
+| `.`      | Any char                                               |
+| `"..."`  | Literal delimited by quotes                            |
+| `space`  | Separate tokens and Rule concatenation (and operation) |
+| `/`      | Or operation                                           |
+| `(...)`  | A expression composed of sub expresions                |
+| `?`      | One optional                                           |
+| `*`      | Repeat 0 or more                                       |
+| `+`      | Repeat 1 or more                                       |
+| `!`      | negate expression                                      |
+| `[...]`  | Match chars. It's a list or ranges (or both)           |
+| `->`     | pending...                                             |
+| `:`      | pending...                                             |
 
 Let's see by example
 
+#### Rules by example
+
 A simple literal string.
 
-.Literal
-[source, peg]
-----
+```peg
 main = "Hello world"
-----
+```
 
-.Concatenation (and)
-[source, peg]
-----
+Concatenation (and)
+
+```peg
 main = "Hello "  "world"
-----
-
+```
 
 Referencing symbols
 
-.Symbol
-[source, peg]
-----
+Symbol
+
+```peg
 main = hi
 hi   = "Hello world"
-----
+```
 
 Or conditions `/`
 
-.Or
+```peg
 [source, peg]
-----
 main = "hello" / "hi"
-----
+```
 
-.Or multiline
-[source, peg]
-----
+Or multiline
+
+```peg
 main
     = "hello"
     / "hi"
     / "hola"
-----
+```
 
-.Or multiline 2
-[source, peg]
-----
+Or multiline 2
+
+```peg
 main = "hello"
      / "hi"
      / "hola"
-----
+```
 
+Or disorganized
 
-.Or disorganized
-[source, peg]
-----
+```peg
 main = "hello"
      / "hi" / "hola"
-----
+```
 
+Parenthesis
 
-.Parenthesis
-[source, peg]
-----
+```peg
 main = ("hello" / "hi")  " world"
-----
-
+```
 
 Just multiline
 
-.Multiline1
-[source, peg]
-----
+Multiline1
+
+```peg
 main
     = ("hello" / "hi")  " world"
-----
+```
 
-.Multiline2
-[source, peg]
-----
+Multiline2
+
+```peg
 main
     = ("hello" / "hi")
     " world"
-----
+```
 
-.Multiline3
-[source, peg]
-----
+Multiline3
+
+```peg
 main = ("hello" / "hi")
      " world"
-----
-
+```
 
 It is recomended to use or operator `/` on each new line and `=` on first line, like
 
+Multiline organized
 
-.Multiline organized
-[source, peg]
-----
+```peg
 main = ("hello" / "hi")  " world"
      / "bye"
-----
+```
 
-.One optional
-[source, peg]
-----
+One optional
+
+```peg
 main = ("hello" / "hi")  " world"?
-----
+```
 
+Repetitions
 
-.Repetitions
-[source, peg]
-----
+```peg
 main         = one_or_more_a / zero_or_many_b
 one_or_more  = "a"+
 zero_or_many = "b"*
-----
+```
 
 Negation will not move current possition
 
 Next example will consume all chars till get an "a"
 
-.Negation
-[source, peg]
-----
-main = (!"a" .)* "a"
-----
+Negation
 
-.Consume till
-[source, peg]
-----
+```peg
+main = (!"a" .)* "a"
+```
+
+Consume till
+
+```peg
 comment = "//" (!"\n" .)*
         / "/*" (!"*/" .)* "*/"
-----
+```
 
 Match a set of chars.
 Chars can be defined by range.
 
-
-.Match chars
-[source, peg]
-----
+```peg
 number  = digit+ ("." digit+)?
 digit   = [0-9]
 a_or_b  = [ab]
 id      = [_a-zA-Z][_a-zA-Z0-9]*
 
 a_or_b_or_digit  = [ab0-9]
-----
-
+```
 
 Simple recursion
 
-.one or more "a" recursive
-[source, peg]
-----
+one or more "a" recursive
+
+```peg
 as  = "a" as
     / "a"
 
 //  simplified with `+`
 ak = "a"+
-----
+```
 
+Recursion to match parentheses
 
+Recursion match par
 
-Recursion to match parenthesis
-
-.Recursion match par
-[source, peg]
-----
+```peg
 match_par = "(" match_par ")"
           / "(" ")"
-----
+```
 
+Grammar bellow (on hacking the code)...
 
-
-
-Grammar pending...
-
-
-=== Text
+### Text
 
 Hey, I'm a text parser, I need a text to parse ;-P
 
 If you want to parse text indentation sensitive, I recomend you the lib
-https://github.com/jleahred/indentation_flattener[indentation_flattener]
+[indentation_flattener](https://github.com/jleahred/indentation_flattener)
 
 The only consideration about the text to parse, is the type. It's not a generic String, it has to be
 a more concrete `Text2Parse`
 
-[source, rust]
-----
-#[derive(Debug, PartialEq, Default)]
-pub struct Text2Parse(pub String);
-----
+```rust
+pending...
+```
 
+## Output
 
-
-== Output
-
-=== AST
+### AST
 
 Well, you can see code on... let say `ast.rs` (not surprising)
 
-[source, rust]
-----
+```rust
+pending...
+
 #[derive(Debug)]
 pub struct Node {
     pub kind: K,
     pub val: V,
     pub nodes: Box<Vec<Node>>,
 }
-----
+```
 
 An ast, is a `root` node, witch have subnodes and recursivily, we got a tree.
 
 Next are the kind types of a node.
 
-[source, rust]
-----
+```rust
+pending...
+
 pub enum K {
     Root,
     EAnd,
@@ -300,113 +264,98 @@ pub enum K {
     ASymbref,
     AEof,
 }
-----
+```
 
 The ones who start with `Exxx` are `Expressions` nodes. Starting with `Axxxx` we have the atom
 nodes.
 
 With method `get_pruned` we can remove non interesting nodes.
 
-
-
-
-== API
+## API
 
 It works with concrete types vs general types (reducing use of types like String, u32 or usize)
 
+Constants
 
-Constants::
-[source, rust]
-----
-pending
-----
+```rust
+## pending
+```
 
+Concrete types
 
-Concrete types::
-[source, rust]
-----
-pending
-----
+```rust
+## pending
+```
 
+Functions to call
 
-Functions to call::
-[source, rust]
-----
-pending
-----
+```rust
+## pending
+```
 
+Error type
 
-
-Error type::
-[source, rust]
-----
-pending
-----
-
+```rust
+## pending
+```
 
 Thats all
 
-
 Look into lib.rs
 
-
-== Examples
+## Examples
 
 You can look into tests.rs.
 
+Simple example
 
-.Simple example
-[source, rust]
-----
-pending...
-----
+```rust
+## pending...
+```
 
+Complex example
 
-
-.Complex example
-[source, rust]
-----
-pending...
-----
+```rust
+## pending...
+```
 
 More examples on tests.rs
 
-
-== Hacking the code
+## Hacking the code
 
 The grammar is a set of rules
 
-[source, rust]
-----
+```rust
+pending...
 type Rules = HashMap<Symbol, Expression>;
-----
+```
 
 A Symbol is just a String
-[source, rust]
-----
+
+```rust
+pending...
 #[derive(Debug, PartialEq, Eq, Hash, Default, Clone)]
 pub struct Symbol(pub String);
-----
-
+```
 
 An expression can be one of...
 
-[source, rust]
-----
+```rust
+pending...
 #[derive(Debug)]
 pub enum Expression {
     Simple(Atom),
     Or(MultiExpr),
     And(MultiExpr),
     Not(Box<Expression>),
-    Repeat(Box<Expression>, NRep, Option<NRep>), //  min max
+    Repeat(Box<Expression>, NRep, Option<NRep>), // min max
 }
-----
+```
 
 An atom can be just...
 
-[source, rust]
-----
+```rust
+pending...
 #[derive(Debug, PartialEq)]
 pub enum Atom {
     Literal(String),
@@ -415,28 +364,19 @@ pub enum Atom {
     Symbol(String),
     Nothing,
 }
-----
+```
 
-
-[source, rust]
-----
-----
-
-=== A grammar for the grammar
+### A grammar for the grammar
 
 A grammar to define the grammar to be parsed by de parser. ;-P
 
 I will define the grammar using the this parser grammar definition rules.
 
-
-[source, peg]
-----
+```peg
 grammar = rule+
-
-rule    = symbol  _  "="  _>   expr  _EI?
-
-_   = " "*
-----
+rule    = symbol  _  "="  expr
+_       = " "*
+```
 
 Here we relax the verification to keep the grammar as simple as possible.
 
@@ -449,32 +389,25 @@ build an AST with proper pritority.
 
 Next grammar:
 
-[source, peg]
-----
+```peg
 main    =  "A" "B"  /  "B" "C"
-----
+```
 
 It's equivalent to:
 
-[source, peg]
-----
+```peg
 main    =  ("A" "B")  /  ("B" "C")
-----
-
+```
 
 And not to:
 
-[source, peg]
-----
+```peg
 main    =  (("A" "B")  /  "B") "C"
-----
+```
 
-To represent this priority, the expression rule has to be defined in a descendant
-priority way:
+To represent this priority, the expression rule has to be defined in a descendant priority way:
 
-
-[source, peg]
-----
+```peg
 expr            =   or_expr
 
 or_expr         =   and_expr     ("/"  or_expr)*
@@ -489,25 +422,20 @@ simpl_par       =   (simple / parenth_expr)
 
 parenth_expr    =   "("  expr ")"
 simple          =   atom
-----
+```
 
 Descendant definition
 
-[horizontal]
-simpl_par::     It's an atom or a parenthesis experssion
-
-compl_expr::    Complete expresssion. It's a full subtree expression +
-                It can have negation or (zero or more or one or more)
-
-and_expr::      Sequence of expressions separated by space
-
-or_expr::       Sequence of expression separated by "/"
-
+| expr       | Description                                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| simpl_par  | It's an atom or a parenthesis experssion                                                                   |
+| compl_expr | Complete expresssion. It's a full subtree expression It can have negation or (zero or more or one or more) |
+| and_expr   | Sequence of expressions separated by space                                                                 |
+| or_expr    | Sequence of expression separated by "/"                                                                    |
 
 Now, it's the `atom` turn:
 
-[source, peg]
-----
+```peg
 atom    =   literal
         /   match
         /   dot
@@ -517,18 +445,15 @@ literal =   "\""  (!"\"" .)*  "\""
 match   =   "["  ((.  "-"  .)  /  (.))+   "]"
 dot     =   "."
 symbol  =   [a-zA-Z0-9_]+
-----
-
+```
 
 Hey, what about comments?
 
 What about non significative spaces and carry return?
 
-It will be defined on "_" symbol
+It will be defined on "\_" symbol
 
-
-[source, peg]
-----
+```peg
 grammar         =   rule+
 
 rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
@@ -550,27 +475,27 @@ simple          =   atom
 
 
 
-atom    =   literal
-        /   match
-        /   dot
-        /   symbol
+atom            =   literal
+                /   match
+                /   dot
+                /   symbol
 
-literal =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
-match   =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
-dot     =   "."
-symbol  =   [a-zA-Z0-9_]+
+literal         =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
+match           =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
+dot             =   "."
+symbol          =   [a-zA-Z0-9_]+
 
 
-_   =  (" "
-    /   "\n"
-    /   comment)*
+_               =  (" "
+                /   "\n"
+                /   comment)*
 
-_eol = " "*  "\n"
-     / comment
+_eol            = " "*  "\n"
+                / comment
 
-comment =  "//" (!"/n" .)* "/n"
-        /  "/*" (!"*/" .)* "*/"
-----
+comment         =  "//" (!"/n" .)* "/n"
+                /  "/*" (!"*/" .)* "*/"
+```
 
 That's ok an works fine, but we can inprove error messages...
 
@@ -578,8 +503,8 @@ In order to improve error messages, would be interesting to modify the grammar.
 
 Look this code:
 
-[source, rust]
-----
+```rust
+pending...
     let parsed = parse(&text2parse(r#"h= asdf (hi"#),
                        &symbol("grammar"),
                        &grammar());
@@ -588,26 +513,26 @@ Look this code:
         Err(err) => println!("error... {} ___________", err),
         Ok(res) => println!("Ok... {:?} ___________", res),
     };
-----
+```
 
 At the beggining it finished with no errors, but not consuming the hole input.
 Wich is an error.
 
 Showing an error informing that we didn't consume full input, is not the best.
 
-[source]
-----
-error... in pos: r:1, c:9, n:8   >h= asdf <  -> unexpected >(hi<
-----
+```peg
+pending...
+error... in pos: r:1, c:9, n:8 >h= asdf < -> unexpected >(hi<
+```
 
 The reason is on
 
-[source, peg]
-----
+```peg
+pending...
 ...
 and_expr        =   compl_expr  (  " "  _  and_expr)*
 ...
-----
+```
 
 Here, we said, "hey, try to look for a sequence, or not `*`"
 
@@ -617,33 +542,33 @@ Then the parser ends not consuming all the input.
 
 To improve this message, I added deep_error on Status for these situations
 
-[source, rust]
-----
-pub struct Status {
-    pub pos: Possition,
-    pub depth: Depth,
-    pub deep_error: Option<Error>,
+```rust
+pending...
+#[derive(Debug, Clone)]
+pub(crate) struct Status<'a> {
+    text2parse: &'a str,
+    it_parsing: Chars<'a>,
+    pos: Possition,
+    deep_error: Option<Error>,
 }
-----
+```
 
 Now the new error message in these circunstances will be:
 
-[source]
-----
-error... in pos: r:1, c:7, n:6   >h=a (b<  -> s.and_expr > s.compl_expr > s.simpl_par > s.parenth_expr > lit. expected ")", got ""
-----
+```
+pending...
+## error... in pos: r:1, c:7, n:6 >h=a (b< -> s.and_expr > s.compl_expr > s.simpl_par > s.parenth_expr > lit. expected ")", got ""
+```
 
 Much better!!!
 
 In any case, to improve error messages, would be interesting to have something like:
 
-[source, peg]
-----
-parenth_expr    =   "("  _  expr  _  ")"
-                /   "("  _  expr  _      -> error("mismatch parenthesis")
-----
+```peg
+pending...
+parenth_expr    = "(" * expr _ ")"
+                / "(" _ expr \_ -> error("mismatch parenthesis")
+```
 
 The or brunch will execute if there is no closing parenthesis and we can
 write an specific error message.
-
-This is annotated on todo: for future revisions
