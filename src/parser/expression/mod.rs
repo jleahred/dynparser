@@ -81,13 +81,17 @@ pub(crate) fn parse_partial<'a>(
 fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultPartial<'a> {
     let init_tc: (_, &[Expression]) = (status, &(multi_expr.0));
 
-    Ok(try_tail_call(init_tc, |acc| {
+    tail_call(init_tc, |acc| {
         if acc.1.len() == 0 {
-            Ok(TailCall::Return(acc))
+            TailCall::Return(Ok(acc.0))
         } else {
-            Ok(TailCall::Call((parse(acc.0, &acc.1[0])?.0, &acc.1[1..])))
+            let result_parse = parse(acc.0, &acc.1[0]);
+            match result_parse {
+                Ok((st, _)) => TailCall::Call((st, &acc.1[1..])),
+                Err(err) => TailCall::Return(Err(err)),
+            }
         }
-    })?.0)
+    })
 }
 
 //-----------------------------------------------------------------------
@@ -140,23 +144,6 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultPartial<
 pub enum TailCall<T, R> {
     Call(T),
     Return(R),
-}
-
-pub fn try_tail_call<T, R, E, F>(seed: T, recursive_function: F) -> result::Result<R, E>
-where
-    F: Fn(T) -> result::Result<TailCall<T, R>, E>,
-{
-    let mut state = TailCall::Call(seed);
-    loop {
-        match state {
-            TailCall::Call(arg) => {
-                state = recursive_function(arg)?;
-            }
-            TailCall::Return(result) => {
-                return Ok(result);
-            }
-        }
-    }
 }
 
 pub fn tail_call<T, R, F>(seed: T, recursive_function: F) -> R
