@@ -8,10 +8,13 @@
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
-/// Here we have the parser for dependent kinds
-
-use std::result;
-use parser::{Error, Result, ResultPartial, Started, Status, atom::{self, Atom}};
+/// Here we have the parser for non atomic kinds
+use parser::{atom::{self, Atom},
+             Error,
+             Result,
+             ResultPartial,
+             Started,
+             Status};
 
 #[cfg(test)]
 mod test;
@@ -26,7 +29,7 @@ mod test;
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(crate) enum Expression<'a> {
+pub enum Expression<'a> {
     Simple(Atom<'a>),
     And(MultiExpr<'a>),
     Or(MultiExpr<'a>),
@@ -36,13 +39,13 @@ pub(crate) enum Expression<'a> {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(crate) struct MultiExpr<'a>(&'a [Expression<'a>]);
+pub struct MultiExpr<'a>(pub(crate) Vec<Expression<'a>>);
 
 #[derive(Debug)]
-pub(crate) struct RepInfo<'a> {
-    expression: Box<Expression<'a>>,
-    min: NRep,
-    max: Option<NRep>,
+pub struct RepInfo<'a> {
+    pub(crate) expression: Box<Expression<'a>>,
+    pub(crate) min: NRep,
+    pub(crate) max: Option<NRep>,
 }
 
 #[derive(Debug)]

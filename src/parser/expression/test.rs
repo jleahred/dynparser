@@ -4,8 +4,8 @@
 //
 //-----------------------------------------------------------------------
 
-use super::{parse, Expression, MultiExpr, NRep, RepInfo, Status};
 use super::atom::Atom;
+use super::{parse, Expression, MultiExpr, NRep, RepInfo, Status};
 
 #[test]
 fn test_parse_literal_ok() {
@@ -32,7 +32,7 @@ fn test_parse_and_ok() {
         Expression::Simple(Atom::Literal("aa")),
         Expression::Simple(Atom::Literal("aa")),
     ];
-    let expr = Expression::And(MultiExpr(&and_rules));
+    let expr = Expression::And(MultiExpr(and_rules));
 
     let result = parse(status_init, &expr).ok().unwrap();
 
@@ -48,7 +48,7 @@ fn test_parse_and_fail() {
         Expression::Simple(Atom::Literal("aa")),
         Expression::Simple(Atom::Literal("bb")),
     ];
-    let expr = Expression::And(MultiExpr(&and_rules));
+    let expr = Expression::And(MultiExpr(and_rules));
 
     assert!(parse(status_init, &expr).is_err());
 }
@@ -81,7 +81,7 @@ fn test_parse_or_ok() {
             Expression::Simple(Atom::Literal("aa")),
             Expression::Simple(Atom::Literal("aa")),
         ];
-        let expr = Expression::Or(MultiExpr(&rules));
+        let expr = Expression::Or(MultiExpr(rules));
 
         let result = parse(status_init, &expr).ok().unwrap();
 
@@ -95,7 +95,7 @@ fn test_parse_or_ok() {
             Expression::Simple(Atom::Literal("aa")),
             Expression::Simple(Atom::Literal("bb")),
         ];
-        let expr = Expression::Or(MultiExpr(&rules));
+        let expr = Expression::Or(MultiExpr(rules));
 
         let result = parse(status_init, &expr).ok().unwrap();
 
@@ -109,7 +109,7 @@ fn test_parse_or_ok() {
             Expression::Simple(Atom::Literal("bb")),
             Expression::Simple(Atom::Literal("aa")),
         ];
-        let expr = Expression::Or(MultiExpr(&rules));
+        let expr = Expression::Or(MultiExpr(rules));
 
         let result = parse(status_init, &expr).ok().unwrap();
 
@@ -126,7 +126,7 @@ fn test_parse_or_fail() {
         Expression::Simple(Atom::Literal("cc")),
         Expression::Simple(Atom::Literal("bb")),
     ];
-    let expr = Expression::And(MultiExpr(&and_rules));
+    let expr = Expression::And(MultiExpr(and_rules));
 
     assert!(parse(status_init, &expr).is_err());
 }

@@ -8,10 +8,9 @@
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
-/// Here we have the parser and types for non dependencies kind
-
-use std::result;
 use super::{Error, ResultPartial, Status};
+/// Here we have the parser and types for non dependencies kind
+use std::result;
 
 #[cfg(test)]
 mod test;
@@ -26,22 +25,18 @@ mod test;
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(crate) enum Atom<'a> {
+pub enum Atom<'a> {
     Literal(&'a str),
     Match(MatchRules<'a>),
     Dot,
     EOF,
 }
 
-/// contains a &str to the string to parse
-// #[derive(Debug)]
-// pub(crate) struct Literal<'a>(pub(crate) &'a str);
-
 /// contains a char slice and a (char,char) slice
 /// if char matches one in char slice -> OK
 /// if char matches between tuple in elems slice -> OK
 #[derive(Debug)]
-pub(crate) struct MatchRules<'a>(&'a str, &'a [(char, char)]);
+pub struct MatchRules<'a>(&'a str, &'a [(char, char)]);
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
