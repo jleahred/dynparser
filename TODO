@@ -1,5 +1,4 @@
-* Remove macro duplication (like lit!)
-* Example in doc
+* create dynamically rules, or modif them
+* more examples in doc
 * Rewrite README
     * This is only for dynparser
-* Map of rules to parse <name, rule>

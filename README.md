@@ -23,11 +23,11 @@ Watch examples below
 
 ### TODO
 
-* mostly all
+- mostly all
 
 ### DONE
 
-* --
+---
 
 ## Input
 

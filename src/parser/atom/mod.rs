@@ -1,13 +1,4 @@
-//-----------------------------------------------------------------------
-//-----------------------------------------------------------------------
-//
-//
-//  mod parser::atom
-//
-//
-//-----------------------------------------------------------------------
-//-----------------------------------------------------------------------
-
+/// Support for minimum expressions elements
 use super::{Error, ResultPartial, Status};
 /// Here we have the parser and types for non dependencies kind
 use std::result;
@@ -23,12 +14,17 @@ mod test;
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
+/// This is a minimum expression element
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Atom<'a> {
+    /// Literal string
     Literal(&'a str),
+    /// Character matches a list of chars or a list of ranges
     Match(MatchRules<'a>),
+    /// Any char
     Dot,
+    /// End Of File
     EOF,
 }
 
@@ -36,7 +32,7 @@ pub enum Atom<'a> {
 /// if char matches one in char slice -> OK
 /// if char matches between tuple in elems slice -> OK
 #[derive(Debug)]
-pub struct MatchRules<'a>(&'a str, &'a [(char, char)]);
+pub struct MatchRules<'a>(&'a str, Vec<(char, char)>);
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -57,9 +53,13 @@ pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> ResultPartial<'a>
 }
 
 impl<'a> MatchRules<'a> {
+    /// Create a MatchRules instance based on string and bounds
+    pub fn init(s: &'a str, bounds: Vec<(char, char)>) -> Self {
+        MatchRules(s, bounds)
+    }
     #[allow(dead_code)]
     pub(crate) fn new() -> Self {
-        MatchRules("", &[])
+        MatchRules("", vec![])
     }
     #[allow(dead_code)]
     pub(crate) fn with_chars(mut self, chrs: &'a str) -> Self {
@@ -68,8 +68,8 @@ impl<'a> MatchRules<'a> {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn with_bound_chars(mut self, bounds: &'a [(char, char)]) -> Self {
-        self.1 = bounds.clone();
+    pub(crate) fn with_bound_chars(mut self, bounds: Vec<(char, char)>) -> Self {
+        self.1 = bounds;
         self
     }
 }
@@ -104,7 +104,7 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> ResultPartia
         if match_rules.0.find(ch).is_some() {
             true
         } else {
-            for &(b, t) in match_rules.1 {
+            for &(b, t) in &match_rules.1 {
                 if b <= ch && ch <= t {
                     return true;
                 }
