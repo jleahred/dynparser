@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! Tools to execute parser of a expression
 
 //-----------------------------------------------------------------------
@@ -12,7 +13,6 @@
 
 /// Support for minimum expressions elements
 pub mod atom;
-#[allow(missing_docs)]
 pub mod expression;
 
 use std::result;
@@ -37,7 +37,6 @@ pub(crate) struct Status<'a> {
 }
 
 impl<'a> Status<'a> {
-    #[allow(dead_code)]
     pub(crate) fn init(t2p: &'a str, rules: &'a expression::SetOfRules) -> Self {
         Status {
             text2parse: t2p,
@@ -48,7 +47,7 @@ impl<'a> Status<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Started(usize);
 
 type Result<'a> = result::Result<(Status<'a>, Started), Error>;

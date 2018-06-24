@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 // #![feature(external_doc)]
 // #![doc(include = "../README.md")]
 
@@ -57,10 +59,32 @@
 //!
 //!     assert!(parse("aabcd", &rules).is_ok())
 //! }
+//! ```
+//!
+//! This is a dynamic parser, therefore, it's important to add rules at runtime
 //!
 //! ```
-
-#![warn(missing_docs)]
+//! #[macro_use]  extern crate dynparser;
+//! use dynparser::parse;
+//!
+//! fn main() {
+//!     let rules = rules!{
+//!        "main"   =>  and!{
+//!                         rep!(lit!("a"), 1, 5),
+//!                         rule!("rule2")
+//!                     }
+//!     };
+//!
+//!     let rules = rules.add("rule2", lit!("bcd"));
+//!
+//!     assert!(parse("aabcd", &rules).is_ok())
+//! }
+//! ```
+//!
+//! ```add``` take the ownership and returs a "new" (in fact modified)
+//! set of rules. This helps to reduce mutability
+//!
+//! Remember, you can use recursion in order to manage dinamically
 
 // -------------------------------------------------------------------------------------
 //  M A C R O S
@@ -93,10 +117,9 @@ macro_rules! rules {
         use $crate::parser::expression;
         use std::collections::HashMap;
 
-        let mut mrules = HashMap::<String, expression::Expression>::new();
-        $(mrules.insert($n.to_owned(), $e);)*
-
-        expression::SetOfRules::new(mrules)
+        let rules = expression::SetOfRules::new(HashMap::<String, expression::Expression>::new());
+        $(let rules = rules.add($n, $e);)*
+        rules
     }};
 }
 
@@ -336,6 +359,7 @@ pub struct Possition {
 }
 
 /// Context error information
+#[derive(Debug)]
 pub struct Error {
     /// Possition achive parsing
     pub pos: Possition,
@@ -372,12 +396,7 @@ pub struct Error {
 /// }
 ///
 /// ```
-/// Another example
-///
-/// ```
-///
-///
-/// ```
+/// More examples in marcros
 ///
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<(), Error> {
@@ -395,7 +414,6 @@ pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<(), Erro
 //  I N T E R N A L
 
 impl Possition {
-    #[allow(dead_code)]
     fn init() -> Self {
         Self {
             n: 0,
