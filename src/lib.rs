@@ -123,6 +123,19 @@ macro_rules! rules {
     }};
 }
 
+#[macro_export]
+macro_rules! expr2 {
+    (and ($($id:ident $($e:expr)*),*)) => {{
+        and!($(expr2!($id $($e),*)),*)
+    }}; 
+    ($id:ident $e:expr) => {{
+        $id!($e)
+    }}; 
+    ($id:ident) => {{
+        $id!()
+    }}; 
+}
+
 /// Create a literal
 ///
 /// example

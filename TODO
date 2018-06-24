@@ -1,3 +1,5 @@
+* generate AST
+* try a single macro for all rules
 * create dynamically rules, or modif them
 * more examples in doc
 * Rewrite README
