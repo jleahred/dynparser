@@ -401,10 +401,8 @@ pub struct Error {
 ///
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, Error> {
-    let parser::expression::RRuleInf {
-        status: st,
-        ast: ast,
-    } = parser::expression::parse_rule_name(parser::Status::init(s, &rules), "main")?;
+    let parser::expression::RRuleInf { status: st, ast } =
+        parser::expression::parse(parser::Status::init(s, &rules))?;
     match st.pos.n == s.len() {
         true => Ok(ast),
         false => Err(Error::from_status(&st, "not consumed full input")),

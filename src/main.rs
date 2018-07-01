@@ -8,18 +8,18 @@ fn main() {
                         lit!("a"),
                         or!(
                             and!(lit!("bcc")),
+                            lit!("bcdd"),
                             and!(
                                 lit!("bc"),
-                                lit!("e")
-                            ),
-                            lit!("bcaa")
+                                lit!("d")
+                            )
                         )
                     }
     };
 
     let result = parse("abcd", &rules);
     match result {
-        Ok(_) => println!("OK"),
+        Ok(ast) => println!("{:#?}", ast),
         Err(e) => println!("Error: {:?}", e),
     };
 }
