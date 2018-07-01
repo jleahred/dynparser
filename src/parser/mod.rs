@@ -15,7 +15,6 @@
 pub mod atom;
 pub mod expression;
 
-use std::result;
 use std::str::Chars;
 use {Error, Possition};
 
@@ -46,12 +45,6 @@ impl<'a> Status<'a> {
         }
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Started(usize);
-
-type Result<'a> = result::Result<(Status<'a>, Started), Error>;
-type ResultPartial<'a> = result::Result<Status<'a>, Error>;
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------

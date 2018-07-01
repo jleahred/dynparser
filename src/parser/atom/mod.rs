@@ -1,6 +1,7 @@
+use ast;
 /// Support for minimum expressions elements
-use super::{Error, ResultPartial, Status};
 /// Here we have the parser and types for non dependencies kind
+use parser::{Error, Status};
 use std::result;
 
 #[cfg(test)]
@@ -13,6 +14,8 @@ mod test;
 //
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
+
+pub(crate) type Result<'a> = result::Result<(Status<'a>, ast::NodeInfo), Error>;
 
 /// This is a minimum expression element
 #[allow(dead_code)]
@@ -43,7 +46,7 @@ pub struct MatchRules<'a>(&'a str, Vec<(char, char)>);
 //-----------------------------------------------------------------------
 
 #[allow(dead_code)]
-pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> ResultPartial<'a> {
+pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
         &Atom::Literal(literal) => parse_literal(status, literal),
         &Atom::Match(ref match_rules) => parse_match(status, &match_rules),
@@ -80,26 +83,32 @@ impl<'a> MatchRules<'a> {
 //
 //-----------------------------------------------------------------------
 
+macro_rules! ok {
+    ($st:expr, $val:expr) => {
+        Ok(($st, ast::NodeInfo::Val($val.to_owned())))
+    };
+}
+
 #[allow(dead_code)]
-fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> ResultPartial<'a> {
+fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
     for ch in literal.chars() {
         status = parse_char(status, ch)
             .map_err(|st| Error::from_status(&st, &format!("literal {}", literal)))?;
     }
-    Ok(status)
+    ok!(status, literal)
 }
 
 #[allow(dead_code)]
-fn parse_dot<'a>(status: Status<'a>) -> ResultPartial<'a> {
-    let (st, _ch) = status
+fn parse_dot<'a>(status: Status<'a>) -> Result<'a> {
+    let (status, ch) = status
         .get_char()
         .map_err(|st| Error::from_status(&st, "dot"))?;
 
-    Ok(st)
+    ok!(status, ch.to_string())
 }
 
 #[allow(dead_code)]
-fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> ResultPartial<'a> {
+fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
     let match_char = |ch: char| -> bool {
         if match_rules.0.find(ch).is_some() {
             true
@@ -116,7 +125,7 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> ResultPartia
     status
         .get_char()
         .and_then(|(st, ch)| match match_char(ch) {
-            true => Ok(st),
+            true => ok!(st, ch.to_string()),
             false => Err(st),
         })
         .map_err(|st| {
@@ -128,10 +137,10 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> ResultPartia
 }
 
 #[allow(dead_code)]
-fn parse_eof<'a>(status: Status<'a>) -> ResultPartial<'a> {
+fn parse_eof<'a>(status: Status<'a>) -> Result<'a> {
     match status.get_char() {
         Ok((st, _ch)) => Err(Error::from_status(&st, "expected EOF")),
-        Err(st) => Ok(st),
+        Err(st) => ok!(st, "EOF"),
     }
 }
 

@@ -123,19 +123,6 @@ macro_rules! rules {
     }};
 }
 
-#[macro_export]
-macro_rules! expr2 {
-    (and ($($id:ident $($e:expr)*),*)) => {{
-        and!($(expr2!($id $($e),*)),*)
-    }}; 
-    ($id:ident $e:expr) => {{
-        $id!($e)
-    }}; 
-    ($id:ident) => {{
-        $id!()
-    }}; 
-}
-
 /// Create a literal
 ///
 /// example
@@ -355,6 +342,7 @@ macro_rules! rule {
 //  M A C R O S
 // -------------------------------------------------------------------------------------
 
+pub mod ast;
 pub mod parser;
 
 // -------------------------------------------------------------------------------------
@@ -412,10 +400,13 @@ pub struct Error {
 /// More examples in marcros
 ///
 
-pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<(), Error> {
-    let st = parser::expression::parse_rule_name(parser::Status::init(s, &rules), "main")?;
+pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, Error> {
+    let parser::expression::RRuleInf {
+        status: st,
+        ast: ast,
+    } = parser::expression::parse_rule_name(parser::Status::init(s, &rules), "main")?;
     match st.pos.n == s.len() {
-        true => Ok(()),
+        true => Ok(ast),
         false => Err(Error::from_status(&st, "not consumed full input")),
     }
 }
