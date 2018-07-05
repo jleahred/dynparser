@@ -124,4 +124,23 @@ The AST type is:
         EOF,
     }
 
+Adding a rule on execution time:
+
+```rust
+#[macro_use]  extern crate dynparser;
+use dynparser::parse;
+fn main() {
+    let rules = rules!{
+       "main"   =>  and!{
+                        rep!(lit!("a"), 1, 5),
+                        rule!("rule2")
+                    }
+    };
+
+    let rules = rules.add("rule2", lit!("bcd"));
+
+    assert!(parse("aabcd", &rules).is_ok())
+}
+```
+
 More information in doc (link pending)
