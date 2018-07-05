@@ -6,6 +6,6 @@ license = "GPL-3.0"
 description = "Dynamic parer"
 readme = "README.adoc"
 repository = "https://github.com/jleahred/dynparser"
-keywords = ["parsing", "dynamic"]
+keywords = ["parsing", "dynamic", "peg"]
 
 [dependencies]
