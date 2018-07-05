@@ -401,7 +401,7 @@ pub struct Error {
 ///
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, Error> {
-    let parser::expression::RRuleInf { status: st, ast } =
+    let (st, ast) =
         parser::expression::parse(parser::Status::init(s, &rules))?;
     match st.pos.n == s.len() {
         true => Ok(ast),

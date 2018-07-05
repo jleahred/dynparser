@@ -2,7 +2,7 @@
 //! Here we have the parser for non atomic things
 
 use ast;
-use parser::{atom, atom::Atom, Error, Status};
+use parser::{atom, atom::Atom, Error, Status, Result};
 use std::collections::HashMap;
 use std::result;
 
@@ -20,24 +20,8 @@ mod test;
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Started(usize);
 
-pub(crate) struct RExprInf<'a> {
-    pub(crate) status: Status<'a>,
-    pub(crate) vnodes: Vec<ast::Node>,
-}
+pub(crate) type ResultExpr<'a> = result::Result<(Status<'a>, Vec<ast::Node>), Error>;
 
-impl<'a> RExprInf<'a> {
-    fn new<'b>(status: Status<'a>, vnodes: Vec<ast::Node>) -> Self {
-        RExprInf::<'a> { status, vnodes }
-    }
-}
-
-pub(crate) struct RRuleInf<'a> {
-    pub(crate) status: Status<'a>,
-    pub(crate) ast: ast::Node,
-}
-
-pub(crate) type ResultExpr<'a> = result::Result<RExprInf<'a>, Error>;
-pub(crate) type ResultRule<'a> = result::Result<RRuleInf<'a>, Error>;
 
 /// The set of rules to be parsed
 /// Any rule has a name
@@ -140,43 +124,33 @@ pub(crate) struct NRep(pub(crate) usize);
 //-----------------------------------------------------------------------
 
 //-----------------------------------------------------------------------
-pub(crate) fn parse<'a>(status: Status<'a>) -> ResultRule<'a> {
+pub(crate) fn parse<'a>(status: Status<'a>) -> Result<'a> {
     parse_rule_name(status, "main")
 }
 
 //-----------------------------------------------------------------------
 //  SUPPORT
 
-impl ast::Node {
-    pub(crate) fn new(inf: ast::NodeInfo, nodes: Vec<ast::Node>) -> Self {
-        ast::Node { inf, nodes }
-    }
-}
 
 //-----------------------------------------------------------------------
-fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> ResultRule<'a> {
-    let rexp_inf = parse_rule_name_as_expr(status, rule_name)?;
-    Ok(RRuleInf {
-        status: rexp_inf.status,
-        ast: ast::Node {
-            inf: ast::NodeInfo::Rule(rule_name.to_owned()),
-            nodes: rexp_inf.vnodes,
-        },
-    })
-}
-
-fn parse_atom_as_expr<'a>(status: Status<'a>, a: &'a Atom) -> ResultExpr<'a> {
-    let (st, inf) = atom::parse(status, a)?;
-    Ok(RExprInf::new(st, vec![ast::Node::new(inf, vec![])]))
-}
-
-fn parse_rule_name_as_expr<'a>(status: Status<'a>, rule_name: &str) -> ResultExpr<'a> {
+fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
     let rules = &status.rules.0;
     let expression = rules.get(rule_name).ok_or(Error::from_status(
         &status,
         &format!("Missing rule: {}", rule_name),
     ))?;
-    parse_expr(status, &expression)
+    let (st, vnodes) = parse_expr(status, &expression)?;
+    Ok((st, ast::Node::Rule((rule_name.to_owned(), vnodes))))
+}
+
+fn parse_atom_as_expr<'a>(status: Status<'a>, a: &'a Atom) -> ResultExpr<'a> {
+    let (st, node) = atom::parse(status, a)?;
+    Ok((st, vec![node]))
+}
+
+fn parse_rule_name_as_expr<'a>(status: Status<'a>, rule_name: &str) -> ResultExpr<'a> {
+    let (st, ast) = parse_rule_name(status, rule_name)?;
+     Ok((st, vec![ast]))
 }
 
 fn parse_expr<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
@@ -201,14 +175,14 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
 
     tail_call(init_tc, |acc| {
         if acc.1.len() == 0 {
-            TailCall::Return(Ok(RExprInf::new(acc.0, acc.2)))
+            TailCall::Return(Ok((acc.0, acc.2)))
         } else {
             let result_parse = parse_expr(acc.0, &acc.1[0]);
             match result_parse {
-                Ok(rexp_inf) => TailCall::Call((
-                    rexp_inf.status,
+                Ok((status, vnodes)) => TailCall::Call((
+                    status,
                     &acc.1[1..],
-                    vec_concat(acc.2, rexp_inf.vnodes),
+                    vec_concat(acc.2, vnodes),
                 )),
                 Err(err) => TailCall::Return(Err(err)),
             }
@@ -245,7 +219,7 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
 fn parse_not<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
     match parse_expr(status.clone(), expression) {
         Ok(_) => Err(Error::from_status(&status, "not")),
-        Err(_) => Ok(RExprInf::new(status, vec![])),
+        Err(_) => Ok((status, vec![]))
     }
 }
 
@@ -261,9 +235,9 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
     Ok(tail_call(init_tc, |acc| {
         let try_parse = parse_expr(acc.0.clone(), &rep_info.expression);
         match (try_parse, big_min_bound(acc.1), touch_max_bound(acc.1)) {
-            (Err(_), true, _) => TailCall::Return(Ok(RExprInf::new(acc.0, acc.2))),
+            (Err(_), true, _) => TailCall::Return(Ok((acc.0, acc.2))),
             (Err(_), false, _) => TailCall::Return(Err(Error::from_status(&acc.0, "repeat"))),
-            (Ok(rexinf), _, false) => TailCall::Call((rexinf.status, acc.1 + 1, rexinf.vnodes)),
+            (Ok((status, vnodes)), _, false) => TailCall::Call((status, acc.1 + 1, vnodes)),
             (ok, _, true) => TailCall::Return(ok),
         }
     })?)

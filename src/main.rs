@@ -7,14 +7,16 @@ fn main() {
        "main"   =>  and!{
                         lit!("a"),
                         or!(
-                            and!(lit!("bcc")),
+                            and!(lit!("bc"), lit!("c")),
                             lit!("bcdd"),
                             and!(
-                                lit!("bc"),
-                                lit!("d")
+                                rule!("b_and_c"),
+                                rule!("d_or_z")
                             )
                         )
-                    }
+                    },
+        "b_and_c"  => and!(lit!("b"), lit!("c")),
+        "d_or_z"  => or!(lit!("d"), lit!("z"))
     };
 
     let result = parse("abcd", &rules);

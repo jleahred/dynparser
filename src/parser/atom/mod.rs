@@ -1,7 +1,7 @@
 use ast;
 /// Support for minimum expressions elements
 /// Here we have the parser and types for non dependencies kind
-use parser::{Error, Status};
+use parser::{Error, Status, Result};
 use std::result;
 
 #[cfg(test)]
@@ -15,7 +15,6 @@ mod test;
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
-pub(crate) type Result<'a> = result::Result<(Status<'a>, ast::NodeInfo), Error>;
 
 /// This is a minimum expression element
 #[allow(dead_code)]
@@ -85,7 +84,7 @@ impl<'a> MatchRules<'a> {
 
 macro_rules! ok {
     ($st:expr, $val:expr) => {
-        Ok(($st, ast::NodeInfo::Val($val.to_owned())))
+        Ok(($st, ast::Node::Val($val.to_owned())))
     };
 }
 

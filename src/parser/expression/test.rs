@@ -12,11 +12,11 @@ fn test_parse_literal_ok() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let expr = Expression::Simple(Atom::Literal("aaa"));
-    let result = parse_expr(status_init, &expr).ok().unwrap();
+    let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-    assert!(result.status.pos.col == 3);
-    assert!(result.status.pos.n == 3);
-    assert!(result.status.pos.row == 0);
+    assert!(status.pos.col == 3);
+    assert!(status.pos.n == 3);
+    assert!(status.pos.row == 0);
 }
 
 #[test]
@@ -37,11 +37,11 @@ fn test_parse_and_ok() {
     ];
     let expr = Expression::And(MultiExpr(and_rules));
 
-    let result = parse_expr(status_init, &expr).ok().unwrap();
+    let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-    assert_eq!(result.status.pos.col, 4);
-    assert_eq!(result.status.pos.n, 4);
-    assert_eq!(result.status.pos.row, 0);
+    assert_eq!(status.pos.col, 4);
+    assert_eq!(status.pos.n, 4);
+    assert_eq!(status.pos.row, 0);
 }
 
 #[test]
@@ -63,11 +63,11 @@ fn test_parse_not_ok() {
     let status_init = Status::init("aa", &rules);
 
     let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal("bb"))));
-    let result = parse_expr(status_init, &expr_not).ok().unwrap();
+    let (status, _) = parse_expr(status_init, &expr_not).ok().unwrap();
 
-    assert_eq!(result.status.pos.col, 0);
-    assert_eq!(result.status.pos.n, 0);
-    assert_eq!(result.status.pos.row, 0);
+    assert_eq!(status.pos.col, 0);
+    assert_eq!(status.pos.n, 0);
+    assert_eq!(status.pos.row, 0);
 }
 
 #[test]
@@ -90,11 +90,11 @@ fn test_parse_or_ok() {
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 2);
-        assert_eq!(result.status.pos.n, 2);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 2);
+        assert_eq!(status.pos.n, 2);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
@@ -104,11 +104,11 @@ fn test_parse_or_ok() {
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 2);
-        assert_eq!(result.status.pos.n, 2);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 2);
+        assert_eq!(status.pos.n, 2);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
@@ -118,11 +118,11 @@ fn test_parse_or_ok() {
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 2);
-        assert_eq!(result.status.pos.n, 2);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 2);
+        assert_eq!(status.pos.n, 2);
+        assert_eq!(status.pos.row, 0);
     }
 }
 
@@ -153,47 +153,47 @@ fn test_parse_repeat_ok() {
     {
         let status_init = Status::init("aaaaaa", &rules);
         let expr = repeat_literal("aa", NRep(0), None);
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 6);
-        assert_eq!(result.status.pos.n, 6);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 6);
+        assert_eq!(status.pos.n, 6);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
         let expr = repeat_literal("aa", NRep(3), None);
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 6);
-        assert_eq!(result.status.pos.n, 6);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 6);
+        assert_eq!(status.pos.n, 6);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
         let expr = repeat_literal("aa", NRep(0), Some(NRep(3)));
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 6);
-        assert_eq!(result.status.pos.n, 6);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 6);
+        assert_eq!(status.pos.n, 6);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
         let expr = repeat_literal("aa", NRep(0), Some(NRep(1)));
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 2);
-        assert_eq!(result.status.pos.n, 2);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 2);
+        assert_eq!(status.pos.n, 2);
+        assert_eq!(status.pos.row, 0);
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
         let expr = repeat_literal("bb", NRep(0), None);
-        let result = parse_expr(status_init, &expr).ok().unwrap();
+        let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
-        assert_eq!(result.status.pos.col, 0);
-        assert_eq!(result.status.pos.n, 0);
-        assert_eq!(result.status.pos.row, 0);
+        assert_eq!(status.pos.col, 0);
+        assert_eq!(status.pos.n, 0);
+        assert_eq!(status.pos.row, 0);
     }
 }
 

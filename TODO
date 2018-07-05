@@ -1,4 +1,5 @@
-* generate AST
+* generic AST
+* AST documentation
 * try a single macro for all rules
 * create dynamically rules, or modif them
 * more examples in doc
