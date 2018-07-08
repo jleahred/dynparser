@@ -2,7 +2,7 @@
 //! Here we have the parser for non atomic things
 
 use ast;
-use parser::{atom, atom::Atom, Error, Status, Result};
+use parser::{atom, atom::Atom, Error, Result, Status};
 use std::collections::HashMap;
 use std::result;
 
@@ -21,7 +21,6 @@ mod test;
 pub(crate) struct Started(usize);
 
 pub(crate) type ResultExpr<'a> = result::Result<(Status<'a>, Vec<ast::Node>), Error>;
-
 
 /// The set of rules to be parsed
 /// Any rule has a name
@@ -45,6 +44,8 @@ impl<'a> SetOfRules<'a> {
     /// In this way, you don't need to declare mutable vars.
     /// You could need recursion in some cases
     ///
+    /// To add several rules at once, look for merge
+    ///
     /// ```
     /// #[macro_use]  extern crate dynparser;
     /// use dynparser::parse;
@@ -62,10 +63,40 @@ impl<'a> SetOfRules<'a> {
     ///     assert!(parse("aabcd", &rules).is_ok())
     /// }
     /// ```
-
     pub fn add(mut self, name: &str, expr: Expression<'a>) -> Self {
         self.0.insert(name.to_owned(), expr);
         self
+    }
+
+    /// As this is a dynamic parser, it is necessary to add rules on
+    /// runtime.
+    ///
+    /// This method, will take the owner ship, and will return itself
+    ///
+    /// In this way, you don't need to declare mutable vars.
+    /// You could need recursion in some cases
+    ///
+    /// It will add the rules from the parameter
+    ///
+    /// ```
+    /// #[macro_use]  extern crate dynparser;
+    /// use dynparser::parse;
+    ///
+    /// fn main() {
+    ///     let rules = rules!{
+    ///        "main"   =>  and!{
+    ///                         rep!(lit!("a"), 1, 5),
+    ///                         rule!("rule2")
+    ///                     }
+    ///     };
+    ///
+    ///     let rules = rules.merge(rules!{"rule2" => lit!("bcd")});
+    ///
+    ///     assert!(parse("aabcd", &rules).is_ok())
+    /// }
+    /// ```
+    pub fn merge(self, rules2merge: Self) -> Self {
+        SetOfRules(rules2merge.0.into_iter().chain(self.0).collect())
     }
 }
 
@@ -131,7 +162,6 @@ pub(crate) fn parse<'a>(status: Status<'a>) -> Result<'a> {
 //-----------------------------------------------------------------------
 //  SUPPORT
 
-
 //-----------------------------------------------------------------------
 fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
     let rules = &status.rules.0;
@@ -150,7 +180,7 @@ fn parse_atom_as_expr<'a>(status: Status<'a>, a: &'a Atom) -> ResultExpr<'a> {
 
 fn parse_rule_name_as_expr<'a>(status: Status<'a>, rule_name: &str) -> ResultExpr<'a> {
     let (st, ast) = parse_rule_name(status, rule_name)?;
-     Ok((st, vec![ast]))
+    Ok((st, vec![ast]))
 }
 
 fn parse_expr<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
@@ -179,11 +209,9 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
         } else {
             let result_parse = parse_expr(acc.0, &acc.1[0]);
             match result_parse {
-                Ok((status, vnodes)) => TailCall::Call((
-                    status,
-                    &acc.1[1..],
-                    vec_concat(acc.2, vnodes),
-                )),
+                Ok((status, vnodes)) => {
+                    TailCall::Call((status, &acc.1[1..], vec_concat(acc.2, vnodes)))
+                }
                 Err(err) => TailCall::Return(Err(err)),
             }
         }
@@ -219,7 +247,7 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
 fn parse_not<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
     match parse_expr(status.clone(), expression) {
         Ok(_) => Err(Error::from_status(&status, "not")),
-        Err(_) => Ok((status, vec![]))
+        Err(_) => Ok((status, vec![])),
     }
 }
 

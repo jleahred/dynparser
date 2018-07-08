@@ -85,6 +85,31 @@
 //! set of rules. This helps to reduce mutability
 //!
 //! Remember, you can use recursion in order to manage dinamically
+//!
+//!
+//! And ofcourse, you can add several rules at once
+//!
+//! ```
+//! #[macro_use]  extern crate dynparser;
+//! use dynparser::parse;
+//!
+//! fn main() {
+//!     let r = rules!{
+//!        "main"   =>  and!{
+//!                         rep!(lit!("a"), 1, 5),
+//!                         rule!("rule2")
+//!                     }
+//!     };
+//!
+//!     let r = r.merge(rules!{"rule2" => lit!("bcd")});
+//!
+//!     assert!(parse("aabcd", &r).is_ok())
+//! }
+//! ```
+//!
+//! ```merge``` take the ownership and returs a "new" (in fact modified)
+//! set of rules. This helps to reduce mutability
+//!
 
 // -------------------------------------------------------------------------------------
 //  M A C R O S
@@ -401,8 +426,7 @@ pub struct Error {
 ///
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, Error> {
-    let (st, ast) =
-        parser::expression::parse(parser::Status::init(s, &rules))?;
+    let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules))?;
     match st.pos.n == s.len() {
         true => Ok(ast),
         false => Err(Error::from_status(&st, "not consumed full input")),

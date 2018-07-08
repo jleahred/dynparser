@@ -36,7 +36,6 @@ Watch examples below
 
 ## TODO
 
-- Add multiple rules
 - Create rules from PEG
 - add errors to grammar
 - Upload to crates.io
@@ -160,6 +159,28 @@ fn main() {
     assert!(parse("aabcd", &rules).is_ok())
 }
 ```
+
+Of course, you could need to add (or merge) several rules at once
+
+And ofcourse, you can add several rules at once
+
+```rust
+#[macro_use]  extern crate dynparser;
+use dynparser::parse;
+fn main() {
+    let r = rules!{
+       "main"   =>  and!{
+                        rep!(lit!("a"), 1, 5),
+                        rule!("rule2")
+                    }
+    };
+    let r = r.merge(rules!{"rule2" => lit!("bcd")});
+    assert!(parse("aabcd", &r).is_ok())
+}
+```
+
+`merge` takes the ownership of both set of rules and returns a "new" (in fact modified)
+set of rules. This helps to reduce mutability
 
 "main" rule is the entry point.
 
