@@ -428,26 +428,26 @@ expr            =   or_expr
 
 or_expr         =   and_expr     ("/"  or_expr)*
 
-and_expr        =   compl_expr   (" "  and_expr)*
+and_expr        =   simpl_expr   (" "  and_expr)*
 
-compl_expr      =   "!" simpl_par
+simpl_expr      =   "!" atom_or_par
                 /   simpl_par ("*" / "+")
 
-simpl_par       =   (simple / parenth_expr)
+atom_or_par     =   (atom / parenth_expr)
 
 
 parenth_expr    =   "("  expr ")"
-simple          =   atom
 ```
 
 Descendant definition
 
-| expr       | Description                                                                                                |
-| ---------- | ---------------------------------------------------------------------------------------------------------- |
-| simpl_par  | It's an atom or a parenthesis experssion                                                                   |
-| compl_expr | Complete expresssion. It's a full subtree expression It can have negation or (zero or more or one or more) |
-| and_expr   | Sequence of expressions separated by space                                                                 |
-| or_expr    | Sequence of expression separated by "/"                                                                    |
+| expr        | Description                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| atom_or_par | It's an atom or a parenthesis experssion                                                 |
+| rep_or_neg  | It's not a composition of `and` or `or` expressions. It can have negation or repetitions |
+| parenth     | It's an expressions with parenthesis                                                     |
+| and         | Sequence of expressions separated by space                                               |
+| or          | Sequence of expression separated by "/"                                                  |
 
 Now, it's the `atom` turn:
 
@@ -474,20 +474,19 @@ grammar         =   rule+
 
 rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
 
-expr            =   or_expr
+expr            =   or
 
-or_expr         =   and_expr    (_ "/"  _  or_expr)*
+or              =   and         ( _ "/"  _  or)*
 
-and_expr        =   compl_expr  (  " "  _  and_expr)*
+and             =   rep_or_neg  (   " "  _  and)*
 
-compl_expr      =   simpl_par ("*" / "+")?
-                /   "!" simpl_par
+rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+                /   "!" atom_or_par
 
-simpl_par       =   (simple / parenth_expr)
+atom_or_par     =   (atom / parenth)
 
 
-parenth_expr    =   "("  _  expr  _  ")"
-simple          =   atom
+parenth         =   "("  _  expr  _  ")"
 
 
 

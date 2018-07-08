@@ -369,6 +369,7 @@ macro_rules! rule {
 
 pub mod ast;
 pub mod parser;
+mod peg;
 
 // -------------------------------------------------------------------------------------
 //  T Y P E S
@@ -432,6 +433,8 @@ pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Nod
         false => Err(Error::from_status(&st, "not consumed full input")),
     }
 }
+
+pub use peg::rules_from_peg;
 
 //  A P I
 // -------------------------------------------------------------------------------------
