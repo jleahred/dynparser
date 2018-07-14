@@ -2,23 +2,55 @@
 //! Module with functions to generate rules from PEG grammar
 //!
 
+use ast;
+use parse;
 use parser;
+use std::result;
+use Error;
 
 #[cfg(test)]
 mod test;
+
+pub type Result<'a> = result::Result<parser::expression::SetOfRules<'a>, Error>;
+
+enum ExprOrRule<'a> {
+    Expr(parser::expression::Expression<'a>),
+    Rule(parser::expression::SetOfRules<'a>),
+}
+
+type ResultExprOrRule<'a> = result::Result<ExprOrRule<'a>, Error>;
 
 // -------------------------------------------------------------------------------------
 //  A P I
 
 /// Given a ```peg``` set of rules on an string, it will generate
 /// the set of rules to use in the parser
-pub fn rules_from_peg(_peg: &str) -> parser::expression::SetOfRules {
-    rules2parse_peg()
+pub fn rules_from_peg(peg: &str) -> Result {
+    let ast = parse(peg, &rules2parse_peg())?;
+    rules_from_ast(ast)
 }
 
 //  A P I
 // -------------------------------------------------------------------------------------
 
+fn rules_from_ast<'a>(ast: ast::Node) -> Result<'a> {
+    let rules = match ast {
+        ast::Node::Rule((name, vr)) => expr_from_ast_rule(name, vr),
+        _ => (),
+    };
+    println!("{:#?}", ast);
+    Ok(rules)
+}
+
+fn expr_from_ast_rule<'a>(rule_name: &str, nodes: &Vec<ast::Node>) -> ResultExpr<'a> {
+    match rule_name {
+        "literal" => Ok(lit!(nodes[1])),
+        _ => Error(),
+    }
+}
+
+//  this is the first version of code to parse the peg grammar
+//  it was, obviously written by hand
 fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
     rules!(
 

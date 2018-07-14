@@ -131,3 +131,14 @@ fn validate_peg5() {
 
     assert!(parse(peg, &peg::rules2parse_peg()).is_err());
 }
+
+#[test]
+fn rules_from_ast_literal() {
+    let peg = r#"
+    
+    main    = "aaa"
+
+    "#;
+
+    assert!(parse(peg, &peg::rules2parse_peg()).is_err());
+}

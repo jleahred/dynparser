@@ -4,14 +4,15 @@ use dynparser::{parse, rules_from_peg};
 fn main() {
     let rules = rules_from_peg(
         r#"
-main    =   "ab" cd
-cd      =   "cd"
+main    =   "ab"
         "#,
     );
 
-    let result = parse("abcd", &rules);
-    match result {
-        Ok(ast) => println!("{:#?}", ast),
-        Err(e) => println!("Error: {:?}", e),
-    };
+    //println!("{:#?}", rules);
+
+    // let result = parse("abcd", &rules);
+    // match result {
+    //     Ok(ast) => println!("{:#?}", ast),
+    //     Err(e) => println!("Error: {:?}", e),
+    // };
 }
