@@ -164,6 +164,8 @@ pub(crate) fn parse<'a>(status: Status<'a>) -> Result<'a> {
 
 //-----------------------------------------------------------------------
 fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
+    let status = status.push_rule(&format!("r:{}", rule_name));
+
     let rules = &status.rules.0;
     let expression = rules.get(rule_name).ok_or(Error::from_status(
         &status,
@@ -228,15 +230,28 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
         },
         None => Some(e2),
     };
-    let init_tc: (_, &[Expression], _) = (status, &(multi_expr.0), None);
+    // let add_err = |mut errors: Vec<Error>, error: Error| {
+    //     errors.push(error);
+    //     errors
+    // };
+
+    // let init_tc: (_, &[Expression], Vec<Error>) = (status.clone(), &(multi_expr.0), vec![]);
+    let init_tc: (_, &[Expression], _) = (status.clone(), &(multi_expr.0), None);
 
     tail_call(init_tc, |acc| {
         if acc.1.len() == 0 {
-            TailCall::Return(Err(acc.2.expect("checked all options of or with no errors")))
+            TailCall::Return(Err(Error::from_st_errs(
+                &status,
+                "checked all options of or with no errors",
+                vec![],
+                // acc.2
+            )))
+        // acc.2.expect("checked all options of or with no errors")))
         } else {
             let try_parse = parse_expr(acc.0.clone(), &acc.1[0]);
             match try_parse {
                 Ok(result) => TailCall::Return(Ok(result)),
+                // Err(e) => TailCall::Call((acc.0, &acc.1[1..], add_err(acc.2, e))),
                 Err(e) => TailCall::Call((acc.0, &acc.1[1..], deep_err(acc.2, e))),
             }
         }

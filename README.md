@@ -44,6 +44,8 @@ Watch examples below
 - more examples in doc
 - tail recursion parsing rule
 - macro for eof
+- rules path on errors configurable (due to performance)
+  - check. is it interesting to detail branches on or?
 
 ## Basic example
 
@@ -95,7 +97,7 @@ fn main() {
 }
 ```
 
-The exit will be next AST
+The exit will be the next AST
 
     Rule(
         (

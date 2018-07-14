@@ -35,6 +35,7 @@ pub(crate) struct Status<'a> {
     pub(crate) text2parse: &'a str,
     pub(crate) it_parsing: Chars<'a>,
     pub(crate) pos: Possition,
+    pub(crate) walking_rules: Vec<String>,
     pub(crate) rules: &'a expression::SetOfRules<'a>,
 }
 
@@ -44,8 +45,13 @@ impl<'a> Status<'a> {
             text2parse: t2p,
             it_parsing: t2p.chars(),
             pos: Possition::init(),
+            walking_rules: vec![],
             rules: rules,
         }
+    }
+    pub(crate) fn push_rule(mut self, on_node: &str) -> Self {
+        self.walking_rules.push(on_node.to_string());
+        self
     }
 }
 
@@ -74,6 +80,18 @@ impl Error {
             pos: status.pos.clone(),
             descr: descr.to_owned(),
             line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
+            errors: vec![],
+            parsing_rules: status.walking_rules.clone(),
+        }
+    }
+
+    pub(crate) fn from_st_errs(status: &Status, descr: &str, errors: Vec<Error>) -> Self {
+        Error {
+            pos: status.pos.clone(),
+            descr: descr.to_owned(),
+            line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
+            errors,
+            parsing_rules: status.walking_rules.clone(),
         }
     }
 }

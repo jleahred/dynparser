@@ -54,7 +54,6 @@ fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                                 rule!("rep_or_neg"),
                                 rep!(
                                     and!(
-                                        rule!("_"), lit!("/"),
                                         lit!(" "),  rule!("_"), rule!("and")
                                     ),
                                     0
@@ -81,7 +80,15 @@ fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
 
         "atom_or_par" =>    or!(
                                 rule!("atom"),
-                                rule!("paren")
+                                rule!("parenth")
+                            ),
+
+        "parenth"       =>  and!(
+                                lit!("("),
+                                rule!("_"),
+                                rule!("expr"),
+                                rule!("_"),
+                                lit!(")")
                             ),
 
         "atom"          =>  or!(
@@ -92,17 +99,17 @@ fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                             ),
 
         "literal"       =>  and!(
-                                lit!("\u{34}"),
+                                lit!(r#"""#),
                                 rep!(
                                     and!(
                                         not!(
-                                            lit!("\u{34}")
+                                            lit!(r#"""#)
                                         ),
                                         dot!()
                                     )
                                     , 0
                                 ),
-                                lit!("\u{34}")
+                                lit!(r#"""#)
                             ),
 
         "match"         =>  and!(

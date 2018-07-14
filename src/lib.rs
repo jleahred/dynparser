@@ -396,6 +396,10 @@ pub struct Error {
     pub descr: String,
     /// Line content where error was produced
     pub line: String,
+    /// Suberrors when parsing an *or* (it could be removed!)
+    pub errors: Vec<Error>,
+    /// Rules path followed till got the error
+    pub parsing_rules: Vec<String>,
 }
 
 //  T Y P E S
