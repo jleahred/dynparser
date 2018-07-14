@@ -472,7 +472,7 @@ It will be defined on "\_" symbol
 ```peg
 grammar         =   rule+
 
-rule            =   symbol  _  "="  _   expr  (_eol / eof)  _
+rule            =   symbol  _  "="  _   expr  (_ / eof)
 
 expr            =   or
 
@@ -496,20 +496,19 @@ atom            =   literal
                 /   symbol
 
 literal         =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
-match           =   "["  ( (.  "-"  .)  /  (!"]") )+   "]"
+match           =   "["  ( (.  "-"  .)  /  (!"]") .)+   "]"
 dot             =   "."
-symbol          =   [a-zA-Z0-9_]+
+symbol          =   [a-zA-Z0-9_']+
 
 
 _               =  (  " "
-                      /   "\n"
+                      /   eol
                       /   comment
                    )*
 
-_eol            = " "*  "\n"
-                / comment
+eol             = ("\r\n"  \  "\n"  \  "\r")
 
-comment         =  "//" (!"/n" .)* "/n"
+comment         =  "//" (!eol .)* "/n"
                 /  "/*" (!"*/" .)* "*/"
 ```
 

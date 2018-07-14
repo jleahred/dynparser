@@ -4,13 +4,16 @@
 
 use parser;
 
+#[cfg(test)]
+mod test;
+
 // -------------------------------------------------------------------------------------
 //  A P I
 
 /// Given a ```peg``` set of rules on an string, it will generate
 /// the set of rules to use in the parser
-pub fn rules_from_peg(peg: &str) -> parser::expression::SetOfRules {
-    rules!("main" => lit!("aaa"))
+pub fn rules_from_peg(_peg: &str) -> parser::expression::SetOfRules {
+    rules2parse_peg()
 }
 
 //  A P I
@@ -28,7 +31,7 @@ fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                                  rule!("_"), lit! ("="),
                                  rule!("_"), rule!("expr"),
                                              or!(
-                                                 rule!("_eol"),
+                                                 rule!("_"),
                                                  rule!("eof")
                                              ),
                                  rule!("_")                                                
@@ -74,6 +77,92 @@ fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                                     lit!("!"),
                                     rule!("atom_or_par")
                                 )
-                            )
+                            ),
+
+        "atom_or_par" =>    or!(
+                                rule!("atom"),
+                                rule!("paren")
+                            ),
+
+        "atom"          =>  or!(
+                                rule!("literal"),
+                                rule!("match"),
+                                rule!("dot"),
+                                rule!("symbol")
+                            ),
+
+        "literal"       =>  and!(
+                                lit!("\u{34}"),
+                                rep!(
+                                    and!(
+                                        not!(
+                                            lit!("\u{34}")
+                                        ),
+                                        dot!()
+                                    )
+                                    , 0
+                                ),
+                                lit!("\u{34}")
+                            ),
+
+        "match"         =>  and!(
+                                lit!("["),
+                                or!(
+                                    and!(dot!(), lit!("-"), dot!()),
+                                    rep!(
+                                        and!(not!(lit!("]")), dot!())
+                                        ,1
+                                    )
+                                )
+                            ),
+        
+        "dot"           =>  lit!("."),
+
+        "symbol"        =>  rep!(
+                                ematch!(    chlist "_'",
+                                         from 'a', to 'z',
+                                         from 'A', to 'Z',
+                                         from '0', to '9'
+                                ),
+                                1
+                            ),
+
+        "_"             =>  rep!(   or!(
+                                        lit!(" "),
+                                        rule!("eol"),
+                                        rule!("comment")
+                                    )
+                                    , 0
+                            ),
+
+        "eol"          =>   or!(
+                                    lit!("\r\n"),
+                                    lit!("\n"),
+                                    lit!("\r")
+                                ),
+        "comment"       =>  or!(
+                                and!(
+                                    lit!("//"),
+                                    rep!(
+                                        and!(
+                                            not!(rule!("eol")),
+                                            dot!()
+                                        )
+                                        , 0
+                                    ),
+                                    rule!("eol")
+                                ),
+                                and!(
+                                    lit!("/*"),
+                                    rep!(
+                                        and!(
+                                            not!(lit!("*/")),
+                                            dot!()
+                                        )
+                                        , 0
+                                    ),
+                                    lit!("*/")
+                                )
+                        )
     )
 }

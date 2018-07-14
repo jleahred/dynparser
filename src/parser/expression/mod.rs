@@ -264,7 +264,11 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
         let try_parse = parse_expr(acc.0.clone(), &rep_info.expression);
         match (try_parse, big_min_bound(acc.1), touch_max_bound(acc.1)) {
             (Err(_), true, _) => TailCall::Return(Ok((acc.0, acc.2))),
-            (Err(_), false, _) => TailCall::Return(Err(Error::from_status(&acc.0, "repeat"))),
+            (Err(e), false, _) => TailCall::Return(Err(e)),
+            //     Err(Error::from_status(
+            //     &acc.0,
+            //     &format!("inside repeat {:#?}", e),
+            // ))),
             (Ok((status, vnodes)), _, false) => TailCall::Call((status, acc.1 + 1, vnodes)),
             (ok, _, true) => TailCall::Return(ok),
         }

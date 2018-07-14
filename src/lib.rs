@@ -383,6 +383,8 @@ pub struct Possition {
     pub row: usize,
     /// parsing col
     pub col: usize,
+    /// possition were line started for current pos *m*
+    pub start_line: usize,
 }
 
 /// Context error information
@@ -392,7 +394,7 @@ pub struct Error {
     pub pos: Possition,
     /// Error description parsing
     pub descr: String,
-    /// Last line parsed
+    /// Line content where error was produced
     pub line: String,
 }
 
@@ -448,6 +450,7 @@ impl Possition {
             n: 0,
             row: 0,
             col: 0,
+            start_line: 0,
         }
     }
 }

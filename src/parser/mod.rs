@@ -1,8 +1,8 @@
 #![warn(missing_docs)]
 //! Tools to execute parser of a expression
 
-use std::result;
 use ast;
+use std::result;
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -32,8 +32,8 @@ use {Error, Possition};
 //-----------------------------------------------------------------------
 #[derive(Debug, Clone)]
 pub(crate) struct Status<'a> {
-    text2parse: &'a str,
-    it_parsing: Chars<'a>,
+    pub(crate) text2parse: &'a str,
+    pub(crate) it_parsing: Chars<'a>,
     pub(crate) pos: Possition,
     pub(crate) rules: &'a expression::SetOfRules<'a>,
 }
@@ -59,8 +59,6 @@ pub(crate) type Result<'a> = result::Result<(Status<'a>, ast::Node), Error>;
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
-
-
 //-----------------------------------------------------------------------
 //  T E S T
 //-----------------------------------------------------------------------
@@ -75,7 +73,7 @@ impl Error {
         Error {
             pos: status.pos.clone(),
             descr: descr.to_owned(),
-            line: "pending".to_owned(),
+            line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
         }
     }
 }

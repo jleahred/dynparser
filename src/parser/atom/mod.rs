@@ -1,7 +1,7 @@
 use ast;
 /// Support for minimum expressions elements
 /// Here we have the parser and types for non dependencies kind
-use parser::{Error, Status, Result};
+use parser::{Error, Result, Status};
 use std::result;
 
 #[cfg(test)]
@@ -14,7 +14,6 @@ mod test;
 //
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
-
 
 /// This is a minimum expression element
 #[allow(dead_code)]
@@ -162,6 +161,7 @@ impl<'a> Status<'a> {
                     '\n' => {
                         self.pos.col = 0;
                         self.pos.row += 1;
+                        self.pos.start_line = self.pos.n;
                     }
                     '\r' => {
                         self.pos.col = 0;
