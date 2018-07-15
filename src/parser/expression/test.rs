@@ -11,7 +11,7 @@ use parser::atom::Atom;
 fn test_parse_literal_ok() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
-    let expr = Expression::Simple(Atom::Literal("aaa"));
+    let expr = Expression::Simple(Atom::Literal("aaa".to_string()));
     let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
     assert!(status.pos.col == 3);
@@ -23,7 +23,7 @@ fn test_parse_literal_ok() {
 fn test_parse_literal_error() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
-    let expr = Expression::Simple(Atom::Literal("bb"));
+    let expr = Expression::Simple(Atom::Literal("bb".to_string()));
     assert!(parse_expr(status_init, &expr).is_err());
 }
 
@@ -32,8 +32,8 @@ fn test_parse_and_ok() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
-        Expression::Simple(Atom::Literal("aa")),
-        Expression::Simple(Atom::Literal("aa")),
+        Expression::Simple(Atom::Literal("aa".to_string())),
+        Expression::Simple(Atom::Literal("aa".to_string())),
     ];
     let expr = Expression::And(MultiExpr(and_rules));
 
@@ -49,8 +49,8 @@ fn test_parse_and_fail() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
-        Expression::Simple(Atom::Literal("aa")),
-        Expression::Simple(Atom::Literal("bb")),
+        Expression::Simple(Atom::Literal("aa".to_string())),
+        Expression::Simple(Atom::Literal("bb".to_string())),
     ];
     let expr = Expression::And(MultiExpr(and_rules));
 
@@ -62,7 +62,9 @@ fn test_parse_not_ok() {
     let rules = rules!{};
     let status_init = Status::init("aa", &rules);
 
-    let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal("bb"))));
+    let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal(
+        "bb".to_string(),
+    ))));
     let (status, _) = parse_expr(status_init, &expr_not).ok().unwrap();
 
     assert_eq!(status.pos.col, 0);
@@ -75,7 +77,9 @@ fn test_parse_not_fail() {
     let rules = rules!{};
     let status_init = Status::init("aa", &rules);
 
-    let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal("aa"))));
+    let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal(
+        "aa".to_string(),
+    ))));
     assert!(parse_expr(status_init, &expr_not).is_err());
 }
 
@@ -85,8 +89,8 @@ fn test_parse_or_ok() {
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
         let rules = vec![
-            Expression::Simple(Atom::Literal("aa")),
-            Expression::Simple(Atom::Literal("aa")),
+            Expression::Simple(Atom::Literal("aa".to_string())),
+            Expression::Simple(Atom::Literal("aa".to_string())),
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
@@ -99,8 +103,8 @@ fn test_parse_or_ok() {
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
         let rules = vec![
-            Expression::Simple(Atom::Literal("aa")),
-            Expression::Simple(Atom::Literal("bb")),
+            Expression::Simple(Atom::Literal("aa".to_string())),
+            Expression::Simple(Atom::Literal("bb".to_string())),
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
@@ -113,8 +117,8 @@ fn test_parse_or_ok() {
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
         let rules = vec![
-            Expression::Simple(Atom::Literal("bb")),
-            Expression::Simple(Atom::Literal("aa")),
+            Expression::Simple(Atom::Literal("bb".to_string())),
+            Expression::Simple(Atom::Literal("aa".to_string())),
         ];
         let expr = Expression::Or(MultiExpr(rules));
 
@@ -131,8 +135,8 @@ fn test_parse_or_fail() {
     let rules = rules!{};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
-        Expression::Simple(Atom::Literal("cc")),
-        Expression::Simple(Atom::Literal("bb")),
+        Expression::Simple(Atom::Literal("cc".to_string())),
+        Expression::Simple(Atom::Literal("bb".to_string())),
     ];
     let expr = Expression::And(MultiExpr(and_rules));
 
@@ -152,7 +156,7 @@ fn test_parse_repeat_ok() {
 
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("aa", NRep(0), None);
+        let expr = repeat_literal("aa".to_string(), NRep(0), None);
         let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
         assert_eq!(status.pos.col, 6);
@@ -161,7 +165,7 @@ fn test_parse_repeat_ok() {
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("aa", NRep(3), None);
+        let expr = repeat_literal("aa".to_string(), NRep(3), None);
         let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
         assert_eq!(status.pos.col, 6);
@@ -170,7 +174,7 @@ fn test_parse_repeat_ok() {
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("aa", NRep(0), Some(NRep(3)));
+        let expr = repeat_literal("aa".to_string(), NRep(0), Some(NRep(3)));
         let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
         assert_eq!(status.pos.col, 6);
@@ -179,7 +183,7 @@ fn test_parse_repeat_ok() {
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("aa", NRep(0), Some(NRep(1)));
+        let expr = repeat_literal("aa".to_string(), NRep(0), Some(NRep(1)));
         let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
         assert_eq!(status.pos.col, 2);
@@ -188,7 +192,7 @@ fn test_parse_repeat_ok() {
     }
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("bb", NRep(0), None);
+        let expr = repeat_literal("bb".to_string(), NRep(0), None);
         let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
 
         assert_eq!(status.pos.col, 0);
@@ -210,7 +214,7 @@ fn test_parse_repeat_fail() {
 
     {
         let status_init = Status::init("aaaaaa", &rules);
-        let expr = repeat_literal("aa", NRep(4), None);
+        let expr = repeat_literal("aa".to_string(), NRep(4), None);
         assert!(parse_expr(status_init, &expr).is_err());
     }
 }

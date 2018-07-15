@@ -140,5 +140,9 @@ fn parse_literal() {
 
     "#;
 
-    assert!(parse("aaa", &peg::rules_from_peg(peg).unwrap()).is_ok());
+    let parsed = match peg::rules_from_peg(peg) {
+        Ok(r) => parse("aaa", &r),
+        Err(e) => panic!(format!("err parsing peg {:#?}", e)),
+    };
+    assert!(parsed.is_ok());
 }

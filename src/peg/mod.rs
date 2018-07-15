@@ -11,6 +11,7 @@ use Error;
 #[cfg(test)]
 mod test;
 
+#[derive(Debug)]
 pub enum ErrPegAst {
     PegErr(Error),
     AstErr(String),
@@ -40,9 +41,7 @@ pub fn rules_from_peg<'a>(peg: &str) -> Result {
     use ast::Node::Val;
     let vnodes = vec![
         Val("\"".to_string()),
-        Val("a".to_string()),
-        Val("a".to_string()),
-        Val("a".to_string()),
+        Val("aaa".to_string()),
         Val("\"".to_string()),
     ];
     let ast = ast::Node::Rule(("literal".to_string(), vnodes));
@@ -62,11 +61,18 @@ fn rules_from_ast<'a>(ast: ast::Node) -> Result<'a> {
     // println!("{:?}", rules);
 
     match ast {
-        ast::Node::Rule((_, vnodes)) => {
+        ast::Node::Rule((rname, vnodes)) => process_rule(&rname, &vnodes),
+        _ => Err(ErrPegAst::AstErr("ERROR TESTING AST".to_string())),
+    }
+}
+
+fn process_rule<'a>(rname: &str, vnodes: &[ast::Node]) -> Result<'a> {
+    match rname {
+        "literal" => {
             let expr = atom_literal_from_nodes(&vnodes).map_err(|e| ErrPegAst::AstErr(e))?;
             Ok(rules!("main" => expr))
         }
-        _ => Err(ErrPegAst::AstErr("ERROR TESTING AST".to_string())),
+        _ => Err(ErrPegAst::AstErr("ERROR processing rule".to_string())),
     }
 }
 

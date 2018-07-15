@@ -46,10 +46,10 @@ pub struct MatchRules<'a>(&'a str, Vec<(char, char)>);
 #[allow(dead_code)]
 pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
-        &Atom::Literal(literal) => parse_literal(status, &literal),
-        &Atom::Match(ref match_rules) => parse_match(status, &match_rules),
-        &Atom::Dot => parse_dot(status),
-        &Atom::EOF => parse_eof(status),
+        Atom::Literal(literal) => parse_literal(status, &literal),
+        Atom::Match(ref match_rules) => parse_match(status, &match_rules),
+        Atom::Dot => parse_dot(status),
+        Atom::EOF => parse_eof(status),
     }
 }
 
