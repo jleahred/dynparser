@@ -273,8 +273,10 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
         Some(ref m) => counter + 1 == m.0,
         None => false,
     };
+    let merge_vnodes =
+        |v1: Vec<ast::Node>, v2: Vec<_>| v2.into_iter().chain(v1).collect::<Vec<_>>();
 
-    let init_tc = (status, 0, vec![]);
+    let init_tc: (_, _, Vec<ast::Node>) = (status, 0, vec![]);
     Ok(tail_call(init_tc, |acc| {
         let try_parse = parse_expr(acc.0.clone(), &rep_info.expression);
         match (try_parse, big_min_bound(acc.1), touch_max_bound(acc.1)) {
@@ -284,8 +286,12 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
             //     &acc.0,
             //     &format!("inside repeat {:#?}", e),
             // ))),
-            (Ok((status, vnodes)), _, false) => TailCall::Call((status, acc.1 + 1, vnodes)),
-            (ok, _, true) => TailCall::Return(ok),
+            (Ok((status, vnodes)), _, false) => {
+                TailCall::Call((status, acc.1 + 1, merge_vnodes(vnodes, acc.2)))
+            }
+            (Ok((status, vnodes)), _, true) => {
+                TailCall::Return(Ok((status, merge_vnodes(vnodes, acc.2))))
+            }
         }
     })?)
 }

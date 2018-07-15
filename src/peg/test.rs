@@ -133,12 +133,12 @@ fn validate_peg5() {
 }
 
 #[test]
-fn rules_from_ast_literal() {
+fn parse_literal() {
     let peg = r#"
     
     main    = "aaa"
 
     "#;
 
-    assert!(parse(peg, &peg::rules2parse_peg()).is_err());
+    assert!(parse("aaa", &peg::rules_from_peg(peg).unwrap()).is_ok());
 }

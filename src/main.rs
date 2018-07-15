@@ -4,7 +4,7 @@ use dynparser::{parse, rules_from_peg};
 fn main() {
     let rules = rules_from_peg(
         r#"
-main    =   "ab"
+main    =   [abA-Z]
         "#,
     );
 
