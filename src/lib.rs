@@ -166,7 +166,9 @@ macro_rules! rules {
 #[macro_export]
 macro_rules! lit {
     ($e:expr) => {{
-        $crate::parser::expression::Expression::Simple($crate::parser::atom::Atom::Literal($e))
+        $crate::parser::expression::Expression::Simple($crate::parser::atom::Atom::Literal(
+            $e.to_string(),
+        ))
     }};
 }
 

@@ -20,7 +20,7 @@ mod test;
 #[derive(Debug)]
 pub enum Atom<'a> {
     /// Literal string
-    Literal(&'a str),
+    Literal(String),
     /// Character matches a list of chars or a list of ranges
     Match(MatchRules<'a>),
     /// Any char
@@ -46,7 +46,7 @@ pub struct MatchRules<'a>(&'a str, Vec<(char, char)>);
 #[allow(dead_code)]
 pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
-        &Atom::Literal(literal) => parse_literal(status, literal),
+        &Atom::Literal(literal) => parse_literal(status, &literal),
         &Atom::Match(ref match_rules) => parse_match(status, &match_rules),
         &Atom::Dot => parse_dot(status),
         &Atom::EOF => parse_eof(status),

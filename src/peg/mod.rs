@@ -70,10 +70,10 @@ fn rules_from_ast<'a>(ast: ast::Node) -> Result<'a> {
     }
 }
 
-fn atom_literal_from_nodes<'a>(nodes: &'a [ast::Node]) -> ResultExpr<'a> {
+fn atom_literal_from_nodes<'a, 'b>(nodes: &'b [ast::Node]) -> ResultExpr<'a> {
     //  literal =   "\""  (!"\"" .)*  "\""
 
-    let get_lit = |sq, val, eq| match (sq, val, eq) {
+    let get_lit = |sq, val: &str, eq| match (sq, val, eq) {
         ("\"", v, "\"") => Ok(lit!(v)),
         _ => Err(format!(
             "Error extracting literal from '{}', '{}', '{}'\nExpetected string between quotes",
