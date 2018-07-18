@@ -32,30 +32,7 @@ type ResultExpr<'a> = result::Result<parser::expression::Expression<'a>, String>
 /// Given a ```peg``` set of rules on an string, it will generate
 /// the set of rules to use in the parser
 pub fn rules_from_peg<'a>(peg: &str) -> Result {
-    // let ast = parse(peg, &rules2parse_peg())?;
-    // rules_from_ast(ast)
     let ast = parse(peg, &rules2parse_peg()).map_err(|e| ErrPegAst::Peg(e))?;
-    // println!("{:#?}", ast);
-
-    // // rules_from_ast(ast.map_err(|err| ErrPegAst::PegErr(err))?)
-    // use ast::Node::Val;
-    // let vnodes = vec![
-    //     Val("\"".to_string()),
-    //     Val("a".to_string()),
-    //     Val("a".to_string()),
-    //     Val("a".to_string()),
-    //     Val("\"".to_string()),
-    // ];
-    // let ast_literal = ast::Node::Rule(("literal".to_string(), vnodes));
-    // let ast_atom = ast::Node::Rule(("atom".to_string(), vec![ast_literal]));
-    // let ast_atom_or_par = ast::Node::Rule(("atom_or_par".to_string(), vec![ast_atom]));
-    // let ast_rep_or_neg = ast::Node::Rule(("rep_or_neg".to_string(), vec![ast_atom_or_par]));
-    // let ast_and = ast::Node::Rule(("and".to_string(), vec![ast_rep_or_neg]));
-    // let ast_or = ast::Node::Rule(("or".to_string(), vec![ast_and]));
-    // let ast_expr = ast::Node::Rule(("expr".to_string(), vec![ast_or]));
-    // let ast_rule = ast::Node::Rule(("rule".to_string(), vec![ast_or]));
-
-    // let ast = ast_expr;
 
     println!("{:#?}", ast);
     rules_from_ast(&ast)
@@ -65,6 +42,9 @@ pub fn rules_from_peg<'a>(peg: &str) -> Result {
 // -------------------------------------------------------------------------------------
 
 fn rules_from_ast<'a>(ast: &ast::Node) -> Result<'a> {
+    let ast = ast.compact().prune(&vec!["_"]);
+    println!(":::::::  {:?}", ast);
+
     let result = process_node(&ast).map_err(|e| ErrPegAst::Ast(e))?;
 
     match result {
@@ -75,65 +55,102 @@ fn rules_from_ast<'a>(ast: &ast::Node) -> Result<'a> {
 
 fn process_node<'a>(node: &ast::Node) -> ResultExprOrRule<'a> {
     match node {
-        ast::Node::Rule((rname, vnodes)) => process_peg_rule(&rname, &vnodes),
+        ast::Node::Rule((rname, nodes)) => process_peg_rule(&rname, &nodes),
         _ => Err("ERROR TESTING AST".to_string()),
     }
 }
 
-fn process_peg_rule<'a>(rname: &str, vnodes: &[ast::Node]) -> ResultExprOrRule<'a> {
+fn process_peg_rule<'a>(rname: &str, nodes: &[ast::Node]) -> ResultExprOrRule<'a> {
     match rname {
-        "main" => passthrow(&vnodes),
-        "grammar" => passthrow(&vnodes),
-        "rule" => process_rule(&vnodes),
-        "expr" => passthrow(&vnodes),
-        "or" => passthrow(&vnodes),
-        "and" => passthrow(&vnodes),
-        "rep_or_neg" => passthrow(&vnodes),
-        "atom_or_par" => passthrow(&vnodes),
-        "atom" => Ok(ExprOrRule::Expr(process_atom(&vnodes)?)),
+        "main" => passthrow(&nodes),
+        "grammar" => passthrow(&nodes),
+        "rule" => process_rule(&nodes),
+        "expr" => passthrow(&nodes),
+        "or" => passthrow(&nodes),
+        "and" => passthrow(&nodes),
+        "rep_or_neg" => passthrow(&nodes),
+        "atom_or_par" => passthrow(&nodes),
+        "atom" => Ok(ExprOrRule::Expr(process_atom(&nodes)?)),
         _ => Err(format!("unknown peg rule {}", rname)),
     }.or_else(|e| Err(format!("processing {} > {}", rname, e)))
 }
 
-fn process_rule<'a>(vnodes: &[ast::Node]) -> ResultExprOrRule<'a> {
-    //  rule            =   symbol  _  "="  _   expr  (_ / eof)
-    // Ok(ExprOrRule::Rule(rules!("main" => lit!("testing"))))
-
-    let vnodes = prune(vnodes);
-    let (symbol, vnodes) = get_symbol(vnodes);
-    let vnodes = remove_eq(vnodes);
-    let (expr, vnodes) = get_expr(vnodes);
-
-    Err("error processing rule".to_string())
+fn get_nodename_nodes(node: &ast::Node) -> result::Result<(&str, &[ast::Node]), String> {
+    match node {
+        ast::Node::Rule((nname, nodes)) => Ok((nname, nodes)),
+        _ => Err(format!("expected node::Rule {:?}", node)),
+    }
 }
 
-fn passthrow<'a>(vnodes: &[ast::Node]) -> ResultExprOrRule<'a> {
-    match vnodes {
+fn get_symbol_value(node: &ast::Node) -> result::Result<String, String> {
+    let (nname, nodes) = get_nodename_nodes(node)?;
+    match nname {
+        "symbol" => Ok(get_nodes_unique_val(nodes)?),
+        _ => Err(format!("expected symbol {:?}", node)),
+    }
+}
+
+fn get_nodes_unique_val(nodes: &[ast::Node]) -> result::Result<String, String> {
+    if nodes.len() > 1 {
+        Err(format!("Expected 1 node to get unique val on {:?}", nodes))?
+    }
+
+    match nodes.first() {
+        Some(n) => get_node_unique_val(n),
+        _ => Err(format!("Expected ast::Node::Val {:?}", nodes)),
+    }
+}
+
+fn get_node_unique_val(node: &ast::Node) -> result::Result<String, String> {
+    match node {
+        ast::Node::Val(v) => Ok(v.clone()),
+        _ => Err(format!("Expected ast::Node::Val {:?}", node)),
+    }
+}
+
+fn process_rule<'a>(nodes: &[ast::Node]) -> ResultExprOrRule<'a> {
+    //  rule            =   symbol  _  "="  _   expr  (_ / eof)
+
+    Ok(ExprOrRule::Rule(rules!("main" => lit!("testing"))))
+
+    // let symbol_name = get_symbol_value(&nodes[0])?;
+    // println!("____ {:?}", symbol_name);
+
+    // match get_node_unique_val(&nodes[1])? == "=" {
+    //     false => Err(format!("Expected '=' reading rule {:?}", nodes))?,
+    //     _ => (),
+    // };
+
+    //Err("error processing rule".to_string())
+}
+
+fn passthrow<'a>(nodes: &[ast::Node]) -> ResultExprOrRule<'a> {
+    match nodes {
         [node] => process_node(node),
         _ => Err(format!(
             "passthrow can have only one child node {:?}",
-            vnodes
+            nodes
         )),
     }
 }
 
-fn process_atom<'a, 'b>(vnodes: &'b [ast::Node]) -> ResultExpr<'a> {
-    let get_atom_child_node = |vnodes: &'b [ast::Node]| match vnodes {
+fn process_atom<'a, 'b>(nodes: &'b [ast::Node]) -> ResultExpr<'a> {
+    let get_atom_child_node = |nodes: &'b [ast::Node]| match nodes {
         &[ref node] => Ok(node),
-        _ => Err(format!("an atom can have only one child {:?}", &vnodes)),
+        _ => Err(format!("an atom can have only one child {:?}", &nodes)),
     };
 
     let get_atom_rule_info = |&node| match node {
         &ast::Node::Rule((ref name, ref nodes)) => Ok((name, nodes)),
-        _ => Err(format!("incorrect atom info in ast {:?}", &vnodes)),
+        _ => Err(format!("incorrect atom info in ast {:?}", &nodes)),
     };
 
-    let atom_node = get_atom_child_node(vnodes)?;
-    let (rname, vnodes) = get_atom_rule_info(&atom_node)?;
+    let atom_node = get_atom_child_node(nodes)?;
+    let (rname, nodes) = get_atom_rule_info(&atom_node)?;
 
-    match (&rname as &str, vnodes) {
-        ("literal", vnodes) => atom_literal_from_nodes(&vnodes),
-        // ("symbol", vnodes) => atom_symbol_from_nodes(&vnodes),
+    match (&rname as &str, nodes) {
+        ("literal", nodes) => atom_literal_from_nodes(&nodes),
+        // ("symbol", nodes) => atom_symbol_from_nodes(&nodes),
         (at, _) => Err(format!("not registered atom type {}", at)),
     }
 }

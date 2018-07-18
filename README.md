@@ -37,6 +37,7 @@ Watch examples below
 ## TODO
 
 - Create rules from PEG
+  - move some functions from peg to ast, document and examples
 - add errors to grammar
 - Upload to crates.io
   - update usage

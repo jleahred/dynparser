@@ -171,8 +171,8 @@ fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
         &status,
         &format!("Missing rule: {}", rule_name),
     ))?;
-    let (st, vnodes) = parse_expr(status, &expression)?;
-    Ok((st, ast::Node::Rule((rule_name.to_owned(), vnodes))))
+    let (st, nodes) = parse_expr(status, &expression)?;
+    Ok((st, ast::Node::Rule((rule_name.to_owned(), nodes))))
 }
 
 fn parse_atom_as_expr<'a>(status: Status<'a>, a: &'a Atom) -> ResultExpr<'a> {

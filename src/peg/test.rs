@@ -20,7 +20,6 @@ fn validate_peg1() {
 
     "#;
 
-    //println!("{:#?}", parse(peg, &peg::rules2parse_peg()));
     assert!(parse(peg, &peg::rules2parse_peg()).is_ok());
 }
 
@@ -132,17 +131,17 @@ fn validate_peg5() {
     assert!(parse(peg, &peg::rules2parse_peg()).is_err());
 }
 
-#[test]
-fn parse_literal() {
-    let peg = r#"
-    
-    main    = "aaa"
+// #[test]
+// fn parse_literal() {
+//     let peg = r#"
 
-    "#;
+//     main    = "aaa"
 
-    let parsed = match peg::rules_from_peg(peg) {
-        Ok(r) => parse("aaa", &r),
-        Err(e) => panic!(format!("err parsing peg {:#?}", e)),
-    };
-    assert!(parsed.is_ok());
-}
+//     "#;
+
+//     let parsed = match peg::rules_from_peg(peg) {
+//         Ok(r) => parse("aaa", &r),
+//         Err(e) => panic!(format!("err parsing peg {:#?}", e)),
+//     };
+//     assert!(parsed.is_ok());
+// }
