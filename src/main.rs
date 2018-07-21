@@ -1,42 +1,35 @@
 extern crate dynparser;
-use dynparser::ast;
-
+use dynparser::ast::{self, get_node_val};
 fn main() {
-    let ast_before_compact: ast::Node = ast::Node::Rule((
-        "root".to_string(),
-        vec![ast::Node::Rule((
-            "root".to_string(),
-            vec![
-                ast::Node::Val("hello".to_string()),
-                ast::Node::Val(" ".to_string()),
-                ast::Node::Val("world".to_string()),
-            ],
-        ))],
-    ));
+    let ast: ast::Node = ast::Node::Val("hello".to_string());
 
-    let ast_after_compact = ast::Node::Rule((
-        "root".to_string(),
-        vec![ast::Node::Rule((
-            "root".to_string(),
-            vec![ast::Node::Val("hello world".to_string())],
-        ))],
-    ));
+    let val = get_node_val(&ast).unwrap();
 
-    assert!(ast_before_compact.compact() == ast_after_compact)
+    assert!(val == "hello");
 }
 
+// extern crate dynparser;
+// use dynparser::{parse, rules_from_peg};
+// use std::result;
+
 // fn main() {
-//     let rules = rules_from_peg(
-//         r#"
-// main    =   [abA-Z]
+//     let result = || -> result::Result<(), String> {
+//         let rules = rules_from_peg(
+//             r#"
+// main    =   "hello"
 //         "#,
-//     );
+//         ).map_err(|e| format!("{:#?}", e))?;
 
-//     //println!("{:#?}", rules);
+//         println!("{:#?}", rules);
 
-//     // let result = parse("abcd", &rules);
-//     // match result {
-//     //     Ok(ast) => println!("{:#?}", ast),
-//     //     Err(e) => println!("Error: {:?}", e),
-//     // };
+//         let result = parse("abcd", &rules);
+//         match result {
+//             Ok(ast) => println!("{:#?}", ast),
+//             Err(e) => println!("Error: {:?}", e),
+//         };
+
+//         Ok(())
+//     };
+
+//     println!(">>>>>>> {:#?}", result());
 // }

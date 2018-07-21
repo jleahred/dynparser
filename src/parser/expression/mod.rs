@@ -242,7 +242,7 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
         if acc.1.len() == 0 {
             TailCall::Return(Err(Error::from_st_errs(
                 &status,
-                "checked all options of or with no errors",
+                "checked all options in or with no errors",
                 vec![],
                 // acc.2
             )))

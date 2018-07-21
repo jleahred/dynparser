@@ -72,39 +72,14 @@ fn process_peg_rule<'a>(rname: &str, nodes: &[ast::Node]) -> ResultExprOrRule<'a
         "atom_or_par" => passthrow(&nodes),
         "atom" => Ok(ExprOrRule::Expr(process_atom(&nodes)?)),
         _ => Err(format!("unknown peg rule {}", rname)),
-    }.or_else(|e| Err(format!("processing {} > {}", rname, e)))
+    }.or_else(|e| Err(format!("processing {} > {:#?}", rname, e)))
 }
 
-fn get_nodename_nodes(node: &ast::Node) -> result::Result<(&str, &[ast::Node]), String> {
-    match node {
-        ast::Node::Rule((nname, nodes)) => Ok((nname, nodes)),
-        _ => Err(format!("expected node::Rule {:?}", node)),
-    }
-}
-
-fn get_symbol_value(node: &ast::Node) -> result::Result<String, String> {
-    let (nname, nodes) = get_nodename_nodes(node)?;
+fn get_symbol_value<'a>(node: &ast::Node) -> ResultExprOrRule<'a> {
+    let (nname, nodes) = ast::get_nodename_and_nodes(node)?;
     match nname {
-        "symbol" => Ok(get_nodes_unique_val(nodes)?),
-        _ => Err(format!("expected symbol {:?}", node)),
-    }
-}
-
-fn get_nodes_unique_val(nodes: &[ast::Node]) -> result::Result<String, String> {
-    if nodes.len() > 1 {
-        Err(format!("Expected 1 node to get unique val on {:?}", nodes))?
-    }
-
-    match nodes.first() {
-        Some(n) => get_node_unique_val(n),
-        _ => Err(format!("Expected ast::Node::Val {:?}", nodes)),
-    }
-}
-
-fn get_node_unique_val(node: &ast::Node) -> result::Result<String, String> {
-    match node {
-        ast::Node::Val(v) => Ok(v.clone()),
-        _ => Err(format!("Expected ast::Node::Val {:?}", node)),
+        "symbol" => ast::get_nodes_unique_val(nodes),
+        _ => Err(ast::error("expected symbol", None)),
     }
 }
 
