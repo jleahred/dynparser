@@ -19,7 +19,6 @@ pub mod atom;
 pub mod expression;
 
 use std::str::Chars;
-use {Error, Possition};
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -28,6 +27,45 @@ use {Error, Possition};
 //
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
+
+/// Information about the possition on parsing
+#[derive(PartialEq, Clone, Debug)]
+pub struct Possition {
+    /// char position parsing
+    pub n: usize,
+    /// row parsing row
+    pub row: usize,
+    /// parsing col
+    pub col: usize,
+    /// possition were line started for current pos *m*
+    pub start_line: usize,
+}
+
+impl Possition {
+    fn init() -> Self {
+        Self {
+            n: 0,
+            row: 0,
+            col: 0,
+            start_line: 0,
+        }
+    }
+}
+
+/// Context error information
+#[derive(Debug)]
+pub struct Error {
+    /// Possition achive parsing
+    pub pos: Possition,
+    /// Error description parsing
+    pub descr: String,
+    /// Line content where error was produced
+    pub line: String,
+    /// Suberrors when parsing an *or* (it could be removed!)
+    pub errors: Vec<Error>,
+    /// Rules path followed till got the error
+    pub parsing_rules: Vec<String>,
+}
 
 //-----------------------------------------------------------------------
 #[derive(Debug, Clone)]

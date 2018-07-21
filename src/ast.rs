@@ -215,7 +215,6 @@ pub fn get_node_val(node: &Node) -> Result<&str, Error> {
 ///     
 ///     assert!(ast::get_nodes_unique_val(&nodes).is_err());
 ///```
-
 pub fn get_nodes_unique_val(nodes: &[Node]) -> Result<&str, Error> {
     match (nodes.first(), nodes.len()) {
         (Some(n), 1) => get_node_val(n),

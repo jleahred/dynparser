@@ -376,34 +376,6 @@ mod peg;
 // -------------------------------------------------------------------------------------
 //  T Y P E S
 
-/// Information about the possition on parsing
-#[derive(PartialEq, Clone, Debug)]
-pub struct Possition {
-    /// char position parsing
-    pub n: usize,
-    /// row parsing row
-    pub row: usize,
-    /// parsing col
-    pub col: usize,
-    /// possition were line started for current pos *m*
-    pub start_line: usize,
-}
-
-/// Context error information
-#[derive(Debug)]
-pub struct Error {
-    /// Possition achive parsing
-    pub pos: Possition,
-    /// Error description parsing
-    pub descr: String,
-    /// Line content where error was produced
-    pub line: String,
-    /// Suberrors when parsing an *or* (it could be removed!)
-    pub errors: Vec<Error>,
-    /// Rules path followed till got the error
-    pub parsing_rules: Vec<String>,
-}
-
 //  T Y P E S
 // -------------------------------------------------------------------------------------
 
@@ -434,11 +406,11 @@ pub struct Error {
 /// More examples in marcros
 ///
 
-pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, Error> {
+pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, parser::Error> {
     let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules))?;
     match st.pos.n == s.len() {
         true => Ok(ast),
-        false => Err(Error::from_status(&st, "not consumed full input")),
+        false => Err(parser::Error::from_status(&st, "not consumed full input")),
     }
 }
 
@@ -449,14 +421,3 @@ pub use peg::rules_from_peg;
 
 //-----------------------------------------------------------------------
 //  I N T E R N A L
-
-impl Possition {
-    fn init() -> Self {
-        Self {
-            n: 0,
-            row: 0,
-            col: 0,
-            start_line: 0,
-        }
-    }
-}
