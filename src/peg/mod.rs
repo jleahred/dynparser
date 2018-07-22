@@ -17,6 +17,18 @@ pub enum Error {
     Ast(ast::Error),
 }
 
+impl From<parser::Error> for Error {
+    fn from(e: parser::Error) -> Self {
+        Error::Parser(e)
+    }
+}
+
+impl From<ast::Error> for Error {
+    fn from(e: ast::Error) -> Self {
+        Error::Ast(e)
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -43,9 +55,9 @@ type ResultExpr<'a> = result::Result<parser::expression::Expression<'a>, Error>;
 /// Given a ```peg``` set of rules on an string, it will generate
 /// the set of rules to use in the parser
 pub fn rules_from_peg(peg: &str) -> Result {
-    let ast = parse(peg, &rules2parse_peg()).map_err(|e| Error::Parser(e))?;
+    let ast = parse(peg, &rules2parse_peg())?;
 
-    println!("{:#?}", ast);
+    // println!("{:#?}", ast);
     rules_from_ast(&ast)
 }
 
@@ -96,12 +108,9 @@ fn split_first_nodes(nodes: &[ast::Node]) -> result::Result<(&ast::Node, &[ast::
 fn consume_symbol_value(nodes: &[ast::Node]) -> result::Result<(&str, &[ast::Node]), Error> {
     let (node, nodes) = split_first_nodes(nodes)?;
 
-    let (nname, sub_nodes) = ast::get_nodename_and_nodes(node).map_err(|e| Error::Ast(e))?;
+    let (nname, sub_nodes) = ast::get_nodename_and_nodes(node)?;
     match nname {
-        "symbol" => Ok((
-            ast::get_nodes_unique_val(sub_nodes).map_err(|e| Error::Ast(e))?,
-            nodes,
-        )),
+        "symbol" => Ok((ast::get_nodes_unique_val(sub_nodes)?, nodes)),
         _ => Err(Error::Peg("expected symbol".to_string())),
     }
 }
@@ -112,41 +121,39 @@ fn consume_and_check_val<'a>(
 ) -> result::Result<(&'a [ast::Node]), Error> {
     let (node, nodes) = split_first_nodes(nodes)?;
 
-    let nv = ast::get_node_val(node).map_err(|e| Error::Ast(e))?;
+    let nv = ast::get_node_val(node)?;
     match nv == v {
         true => Ok(nodes),
         false => Err(Error::Peg(format!("expected {} readed {}", v, nv))),
     }
 }
 
-fn consume_expression<'a>(
+fn consume_expr<'a>(
     nodes: &[ast::Node],
 ) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
-    Ok((lit!{"aaa"}, nodes))
+    // expr            =   or
+
+    let (node, nodes) = split_first_nodes(nodes)?;
+    let (node_name, sub_nodes) = ast::get_nodename_and_nodes(node)?;
+
+    Err(Error::Peg("processing expr".to_string()))
+}
+
+fn check_empty_nodes(nodes: &[ast::Node]) -> result::Result<(), Error> {
+    match nodes.is_empty() {
+        true => Ok(()),
+        false => Err(Error::Peg(format!("not consumed full nodes"))),
+    }
 }
 
 fn process_rule<'a>(nodes: &[ast::Node]) -> Result<'a> {
     //  rule            =   symbol  _  "="  _   expr  (_ / eof)
 
-    // Ok(ExprOrRule::Rule(rules!("main" => lit!("testing"))))
-
     let (symbol_name, nodes) = consume_symbol_value(nodes)?;
-    println!("____ {:?}", symbol_name);
-
     let nodes = consume_and_check_val("=", nodes)?;
-
-    let (expr, nodes) = consume_expression(nodes)?;
-
-    match nodes.is_empty() {
-        true => Ok(rules!("main" => expr)),
-        false => Err(Error::Peg(format!("not consumed full nodes"))),
-    }
-    // match get_node_unique_val(&nodes[1])? == "=" {
-    //     false => Err(format!("Expected '=' reading rule {:?}", nodes))?,
-    //     _ => (),
-    // };
-
-    // Err(Error::Peg("error processing rule".to_string()))
+    let (expr, nodes) = consume_expr(nodes)?;
+    check_empty_nodes(nodes)?;
+    Ok(rules!(symbol_name => expr))
 }
 
 fn passthrow<'a>(nodes: &[ast::Node]) -> Result<'a> {
@@ -159,86 +166,86 @@ fn passthrow<'a>(nodes: &[ast::Node]) -> Result<'a> {
     }
 }
 
-fn process_atom<'a, 'b>(nodes: &'a [ast::Node]) -> ResultExpr<'b> {
-    let get_atom_child_node = |nodes: &'a [ast::Node]| match nodes {
-        &[ref node] => Ok(node),
-        _ => Err(Error::Peg(format!(
-            "an atom can have only one child {:?}",
-            &nodes
-        ))),
-    };
+// fn process_atom<'a, 'b>(nodes: &'a [ast::Node]) -> ResultExpr<'b> {
+//     let get_atom_child_node = |nodes: &'a [ast::Node]| match nodes {
+//         &[ref node] => Ok(node),
+//         _ => Err(Error::Peg(format!(
+//             "an atom can have only one child {:?}",
+//             &nodes
+//         ))),
+//     };
 
-    let get_atom_rule_info = |&node| match node {
-        &ast::Node::Rule((ref name, ref nodes)) => Ok((name, nodes)),
-        _ => Err(Error::Peg(format!(
-            "incorrect atom info in ast {:?}",
-            &nodes
-        ))),
-    };
+//     let get_atom_rule_info = |&node| match node {
+//         &ast::Node::Rule((ref name, ref nodes)) => Ok((name, nodes)),
+//         _ => Err(Error::Peg(format!(
+//             "incorrect atom info in ast {:?}",
+//             &nodes
+//         ))),
+//     };
 
-    let atom_node = get_atom_child_node(nodes)?;
-    let (rname, nodes) = get_atom_rule_info(&atom_node)?;
+//     let atom_node = get_atom_child_node(nodes)?;
+//     let (rname, nodes) = get_atom_rule_info(&atom_node)?;
 
-    match (&rname as &str, nodes) {
-        ("literal", nodes) => atom_literal_from_nodes(&nodes),
-        // ("symbol", nodes) => atom_symbol_from_nodes(&nodes),
-        (at, _) => Err(Error::Peg(format!("not registered atom type {}", at))),
-    }
-}
+//     match (&rname as &str, nodes) {
+//         ("literal", nodes) => atom_literal_from_nodes(&nodes),
+//         // ("symbol", nodes) => atom_symbol_from_nodes(&nodes),
+//         (at, _) => Err(Error::Peg(format!("not registered atom type {}", at))),
+//     }
+// }
 
-fn atom_literal_from_nodes<'a, 'b>(nodes: &'a [ast::Node]) -> ResultExpr<'b> {
-    //  literal =   "\""  (!"\"" .)*  "\""
+// fn atom_literal_from_nodes<'a, 'b>(nodes: &'a [ast::Node]) -> ResultExpr<'b> {
+//     //  literal =   "\""  (!"\"" .)*  "\""
 
-    let check_quote = |n: &ast::Node| match n {
-        ast::Node::Val(v) => {
-            if v == "\"" {
-                Ok(())
-            } else {
-                Err(Error::Peg(format!(
-                    "Expected quote arround literal string, got {}",
-                    v
-                )))
-            }
-        }
-        _ => Err(Error::Peg(format!(
-            "Expected ast::Node::Val arround literal string, got {:?}",
-            n
-        ))),
-    };
+//     let check_quote = |n: &ast::Node| match n {
+//         ast::Node::Val(v) => {
+//             if v == "\"" {
+//                 Ok(())
+//             } else {
+//                 Err(Error::Peg(format!(
+//                     "Expected quote arround literal string, got {}",
+//                     v
+//                 )))
+//             }
+//         }
+//         _ => Err(Error::Peg(format!(
+//             "Expected ast::Node::Val arround literal string, got {:?}",
+//             n
+//         ))),
+//     };
 
-    let remove_quotes_arround = |nodes: &'a [ast::Node]| -> result::Result<&[ast::Node], Error> {
-        let error_inv_nodes_size = || {
-            Error::Peg(format!(
-                "Invalid ast for literal. Minimum nodes size 3 '{:?}''",
-                &nodes
-            ))
-        };
-        let (f, nodes) = nodes.split_first().ok_or(error_inv_nodes_size())?;
-        let (l, nodes) = nodes.split_last().ok_or(error_inv_nodes_size())?;
-        let (_, _) = (check_quote(f)?, check_quote(l)?);
-        Ok(nodes)
-    };
+//     let remove_quotes_arround = |nodes: &'a [ast::Node]| -> result::Result<&[ast::Node], Error> {
+//         let error_inv_nodes_size = || {
+//             Error::Peg(format!(
+//                 "Invalid ast for literal. Minimum nodes size 3 '{:?}''",
+//                 &nodes
+//             ))
+//         };
+//         let (f, nodes) = nodes.split_first().ok_or(error_inv_nodes_size())?;
+//         let (l, nodes) = nodes.split_last().ok_or(error_inv_nodes_size())?;
+//         let (_, _) = (check_quote(f)?, check_quote(l)?);
+//         Ok(nodes)
+//     };
 
-    let concat_str_nodes2string = |nodes: &[ast::Node]| {
-        nodes
-            .iter()
-            .try_fold("".to_string(), |acc, n: &ast::Node| match n {
-                ast::Node::Val(v) => Ok(format!("{}{}", acc, v)),
-                _ => Err(Error::Peg(format!("Expected ast::Node::Val {:?}", &n))),
-            })
-    };
+//     let concat_str_nodes2string = |nodes: &[ast::Node]| {
+//         nodes
+//             .iter()
+//             .try_fold("".to_string(), |acc, n: &ast::Node| match n {
+//                 ast::Node::Val(v) => Ok(format!("{}{}", acc, v)),
+//                 _ => Err(Error::Peg(format!("Expected ast::Node::Val {:?}", &n))),
+//             })
+//     };
 
-    let removed_quotes = remove_quotes_arround(nodes)?;
-    let slit = concat_str_nodes2string(removed_quotes)?;
+//     let removed_quotes = remove_quotes_arround(nodes)?;
+//     let slit = concat_str_nodes2string(removed_quotes)?;
 
-    Ok(lit!(slit))
-}
+//     Ok(lit!(slit))
+// }
 
-fn atom_symbol_from_nodes(nodes: &[ast::Node]) -> result::Result<String, String> {
-    //  symbol          =   [a-zA-Z0-9_']+
+// fn atom_symbol_from_nodes(nodes: &[ast::Node]) -> result::Result<String, String> {
+//     //  symbol          =   [a-zA-Z0-9_']+
 
-    Ok("symbol".to_string())
-}
+//     Ok("symbol".to_string())
+// }
 
 // fn atom_match_from_nodes<'a>(nodes: &'a [ast::Node]) -> ResultExpr<'a> {
 //     //  match   =   "["  ((.  "-"  .)  /  (.))+   "]"
