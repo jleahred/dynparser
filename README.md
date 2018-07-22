@@ -37,7 +37,7 @@ Watch examples below
 ## TODO
 
 - Create rules from PEG
-  - move some functions from peg to ast, document and examples
+  - remove process node and restart with process main, process grammar...
 - add errors to grammar
 - Upload to crates.io
   - update usage
@@ -473,6 +473,8 @@ What about non significative spaces and carry return?
 It will be defined on "\_" symbol
 
 ```peg
+main            =   grammar
+
 grammar         =   rule+
 
 rule            =   symbol  _  "="  _   expr  (_ / eof)

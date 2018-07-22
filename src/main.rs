@@ -22,7 +22,7 @@ main    =   "hello"
 
         println!("{:#?}", rules);
 
-        let result = parse("abcd", &rules);
+        let result = parse("hello", &rules);
         match result {
             Ok(ast) => println!("{:#?}", ast),
             Err(e) => println!("Error: {:?}", e),

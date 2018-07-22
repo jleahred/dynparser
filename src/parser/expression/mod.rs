@@ -240,13 +240,14 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
 
     tail_call(init_tc, |acc| {
         if acc.1.len() == 0 {
-            TailCall::Return(Err(Error::from_st_errs(
-                &status,
-                "checked all options in or with no errors",
-                vec![],
-                // acc.2
-            )))
-        // acc.2.expect("checked all options of or with no errors")))
+            TailCall::Return(Err(match acc.2 {
+                Some(err) => err,
+                _ => Error::from_st_errs(
+                    &status,
+                    "LOGIC ERROR!!! checked all options in or with ¿NO? errors",
+                    vec![],
+                ),
+            }))
         } else {
             let try_parse = parse_expr(acc.0.clone(), &acc.1[0]);
             match try_parse {

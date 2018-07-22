@@ -128,15 +128,67 @@ fn consume_and_check_val<'a>(
     }
 }
 
+fn get_sub_nodes_if_rule_name_is<'a>(
+    name: &str,
+    node: &'a ast::Node,
+) -> result::Result<(&'a [ast::Node]), Error> {
+    match node {
+        ast::Node::Rule((n, sub_nodes)) => if n == name {
+            Ok(sub_nodes)
+        } else {
+            Err(Error::Peg(format!("expected expr node, received {}", n)))
+        },
+        _ => Err(Error::Peg("expected rule node, received {:?}".to_string())),
+    }
+}
+
+fn consume_and<'a>(
+    nodes: &[ast::Node],
+) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+    //  and             =   rep_or_neg  (   " "  _  and)*
+
+    let (node, nodes) = split_first_nodes(nodes)?;
+    let sub_nodes = get_sub_nodes_if_rule_name_is("and", node)?;
+
+    Ok((lit!("hello"), nodes))
+}
+
+fn consume_or<'a>(
+    nodes: &[ast::Node],
+) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+    //  or              =   and         ( _ "/"  _  or)*
+
+    let (node, nodes) = split_first_nodes(nodes)?;
+    let sub_nodes = get_sub_nodes_if_rule_name_is("or", node)?;
+
+    let (expr1, sub_nodes) = consume_and(sub_nodes)?;
+    let expr2 = if sub_nodes.len() > 0 {
+        let sub_nodes = consume_and_check_val("/", nodes)?;
+        let (expr2, sub_nodes) = consume_or(sub_nodes)?;
+        Some(expr2)
+    } else {
+        None
+    };
+    check_empty_nodes(sub_nodes)?;
+
+    match expr2 {
+        Some(e2) => Ok((or!(expr1, e2), nodes)),
+        _ => Ok((or!(expr1), nodes)),
+    }
+}
+
 fn consume_expr<'a>(
     nodes: &[ast::Node],
 ) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
     // expr            =   or
 
     let (node, nodes) = split_first_nodes(nodes)?;
-    let (node_name, sub_nodes) = ast::get_nodename_and_nodes(node)?;
+    let sub_nodes = get_sub_nodes_if_rule_name_is("expr", node)?;
 
-    Err(Error::Peg("processing expr".to_string()))
+    let (expr, sub_nodes) = consume_or(sub_nodes)?;
+    check_empty_nodes(sub_nodes)?;
+
+    Ok((expr, nodes))
 }
 
 fn check_empty_nodes(nodes: &[ast::Node]) -> result::Result<(), Error> {
