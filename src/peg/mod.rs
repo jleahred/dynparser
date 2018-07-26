@@ -2,9 +2,13 @@
 //! Module with functions to generate rules from PEG grammar
 //!
 
+mod rules;
+
 use ast;
 use parse;
-use parser;
+use parser::{
+    self, expression::{self, Expression},
+};
 use std::{self, result};
 
 #[cfg(test)]
@@ -50,23 +54,61 @@ impl std::fmt::Display for Error {
     }
 }
 
-pub type Result<'a> = result::Result<parser::expression::SetOfRules<'a>, Error>;
-
-// enum ExprOrRule<'a> {
-//     Expr(parser::expression::Expression<'a>),
-//     Rule(parser::expression::SetOfRules<'a>),
-// }
-
-// type ResultExprOrRule<'a> = result::Result<ExprOrRule<'a>, Error>;
-// type ResultExpr<'a> = result::Result<parser::expression::Expression<'a>, Error>;
+pub type Result<'a> = result::Result<expression::SetOfRules<'a>, Error>;
 
 // -------------------------------------------------------------------------------------
 //  A P I
 
 /// Given a ```peg``` set of rules on an string, it will generate
 /// the set of rules to use in the parser
+///
+/// Next, is a full example showing the error messages, if so
+/// ```
+/// extern crate dynparser;
+/// use dynparser::{parse, rules_from_peg};
+///
+/// fn main() {
+///     let rules = rules_from_peg(
+///         r#"
+/// main    =   "hello"   " "   "world"
+///         "#,
+///     ).map_err(|e| {
+///         println!("{}", e);
+///         panic!("FAIL");
+///     })
+///         .unwrap();
+///
+///     println!("{:#?}", rules);
+///
+///     let result = parse("hello world", &rules);
+///
+///     assert!(result.is_ok());
+///
+///     match result {
+///         Ok(ast) => println!("{:#?}", ast),
+///         Err(e) => println!("Error: {:?}", e),
+///     };
+/// }
+/// ```
+///
+/// Next is an example with some ```and``` ```literals```
+/// ```
+///extern crate dynparser;
+///use dynparser::{parse, rules_from_peg};
+///
+///    let rules = rules_from_peg(
+///        r#"
+///
+///main    =   "hello"   " "   "world"
+///
+///        "#,
+///    ).unwrap();
+///
+///     assert!(parse("hello world", &rules).is_ok());
+/// ```
+
 pub fn rules_from_peg(peg: &str) -> Result {
-    let ast = parse(peg, &rules2parse_peg())?;
+    let ast = parse(peg, &rules::parse_peg())?;
 
     // println!("{:#?}", ast);
     rules_from_ast(&ast)
@@ -77,7 +119,7 @@ pub fn rules_from_peg(peg: &str) -> Result {
 
 fn rules_from_ast<'a>(ast: &ast::Node) -> Result<'a> {
     let ast = ast.compact().prune(&vec!["_"]);
-    println!(":::::::  {:?}", ast);
+    println!(":::::::  {:#?}", ast);
 
     let vast = vec![ast];
     let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("main", &vast)?;
@@ -96,7 +138,7 @@ macro_rules! push_err {
 
 fn consume_grammar<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(parser::expression::SetOfRules<'a>, &[ast::Node]), Error> {
+) -> result::Result<(expression::SetOfRules<'a>, &[ast::Node]), Error> {
     //  grammar         =   rule+
 
     push_err!("consuming grammar", {
@@ -112,18 +154,21 @@ fn consume_grammar<'a>(
 
 fn consume_peg_rule<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(&str, parser::expression::Expression<'a>, &[ast::Node]), Error> {
+) -> result::Result<(&str, expression::Expression<'a>, &[ast::Node]), Error> {
     //  rule            =   symbol  _  "="  _   expr  (_ / eof)
 
     push_err!("consuming rule", {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("rule", nodes)?;
         check_empty_nodes(nodes)?;
         let (symbol_name, sub_nodes) = consume_symbol(sub_nodes)?;
-        let sub_nodes = consume_if_val("=", sub_nodes)?;
-        let (expr, sub_nodes) = consume_peg_expr(sub_nodes)?;
-        check_empty_nodes(sub_nodes)?;
 
-        Ok((symbol_name, expr, nodes))
+        push_err!(&format!("r:({})", symbol_name), {
+            let sub_nodes = consume_if_val("=", sub_nodes)?;
+            let (expr, sub_nodes) = consume_peg_expr(sub_nodes)?;
+            check_empty_nodes(sub_nodes)?;
+
+            Ok((symbol_name, expr, nodes))
+        })
     })
 }
 
@@ -139,7 +184,7 @@ fn consume_symbol<'a>(nodes: &[ast::Node]) -> result::Result<(&str, &[ast::Node]
 
 fn consume_peg_expr<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     //  expr            =   or
 
     push_err!("consuming expr", {
@@ -152,66 +197,117 @@ fn consume_peg_expr<'a>(
     })
 }
 
-fn consume_or<'a>(
-    nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+fn consume_or<'a>(nodes: &[ast::Node]) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     //  or              =   and         ( _ "/"  _  or)*
 
-    push_err!("consuming or", {
+    fn rec_consume_or<'a, 'b>(
+        nodes: &'a [ast::Node],
+        exprs: Vec<Expression<'b>>,
+    ) -> result::Result<(Vec<Expression<'b>>, &'a [ast::Node]), Error> {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("or", nodes)?;
-        check_empty_nodes(nodes)?;
-        let (expr, sub_nodes) = consume_and(sub_nodes)?;
-        check_empty_nodes(sub_nodes)?;
 
-        Ok((expr, nodes))
+        let (expr, sub_nodes) = consume_and(sub_nodes)?;
+        let exprs = exprs.mpush(expr);
+
+        match sub_nodes.len() {
+            0 => Ok((exprs, nodes)),
+            _ => {
+                let (exprs, nodes) = match consume_if_val("/", sub_nodes) {
+                    Ok(sub_nodes) => rec_consume_or(&sub_nodes, exprs)?,
+                    _ => (exprs, nodes),
+                };
+
+                Ok((exprs, nodes))
+            }
+        }
+    };
+
+    push_err!("consuming or", {
+        let (vexpr, nodes) = rec_consume_or(nodes, vec![])?;
+        let and_expr = Expression::Or(expression::MultiExpr(vexpr));
+
+        Ok((and_expr, nodes))
     })
 }
 
-fn consume_and<'a>(
-    nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+trait IVec<T> {
+    fn mpush(self, T) -> Self;
+}
+
+impl<T> IVec<T> for Vec<T>
+where
+    T: std::fmt::Debug,
+{
+    fn mpush(mut self, v: T) -> Self {
+        self.push(v);
+        self
+    }
+}
+
+fn consume_and<'a>(nodes: &[ast::Node]) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     //  and             =   rep_or_neg  (   " "  _  and)*
 
-    push_err!("consuming and", {
+    fn rec_consume_and<'a, 'b>(
+        nodes: &'a [ast::Node],
+        exprs: Vec<Expression<'b>>,
+    ) -> result::Result<(Vec<Expression<'b>>, &'a [ast::Node]), Error> {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("and", nodes)?;
-        check_empty_nodes(nodes)?;
-        let (expr, sub_nodes) = consume_rep_or_neg(sub_nodes)?;
-        check_empty_nodes(sub_nodes)?;
 
-        Ok((expr, nodes))
+        let (expr, sub_nodes) = consume_rep_or_neg(sub_nodes)?;
+        let exprs = exprs.mpush(expr);
+
+        match sub_nodes.len() {
+            0 => Ok((exprs, nodes)),
+            _ => {
+                let (exprs, nodes) = match consume_if_val(" ", sub_nodes) {
+                    Ok(sub_nodes) => rec_consume_and(&sub_nodes, exprs)?,
+                    _ => (exprs, nodes),
+                };
+
+                Ok((exprs, nodes))
+            }
+        }
+    };
+
+    push_err!("consuming and", {
+        let (vexpr, nodes) = rec_consume_and(nodes, vec![])?;
+        let and_expr = Expression::And(expression::MultiExpr(vexpr));
+
+        Ok((and_expr, nodes))
     })
 }
 
 fn consume_rep_or_neg<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     // rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
     //                 /   "!" atom_or_par
 
-    let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("rep_or_neg", nodes)?;
-    check_empty_nodes(nodes)?;
-    let (expr, sub_nodes) = consume_atom_or_par(sub_nodes)?;
-    check_empty_nodes(sub_nodes)?;
+    push_err!("consuming rep_or_neg", {
+        let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("rep_or_neg", nodes)?;
+        let (expr, sub_nodes) = consume_atom_or_par(sub_nodes)?;
+        check_empty_nodes(sub_nodes)?;
 
-    Ok((expr, nodes))
+        Ok((expr, nodes))
+    })
 }
 
 fn consume_atom_or_par<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     // atom_or_par     =   (atom / parenth)
 
-    let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("atom_or_par", nodes)?;
-    check_empty_nodes(nodes)?;
-    let (expr, sub_nodes) = consume_atom(sub_nodes)?;
-    check_empty_nodes(sub_nodes)?;
+    push_err!("consuming atom_or_par", {
+        let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("atom_or_par", nodes)?;
+        check_empty_nodes(nodes)?;
+        let (expr, sub_nodes) = consume_atom(sub_nodes)?;
+        check_empty_nodes(sub_nodes)?;
 
-    Ok((expr, nodes))
+        Ok((expr, nodes))
+    })
 }
 
-fn consume_atom<'a>(
-    nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+fn consume_atom<'a>(nodes: &[ast::Node]) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     // atom            =   literal
     //                 /   match
     //                 /   dot
@@ -229,7 +325,7 @@ fn consume_atom<'a>(
 
 fn consume_literal<'a>(
     nodes: &[ast::Node],
-) -> result::Result<(parser::expression::Expression<'a>, &[ast::Node]), Error> {
+) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     // literal         =   _" till_quote _"
 
     push_err!("consuming literal", {
@@ -275,9 +371,15 @@ fn consume_node_get_subnodes_if_rule_name_is<'a>(
         ast::Node::Rule((n, sub_nodes)) => if n == name {
             Ok((nodes, sub_nodes))
         } else {
-            Err(error_peg_s(&format!("expected expr node, received {}", n)))
+            Err(error_peg_s(&format!(
+                "expected {} node, received {}",
+                name, n
+            )))
         },
-        _ => Err(error_peg_s("expected rule node, received {:?}")),
+        unknown => Err(error_peg_s(&format!(
+            "expected {} Node::Rule, not received {:?}",
+            name, unknown
+        ))),
     }
 }
 
@@ -286,167 +388,4 @@ fn check_empty_nodes(nodes: &[ast::Node]) -> result::Result<(), Error> {
         true => Ok(()),
         false => Err(error_peg_s("not consumed full nodes")),
     }
-}
-
-//  ------------------------------------------------------------------------
-//  ------------------------------------------------------------------------
-//
-//  this is the first version of code to parse the peg grammar
-//  it was, obviously written by hand
-fn rules2parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
-    rules!(
-
-        "main"      =>       rule!("grammar"),
-
-        "grammar"   =>       rep!(rule!("rule"), 1),
-
-        "rule"      =>       and!(
-                                 rule!("_"), rule!("symbol") ,
-                                 rule!("_"), lit! ("="),
-                                 rule!("_"), rule!("expr"),
-                                             or!(
-                                                 rule!("_"),
-                                                 rule!("eof")
-                                             ),
-                                 rule!("_")                                                
-                             ),
-
-        "expr"      =>      rule!("or"),
-
-        "or"        =>      and!(
-                                rule!("and"),
-                                rep!(
-                                    and!(
-                                        rule!("_"), lit!("/"),
-                                        rule!("_"), rule!("or")
-                                    ),
-                                    0
-                                )
-                            ),
-
-        "and"       =>     and!(
-                                rule!("rep_or_neg"),
-                                rep!(
-                                    and!(
-                                        lit!(" "),  rule!("_"), rule!("and")
-                                    ),
-                                    0
-                                )
-                            ),
-
-        "rep_or_neg" =>     or!(
-                                and!(
-                                    rule!("atom_or_par"),
-                                    rep!(
-                                        or!(
-                                            lit!("*"),
-                                            lit!("+"),
-                                            lit!("?")
-                                        )
-                                        , 0, 1
-                                    )
-                                ),
-                                and!(
-                                    lit!("!"),
-                                    rule!("atom_or_par")
-                                )
-                            ),
-
-        "atom_or_par" =>    or!(
-                                rule!("atom"),
-                                rule!("parenth")
-                            ),
-
-        "parenth"       =>  and!(
-                                lit!("("),
-                                rule!("_"),
-                                rule!("expr"),
-                                rule!("_"),
-                                lit!(")")
-                            ),
-
-        "atom"          =>  or!(
-                                rule!("literal"),
-                                rule!("match"),
-                                rule!("dot"),
-                                rule!("symbol")
-                            ),
-
-        "literal"       =>  and!(
-                                rule!(r#"_""#),
-                                rep!(
-                                    and!(
-                                        not!(
-                                            rule!(r#"_""#)
-                                        ),
-                                        dot!()
-                                    )
-                                , 0
-                            ),
-                                rule!(r#"_""#)
-                            ),
-
-        r#"_""#         =>  lit!(r#"""#),
-
-        "match"         =>  and!(
-                                lit!("["),
-                                or!(
-                                    and!(dot!(), lit!("-"), dot!()),
-                                    rep!(
-                                        and!(not!(lit!("]")), dot!())
-                                        ,1
-                                    )
-                                ),
-                                lit!("]")
-                            ),
-        
-        "dot"           =>  lit!("."),
-
-        "symbol"        =>  rep!(
-                                ematch!(    chlist "_'",
-                                         from 'a', to 'z',
-                                         from 'A', to 'Z',
-                                         from '0', to '9'
-                                ),
-                                1
-                            ),
-
-        "_"             =>  rep!(   or!(
-                                        lit!(" "),
-                                        rule!("eol"),
-                                        rule!("comment")
-                                    )
-                                    , 0
-                            ),
-
-        "eol"          =>   or!(
-                                    lit!("\r\n"),
-                                    lit!("\n"),
-                                    lit!("\r")
-                                ),
-        "comment"       =>  or!(
-                                and!(
-                                    lit!("//"),
-                                    rep!(
-                                        and!(
-                                            not!(rule!("eol")),
-                                            dot!()
-                                        )
-                                        , 0
-                                    ),
-                                    rule!("eol")
-                                ),
-                                and!(
-                                    lit!("/*"),
-                                    rep!(
-                                        and!(
-                                            not!(lit!("*/")),
-                                            dot!()
-                                        )
-                                        , 0
-                                    ),
-                                    lit!("*/")
-                                )
-                        )
-    )
 }
