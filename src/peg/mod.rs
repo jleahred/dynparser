@@ -159,7 +159,6 @@ fn consume_peg_rule<'a>(
 
     push_err!("consuming rule", {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("rule", nodes)?;
-        check_empty_nodes(nodes)?;
         let (symbol_name, sub_nodes) = consume_symbol(sub_nodes)?;
 
         push_err!(&format!("r:({})", symbol_name), {
@@ -316,27 +315,42 @@ fn consume_atom<'a>(nodes: &[ast::Node]) -> result::Result<(Expression<'a>, &[as
     push_err!("consuming atom", {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("atom", nodes)?;
         check_empty_nodes(nodes)?;
-        let (expr, sub_nodes) = consume_literal(sub_nodes)?;
-        check_empty_nodes(sub_nodes)?;
 
-        Ok((expr, nodes))
+        let (node, sub_nodes) = ast::split_first_nodes(sub_nodes)?;
+        let (node_name, atom_nodes) = ast::get_nodename_and_nodes(node)?;
+
+        let expr = push_err!(&format!("n:{}", node_name), {
+            match &node_name as &str {
+                "literal" => {
+                    let (expr, sub_nodes) = consume_inside_literal(atom_nodes)?;
+                    check_empty_nodes(sub_nodes)?;
+                    Ok(expr)
+                }
+                unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
+            }
+        })?;
+
+        Ok((expr, sub_nodes))
     })
 }
 
-fn consume_literal<'a>(
+fn consume_inside_literal<'a>(
     nodes: &[ast::Node],
 ) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
     // literal         =   _" till_quote _"
 
-    push_err!("consuming literal", {
-        let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("literal", nodes)?;
-        check_empty_nodes(nodes)?;
+    push_err!("consuming inside literal", {
+        // let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("literal", nodes)?;
+        // check_empty_nodes(nodes)?;
+        let sub_nodes = nodes;
         let sub_nodes = consume_quote(sub_nodes)?;
         let (val, sub_nodes) = ast::consume_val(sub_nodes)?;
-        let sub_nodes = consume_quote(sub_nodes)?;
-        check_empty_nodes(sub_nodes)?;
 
-        Ok((lit!(val), nodes))
+        push_err!(&format!("l:({})", val), {
+            let sub_nodes = consume_quote(sub_nodes)?;
+            check_empty_nodes(sub_nodes)?;
+            Ok((lit!(val), sub_nodes))
+        })
     })
 }
 

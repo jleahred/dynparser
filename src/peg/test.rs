@@ -171,3 +171,19 @@ fn parse_or_literal() {
     assert!(parse("hola", &rules).is_ok());
     assert!(parse("bye", &rules).is_err());
 }
+
+#[test]
+fn parse_rule() {
+    let peg = r#"
+
+    main    = "hello"   world
+
+    world   = "world)
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("hello world", &rules).is_ok());
+    assert!(parse("bye", &rules).is_err());
+}

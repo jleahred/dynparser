@@ -14,7 +14,9 @@ use dynparser::{parse, rules_from_peg};
 fn main() {
     let rules = rules_from_peg(
         r#"
-main    =   "hello"   /   "hola"
+main    =   "hello"   world
+
+world   =   "world"
         "#,
     ).map_err(|e| {
         println!("{}", e);
@@ -24,7 +26,7 @@ main    =   "hello"   /   "hola"
 
     println!("{:#?}", rules);
 
-    let result = parse("hello", &rules);
+    let result = parse("hello world", &rules);
     match result {
         Ok(ast) => println!("{:#?}", ast),
         Err(e) => println!("Error: {:?}", e),
