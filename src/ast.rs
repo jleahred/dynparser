@@ -221,3 +221,62 @@ pub fn get_nodes_unique_val(nodes: &[Node]) -> Result<&str, Error> {
         _ => Err(error("expected only one value in nodes", None)),
     }
 }
+
+/// Given a slice of nodes, return the value (&str) of first
+/// node if it is a Node::Rule and return the rest of nodes
+///
+/// If it's not possible, return an error
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///     ];
+///     
+///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     assert!(val == "hello");
+///     assert!(nodes.len() == 1);
+///
+///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     assert!(val == "world");
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn consume_val(nodes: &[Node]) -> Result<(&str, &[Node]), Error> {
+    let (node, nodes) = split_first_nodes(nodes)?;
+    match node {
+        Node::Val(v) => Ok((&v, nodes)),
+        _ => Err(error("expected Val node", None)),
+    }
+}
+
+/// Given a list of nodes, return the first and the rest on a tuple
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///                 ast::Node::Val(".".to_string()),
+///     ];
+///     
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == "hello");
+///     assert!(nodes.len() == 2);
+///
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == "world");
+///     assert!(nodes.len() == 1);
+
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == ".");
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn split_first_nodes(nodes: &[Node]) -> Result<(&Node, &[Node]), Error> {
+    nodes.split_first().ok_or(error(
+        "trying get first element from nodes on empty slice",
+        None,
+    ))
+}

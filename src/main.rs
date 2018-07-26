@@ -10,26 +10,23 @@
 
 extern crate dynparser;
 use dynparser::{parse, rules_from_peg};
-use std::result;
 
 fn main() {
-    let result = || -> result::Result<(), String> {
-        let rules = rules_from_peg(
-            r#"
+    let rules = rules_from_peg(
+        r#"
 main    =   "hello"
         "#,
-        ).map_err(|e| format!("{:?}", e))?;
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    })
+        .unwrap();
 
-        println!("{:#?}", rules);
+    println!("{:#?}", rules);
 
-        let result = parse("hello", &rules);
-        match result {
-            Ok(ast) => println!("{:#?}", ast),
-            Err(e) => println!("Error: {:?}", e),
-        };
-
-        Ok(())
+    let result = parse("hello", &rules);
+    match result {
+        Ok(ast) => println!("{:#?}", ast),
+        Err(e) => println!("Error: {:?}", e),
     };
-
-    println!(">>>>>>> {:?}", result());
 }

@@ -500,10 +500,12 @@ atom            =   literal
                 /   dot
                 /   symbol
 
-literal         =   "\u{34}"  (!"\u{34}" .)*  "\u{34}"
+literal         =   _"  (!_" .)*  _"
+_"              =   "\u{34}"
+
 match           =   "["  ( (.  "-"  .)  /  (!"]") .)+   "]"
 dot             =   "."
-symbol          =   [a-zA-Z0-9_']+
+symbol          =   [a-zA-Z0-9_'][a-zA-Z0-9_'"]+
 
 
 _               =  (  " "
