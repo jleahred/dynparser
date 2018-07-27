@@ -14,7 +14,7 @@ use dynparser::{parse, rules_from_peg};
 fn main() {
     let rules = rules_from_peg(
         r#"
-main    =   "hello"   world
+main    =   "hello"  " "  world
 
 world   =   "world"
         "#,

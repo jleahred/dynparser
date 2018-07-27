@@ -141,12 +141,25 @@ fn consume_grammar<'a>(
 ) -> result::Result<(expression::SetOfRules<'a>, &[ast::Node]), Error> {
     //  grammar         =   rule+
 
+    fn rec_consume_peg_rules<'a, 'b>(
+        rules: expression::SetOfRules<'a>,
+        nodes: &'b [ast::Node],
+    ) -> result::Result<(expression::SetOfRules<'a>, &'b [ast::Node]), Error> {
+        if nodes.len() == 0 {
+            Ok((rules, nodes))
+        } else {
+            let (name, expr, nodes) = consume_peg_rule(nodes)?;
+            let rules = rules.add(name, expr);
+            rec_consume_peg_rules(rules, nodes)
+        }
+    }
+
     push_err!("consuming grammar", {
         let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("grammar", nodes)?;
         check_empty_nodes(nodes)?;
-        let (name, expr, nodes) = consume_peg_rule(sub_nodes)?;
 
-        let rules = rules!().add(name, expr);
+        let (rules, nodes) = rec_consume_peg_rules(rules!(), sub_nodes)?;
+        check_empty_nodes(nodes)?;
 
         Ok((rules, nodes))
     })
@@ -320,17 +333,31 @@ fn consume_atom<'a>(nodes: &[ast::Node]) -> result::Result<(Expression<'a>, &[as
         let (node_name, atom_nodes) = ast::get_nodename_and_nodes(node)?;
 
         let expr = push_err!(&format!("n:{}", node_name), {
-            match &node_name as &str {
-                "literal" => {
-                    let (expr, sub_nodes) = consume_inside_literal(atom_nodes)?;
-                    check_empty_nodes(sub_nodes)?;
-                    Ok(expr)
-                }
+            let (expr, _sub_nodes) = match &node_name as &str {
+                "literal" => consume_inside_literal(atom_nodes),
+                "symbol" => consume_inside_symbol(atom_nodes),
                 unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
-            }
+            }?;
+            Ok(expr)
         })?;
 
         Ok((expr, sub_nodes))
+    })
+}
+
+fn consume_inside_symbol<'a>(
+    nodes: &[ast::Node],
+) -> result::Result<(Expression<'a>, &[ast::Node]), Error> {
+    // symbol          =   [a-zA-Z0-9_'][a-zA-Z0-9_'"]+
+
+    push_err!("consuming inside symbol", {
+        // let (nodes, sub_nodes) = consume_node_get_subnodes_if_rule_name_is("literal", nodes)?;
+        // check_empty_nodes(nodes)?;
+        let sub_nodes = nodes;
+        let (val, sub_nodes) = ast::consume_val(sub_nodes)?;
+
+        check_empty_nodes(sub_nodes)?;
+        Ok((rule!(val), sub_nodes))
     })
 }
 
