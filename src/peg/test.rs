@@ -173,12 +173,12 @@ fn parse_or_literal() {
 }
 
 #[test]
-fn parse_rule() {
+fn parse_ref_rule() {
     let peg = r#"
 
-    main    = "hello"   world
+    main    = "hello"  " "   world
 
-    world   = "world)
+    world   = "world"
 
     "#;
 
@@ -186,4 +186,76 @@ fn parse_rule() {
 
     assert!(parse("hello world", &rules).is_ok());
     assert!(parse("bye", &rules).is_err());
+}
+
+#[test]
+fn parse_parenth() {
+    let peg = r#"
+
+    main    =   "hello"  " " (world / "mars")
+
+    world   =   "world"
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("hello world", &rules).is_ok());
+    assert!(parse("hello mars", &rules).is_ok());
+    assert!(parse("hello pluto", &rules).is_err());
+    assert!(parse("hello", &rules).is_err());
+}
+
+#[test]
+fn parse_klean() {
+    let peg = r#"
+
+    main    =   "a"*
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("aaaaaa", &rules).is_ok());
+    assert!(parse("a", &rules).is_ok());
+    assert!(parse("", &rules).is_ok());
+    assert!(parse("bbb", &rules).is_err());
+    assert!(parse("b", &rules).is_err());
+    assert!(parse("aab", &rules).is_err());
+}
+
+#[test]
+fn parse_one_or_more() {
+    let peg = r#"
+
+    main    =   "a"+
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("aaaaaa", &rules).is_ok());
+    assert!(parse("a", &rules).is_ok());
+    assert!(parse("", &rules).is_err());
+    assert!(parse("bbb", &rules).is_err());
+    assert!(parse("b", &rules).is_err());
+    assert!(parse("aab", &rules).is_err());
+}
+
+#[test]
+fn parse_one_or_zero() {
+    let peg = r#"
+
+    main    =   "a"?
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("aaaaaa", &rules).is_err());
+    assert!(parse("a", &rules).is_ok());
+    assert!(parse("", &rules).is_ok());
+    assert!(parse("bbb", &rules).is_err());
+    assert!(parse("b", &rules).is_err());
+    assert!(parse("ab", &rules).is_err());
 }
