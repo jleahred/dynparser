@@ -37,7 +37,6 @@ Watch examples below
 ## TODO
 
 - Create rules from PEG
-  - remove process node and restart with process main, process grammar...
 - add errors to grammar
 - Upload to crates.io
   - update usage
@@ -59,7 +58,7 @@ A basic example
 Lets create the next grammar:
 
     main    =   "a" ( "bc" "c"
-                    / "bcdd
+                    / "bcdd"
                     / b_and_c  d_or_z
                     )
 
@@ -165,7 +164,7 @@ fn main() {
 
 Of course, you could need to add (or merge) several rules at once
 
-And ofcourse, you can add several rules at once
+And of course, you can add several rules at once
 
 ```rust
 #[macro_use]  extern crate dynparser;
@@ -361,7 +360,7 @@ as  = "a" as
 ak = "a"+
 ```
 
-Recursion to match parentheses
+Recursion to match parenthesis
 
 Recursion match par
 

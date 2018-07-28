@@ -280,3 +280,83 @@ pub fn split_first_nodes(nodes: &[Node]) -> Result<(&Node, &[Node]), Error> {
         None,
     ))
 }
+
+/// Consume a node if it's a Val kind and the vaule is
+/// equal to the provider one
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///                 ast::Node::Val(".".to_string()),
+///     ];
+///     
+///     let nodes = ast::consume_value("hello", &nodes).unwrap();
+///     let nodes = ast::consume_value("world", &nodes).unwrap();
+///```
+///
+pub fn consume_value<'a>(v: &str, nodes: &'a [Node]) -> Result<&'a [Node], Error> {
+    let (node, nodes) = split_first_nodes(nodes)?;
+
+    let nv = get_node_val(node)?;
+    match nv == v {
+        true => Ok(nodes),
+        false => Err(error(
+            "trying get first element from nodes on empty slice",
+            None,
+        )),
+    }
+}
+
+/// Consume a node if it's a Rule kind with a specific value
+/// and return the rest of nodes and the sub_nodes for the consumed node
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
+///     ];
+///     
+///     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
+///     assert!(nodes.len() == 0);
+///     let nodes = ast::consume_value("world", &sub_nodes).unwrap();
+///```
+///
+pub fn consume_node_get_subnodes_for_rule_name_is<'a>(
+    name: &str,
+    nodes: &'a [Node],
+) -> Result<(&'a [Node], &'a [Node]), Error> {
+    let (node, nodes) = split_first_nodes(nodes)?;
+    match node {
+        Node::Rule((n, sub_nodes)) => if n == name {
+            Ok((nodes, sub_nodes))
+        } else {
+            Err(error(
+                &format!("expected {} node, received {}", name, n),
+                None,
+            ))
+        },
+        unknown => Err(error(
+            &format!("expected {} Node::Rule, received {:?}", name, unknown),
+            None,
+        )),
+    }
+}
+
+/// Consume a node if it's a Rule kind with a specific value
+/// and return the rest of nodes and the sub_nodes for the consumed node
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![];
+///     
+///     assert!(ast::check_empty_nodes(&nodes).is_ok());
+///```
+///
+pub fn check_empty_nodes(nodes: &[Node]) -> Result<(), Error> {
+    match nodes.is_empty() {
+        true => Ok(()),
+        false => Err(error("not consumed full nodes", None)),
+    }
+}

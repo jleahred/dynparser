@@ -15,7 +15,7 @@ fn main() {
     let rules = rules_from_peg(
         r#"
 
-main    =   "a"+
+main    =   hello .
 
         "#,
     ).map_err(|e| {
@@ -26,7 +26,7 @@ main    =   "a"+
 
     println!("{:#?}", rules);
 
-    let result = parse("aaaa", &rules);
+    let result = parse("hello", &rules);
     match result {
         Ok(ast) => println!("{:#?}", ast),
         Err(e) => println!("Error: {:?}", e),

@@ -259,3 +259,19 @@ fn parse_one_or_zero() {
     assert!(parse("b", &rules).is_err());
     assert!(parse("ab", &rules).is_err());
 }
+
+#[test]
+fn parse_negation() {
+    let peg = r#"
+
+    main    =   !"bye"  "hello"
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("hello", &rules).is_ok());
+    assert!(parse("bye", &rules).is_err());
+    assert!(parse("hi", &rules).is_err());
+    assert!(parse("bye hello", &rules).is_err());
+}
