@@ -36,7 +36,12 @@ Watch examples below
 
 ## TODO
 
+- Move to an isolated module IVector
+- test for match
+  - document rules from peg
+  - calculator parser example
 - Create rules from PEG
+- generate code from rules
 - add errors to grammar
 - Upload to crates.io
   - update usage
@@ -80,8 +85,8 @@ fn main() {
                             and!(lit!("bc"), lit!("c")),
                             lit!("bcdd"),
                             and!(
-                                rule!("b_and_c"),
-                                rule!("d_or_z")
+                                ref_rule!("b_and_c"),
+                                ref_rule!("d_or_z")
                             )
                         )
                     },
@@ -152,7 +157,7 @@ fn main() {
     let rules = rules!{
        "main"   =>  and!{
                         rep!(lit!("a"), 1, 5),
-                        rule!("rule2")
+                        ref_rule!("rule2")
                     }
     };
 
@@ -173,7 +178,7 @@ fn main() {
     let r = rules!{
        "main"   =>  and!{
                         rep!(lit!("a"), 1, 5),
-                        rule!("rule2")
+                        ref_rule!("rule2")
                     }
     };
     let r = r.merge(rules!{"rule2" => lit!("bcd")});
@@ -502,9 +507,17 @@ atom            =   literal
 literal         =   _"  (!_" .)*  _"
 _"              =   "\u{34}"
 
-match           =   "["  ( (.  "-"  .)  /  (!"]") .)+   "]"
+match           =   "["
+                        (
+                            (mchars+  mbetween*)
+                            / mbetween+
+                        )
+                    "]"
+mchars          =   (!"]" !(. "-") .)+
+mbetween        =   (.  "-"  .)
+
 dot             =   "."
-symbol          =   [a-zA-Z0-9_'][a-zA-Z0-9_'"]+
+symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
 
 
 _               =  (  " "

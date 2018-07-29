@@ -18,7 +18,7 @@
 //!     let rules = rules!{
 //!        "main"   =>  and!{
 //!                         lit!("aa"),
-//!                         rule!("rule2")
+//!                         ref_rule!("rule2")
 //!                     },
 //!        "rule2"  =>  and!{
 //!                         lit!("b"),
@@ -41,7 +41,7 @@
 //!     let rules = rules!{
 //!        "main"   =>  and!{
 //!                         rep!(lit!("a"), 1, 5),
-//!                         rule!("rule2")
+//!                         ref_rule!("rule2")
 //!                     },
 //!         "rule2" =>  or!{
 //!                         lit!("zz"),
@@ -71,7 +71,7 @@
 //!     let rules = rules!{
 //!        "main"   =>  and!{
 //!                         rep!(lit!("a"), 1, 5),
-//!                         rule!("rule2")
+//!                         ref_rule!("rule2")
 //!                     }
 //!     };
 //!
@@ -97,7 +97,7 @@
 //!     let r = rules!{
 //!        "main"   =>  and!{
 //!                         rep!(lit!("a"), 1, 5),
-//!                         rule!("rule2")
+//!                         ref_rule!("rule2")
 //!                     }
 //!     };
 //!
@@ -125,7 +125,7 @@
 ///     let rules = rules!{
 ///        "main"   =>  and!{
 ///                         lit!("aa"),
-///                         rule!("rule2")
+///                         ref_rule!("rule2")
 ///                     },
 ///        "rule2"  =>  and!{
 ///                         lit!("b"),
@@ -194,7 +194,10 @@ macro_rules! dot {
     }};
 }
 
-/// "String", from 'a', to 'b', from 'c', to 'd'
+/// Generate a match expression with optional characters and a list
+/// of bounds
+///
+///  "String", from 'a', to 'b', from 'c', to 'd'
 /// The first string, is a set of chars.
 /// Later you can write a list of tuples with ranges to validate
 ///
@@ -214,6 +217,28 @@ macro_rules! dot {
 ///     assert!(parse("aabcdj", &rules).is_ok())
 /// }
 /// ```
+///
+///
+/// You can also pass a list of chars and a vector of char bounds as next
+/// example
+///
+/// ```
+/// #[macro_use]  extern crate dynparser;
+/// use dynparser::parse;
+///
+/// fn main() {
+///     let rules = rules!{
+///        "main"   =>  rep!(ematch!(    chlist "cd",
+///                                      from2   vec![
+///                                             ('a', 'b'),
+///                                             ('j', 'p')
+///                                         ]
+///                     ), 0)
+///     };
+///
+///     assert!(parse("aabcdj", &rules).is_ok())
+/// }
+/// ```
 
 #[macro_export]
 macro_rules! ematch {
@@ -223,6 +248,13 @@ macro_rules! ematch {
 
         $(v.push(($from, $to));)+
         let amatch = parser::atom::Atom::Match(parser::atom::MatchRules::init($chars, v));
+        parser::expression::Expression::Simple(amatch)
+    }};
+
+    (chlist $chars:expr, from2 $vfrom2:expr) => {{
+        use $crate::parser;
+
+        let amatch = parser::atom::Atom::Match(parser::atom::MatchRules::init($chars, $vfrom2));
         parser::expression::Expression::Simple(amatch)
     }};
 }
@@ -352,7 +384,7 @@ macro_rules! rep {
 ///
 /// fn main() {
 ///     let rules = rules!{
-///        "main" => rule!("3a"),
+///        "main" => ref_rule!("3a"),
 ///        "3a"   => lit!("aaa")
 ///     };
 ///
@@ -360,7 +392,7 @@ macro_rules! rep {
 /// }
 /// ```
 #[macro_export]
-macro_rules! rule {
+macro_rules! ref_rule {
     ($e:expr) => {{
         $crate::parser::expression::Expression::RuleName($e.to_owned())
     }};
@@ -395,7 +427,7 @@ mod peg;
 ///
 /// fn main() {
 ///     let rules = rules!{
-///        "main" => rule!("3a"),
+///        "main" => ref_rule!("3a"),
 ///        "3a"   => lit!("aaa")
 ///     };
 ///

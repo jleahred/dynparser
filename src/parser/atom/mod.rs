@@ -18,11 +18,11 @@ mod test;
 /// This is a minimum expression element
 #[allow(dead_code)]
 #[derive(Debug)]
-pub enum Atom<'a> {
+pub enum Atom {
     /// Literal string
     Literal(String),
     /// Character matches a list of chars or a list of ranges
-    Match(MatchRules<'a>),
+    Match(MatchRules),
     /// Any char
     Dot,
     /// End Of File
@@ -33,7 +33,7 @@ pub enum Atom<'a> {
 /// if char matches one in char slice -> OK
 /// if char matches between tuple in elems slice -> OK
 #[derive(Debug)]
-pub struct MatchRules<'a>(&'a str, Vec<(char, char)>);
+pub struct MatchRules(String, Vec<(char, char)>);
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -53,18 +53,18 @@ pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     }
 }
 
-impl<'a> MatchRules<'a> {
+impl MatchRules {
     /// Create a MatchRules instance based on string and bounds
-    pub fn init(s: &'a str, bounds: Vec<(char, char)>) -> Self {
-        MatchRules(s, bounds)
+    pub fn init(s: &str, bounds: Vec<(char, char)>) -> Self {
+        MatchRules(s.to_string(), bounds)
     }
     #[allow(dead_code)]
     pub(crate) fn new() -> Self {
-        MatchRules("", vec![])
+        MatchRules("".to_string(), vec![])
     }
     #[allow(dead_code)]
-    pub(crate) fn with_chars(mut self, chrs: &'a str) -> Self {
-        self.0 = chrs;
+    pub(crate) fn with_chars(mut self, chrs: &str) -> Self {
+        self.0 = chrs.to_string();
         self
     }
 

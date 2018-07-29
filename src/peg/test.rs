@@ -275,3 +275,52 @@ fn parse_negation() {
     assert!(parse("hi", &rules).is_err());
     assert!(parse("bye hello", &rules).is_err());
 }
+
+#[test]
+fn parse_dot() {
+    let peg = r#"
+
+    main    =   . . . . .
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("hello", &rules).is_ok());
+    assert!(parse("hola.", &rules).is_ok());
+    assert!(parse("hi", &rules).is_err());
+    assert!(parse("bye hello", &rules).is_err());
+}
+
+#[test]
+fn parse_dot_with_rep() {
+    let peg = r#"
+
+    main    =   (!"h" .)*  "hello"
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("-----hello", &rules).is_ok());
+    assert!(parse("_hello", &rules).is_ok());
+    assert!(parse("hello", &rules).is_ok());
+    assert!(parse("Hola hello", &rules).is_ok());
+    assert!(parse("hola hello", &rules).is_err());
+    assert!(parse("hola_hello", &rules).is_err());
+    assert!(parse("Hello", &rules).is_err());
+    assert!(parse("bye", &rules).is_err());
+    assert!(parse("hola", &rules).is_err());
+    assert!(parse("hello hola", &rules).is_err());
+}
+
+#[test]
+fn peg_incorrect_match() {
+    let peg = r#"
+
+    main    =   [A-Zab]
+
+    "#;
+
+    assert!(peg::rules_from_peg(peg).is_err());
+}

@@ -5,42 +5,42 @@ use parser;
 //
 //  this is the first version of code to parse the peg grammar
 //  it was, obviously written by hand
-pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
+pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
     rules!(
 
-        "main"      =>       rule!("grammar"),
+        "main"      =>       ref_rule!("grammar"),
 
-        "grammar"   =>       rep!(rule!("rule"), 1),
+        "grammar"   =>       rep!(ref_rule!("rule"), 1),
 
         "rule"      =>       and!(
-                                 rule!("_"), rule!("symbol") ,
-                                 rule!("_"), lit! ("="),
-                                 rule!("_"), rule!("expr"),
+                                 ref_rule!("_"), ref_rule!("symbol") ,
+                                 ref_rule!("_"), lit! ("="),
+                                 ref_rule!("_"), ref_rule!("expr"),
                                              or!(
-                                                 rule!("_"),
-                                                 rule!("eof")
+                                                 ref_rule!("_"),
+                                                 ref_rule!("eof")
                                              ),
-                                 rule!("_")                                                
+                                 ref_rule!("_")                                                
                              ),
 
-        "expr"      =>      rule!("or"),
+        "expr"      =>      ref_rule!("or"),
 
         "or"        =>      and!(
-                                rule!("and"),
+                                ref_rule!("and"),
                                 rep!(
                                     and!(
-                                        rule!("_"), lit!("/"),
-                                        rule!("_"), rule!("or")
+                                        ref_rule!("_"), lit!("/"),
+                                        ref_rule!("_"), ref_rule!("or")
                                     ),
                                     0
                                 )
                             ),
 
         "and"       =>     and!(
-                                rule!("rep_or_neg"),
+                                ref_rule!("rep_or_neg"),
                                 rep!(
                                     and!(
-                                        lit!(" "),  rule!("_"), rule!("and")
+                                        lit!(" "),  ref_rule!("_"), ref_rule!("and")
                                     ),
                                     0
                                 )
@@ -48,7 +48,7 @@ pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
 
         "rep_or_neg" =>     or!(
                                 and!(
-                                    rule!("atom_or_par"),
+                                    ref_rule!("atom_or_par"),
                                     rep!(
                                         or!(
                                             lit!("*"),
@@ -60,42 +60,42 @@ pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                                 ),
                                 and!(
                                     lit!("!"),
-                                    rule!("atom_or_par")
+                                    ref_rule!("atom_or_par")
                                 )
                             ),
 
         "atom_or_par" =>    or!(
-                                rule!("atom"),
-                                rule!("parenth")
+                                ref_rule!("atom"),
+                                ref_rule!("parenth")
                             ),
 
         "parenth"       =>  and!(
                                 lit!("("),
-                                rule!("_"),
-                                rule!("expr"),
-                                rule!("_"),
+                                ref_rule!("_"),
+                                ref_rule!("expr"),
+                                ref_rule!("_"),
                                 lit!(")")
                             ),
 
         "atom"          =>  or!(
-                                rule!("literal"),
-                                rule!("match"),
-                                rule!("dot"),
-                                rule!("symbol")
+                                ref_rule!("literal"),
+                                ref_rule!("match"),
+                                ref_rule!("dot"),
+                                ref_rule!("symbol")
                             ),
 
         "literal"       =>  and!(
-                                rule!(r#"_""#),
+                                ref_rule!(r#"_""#),
                                 rep!(
                                     and!(
                                         not!(
-                                            rule!(r#"_""#)
+                                            ref_rule!(r#"_""#)
                                         ),
                                         dot!()
                                     )
                                 , 0
                             ),
-                                rule!(r#"_""#)
+                                ref_rule!(r#"_""#)
                             ),
 
         r#"_""#         =>  lit!(r#"""#),
@@ -103,15 +103,25 @@ pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
         "match"         =>  and!(
                                 lit!("["),
                                 or!(
-                                    and!(dot!(), lit!("-"), dot!()),
-                                    rep!(
-                                        and!(not!(lit!("]")), dot!())
-                                        ,1
-                                    )
+                                    and!(
+                                        rep!(ref_rule!("mchars"), 1),
+                                        rep!(ref_rule!("mbetween"), 0)
+                                    ),
+                                    rep!(ref_rule!("mbetween"), 1)
                                 ),
                                 lit!("]")
                             ),
-        
+
+        "mchars"        =>  rep!(
+                                and!(
+                                    not!(lit!("]")), 
+                                    not!(and!(dot!(), lit!("-"))),
+                                    dot!())
+                                ,1
+                            ),
+
+        "mbetween"      =>  and!(dot!(), lit!("-"), dot!()),
+
         "dot"           =>  lit!("."),
 
         "symbol"        =>  rep!(
@@ -125,8 +135,8 @@ pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
 
         "_"             =>  rep!(   or!(
                                         lit!(" "),
-                                        rule!("eol"),
-                                        rule!("comment")
+                                        ref_rule!("eol"),
+                                        ref_rule!("comment")
                                     )
                                     , 0
                             ),
@@ -141,12 +151,12 @@ pub(crate) fn parse_peg<'a>() -> parser::expression::SetOfRules<'a> {
                                     lit!("//"),
                                     rep!(
                                         and!(
-                                            not!(rule!("eol")),
+                                            not!(ref_rule!("eol")),
                                             dot!()
                                         )
                                         , 0
                                     ),
-                                    rule!("eol")
+                                    ref_rule!("eol")
                                 ),
                                 and!(
                                     lit!("/*"),

@@ -74,7 +74,7 @@ pub(crate) struct Status<'a> {
     pub(crate) it_parsing: Chars<'a>,
     pub(crate) pos: Possition,
     pub(crate) walking_rules: Vec<String>,
-    pub(crate) rules: &'a expression::SetOfRules<'a>,
+    pub(crate) rules: &'a expression::SetOfRules,
 }
 
 impl<'a> Status<'a> {

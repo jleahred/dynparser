@@ -168,7 +168,7 @@ impl Node {
 ///    assert!(node_name == "root");
 ///    assert!(nodes[0] == ast::Node::Val("hello".to_string()),)
 /// ```
-pub fn get_nodename_and_nodes(node: &Node) -> Result<(&str, &[Node]), Error> {
+pub fn get_nodename_and_nodes<'a>(node: &'a Node) -> Result<(&'a str, &'a [Node]), Error> {
     match node {
         Node::Rule((nname, nodes)) => Ok((nname, nodes)),
         _ => Err(error("expected node::Rule", None)),
@@ -292,11 +292,11 @@ pub fn split_first_nodes(nodes: &[Node]) -> Result<(&Node, &[Node]), Error> {
 ///                 ast::Node::Val(".".to_string()),
 ///     ];
 ///     
-///     let nodes = ast::consume_value("hello", &nodes).unwrap();
-///     let nodes = ast::consume_value("world", &nodes).unwrap();
+///     let nodes = ast::consume_this_value("hello", &nodes).unwrap();
+///     let nodes = ast::consume_this_value("world", &nodes).unwrap();
 ///```
 ///
-pub fn consume_value<'a>(v: &str, nodes: &'a [Node]) -> Result<&'a [Node], Error> {
+pub fn consume_this_value<'a>(v: &str, nodes: &'a [Node]) -> Result<&'a [Node], Error> {
     let (node, nodes) = split_first_nodes(nodes)?;
 
     let nv = get_node_val(node)?;
@@ -320,7 +320,7 @@ pub fn consume_value<'a>(v: &str, nodes: &'a [Node]) -> Result<&'a [Node], Error
 ///     
 ///     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
 ///     assert!(nodes.len() == 0);
-///     let nodes = ast::consume_value("world", &sub_nodes).unwrap();
+///     let nodes = ast::consume_this_value("world", &sub_nodes).unwrap();
 ///```
 ///
 pub fn consume_node_get_subnodes_for_rule_name_is<'a>(

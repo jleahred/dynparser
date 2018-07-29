@@ -27,12 +27,12 @@ pub(crate) type ResultExpr<'a> = result::Result<(Status<'a>, Vec<ast::Node>), Er
 /// A rule can be registered just once
 /// The starting rule is main
 #[derive(Debug)]
-pub struct SetOfRules<'a>(pub(crate) HashMap<String, Expression<'a>>);
+pub struct SetOfRules(pub(crate) HashMap<String, Expression>);
 
-impl<'a> SetOfRules<'a> {
+impl SetOfRules {
     /// Initialize a set of rules with a hashmap of <String, Expression>
     /// In general, is better to use the ```rules!``` macro
-    pub fn new(mrules: HashMap<String, Expression<'a>>) -> Self {
+    pub fn new(mrules: HashMap<String, Expression>) -> Self {
         SetOfRules(mrules)
     }
 
@@ -54,7 +54,7 @@ impl<'a> SetOfRules<'a> {
     ///     let rules = rules!{
     ///        "main"   =>  and!{
     ///                         rep!(lit!("a"), 1, 5),
-    ///                         rule!("rule2")
+    ///                         ref_rule!("rule2")
     ///                     }
     ///     };
     ///
@@ -63,7 +63,7 @@ impl<'a> SetOfRules<'a> {
     ///     assert!(parse("aabcd", &rules).is_ok())
     /// }
     /// ```
-    pub fn add(mut self, name: &str, expr: Expression<'a>) -> Self {
+    pub fn add(mut self, name: &str, expr: Expression) -> Self {
         self.0.insert(name.to_owned(), expr);
         self
     }
@@ -86,7 +86,7 @@ impl<'a> SetOfRules<'a> {
     ///     let rules = rules!{
     ///        "main"   =>  and!{
     ///                         rep!(lit!("a"), 1, 5),
-    ///                         rule!("rule2")
+    ///                         ref_rule!("rule2")
     ///                     }
     ///     };
     ///
@@ -102,38 +102,38 @@ impl<'a> SetOfRules<'a> {
 
 #[allow(missing_docs)]
 #[derive(Debug)]
-pub enum Expression<'a> {
-    Simple(Atom<'a>),
-    And(MultiExpr<'a>),
-    Or(MultiExpr<'a>),
-    Not(Box<Expression<'a>>),
-    Repeat(RepInfo<'a>),
+pub enum Expression {
+    Simple(Atom),
+    And(MultiExpr),
+    Or(MultiExpr),
+    Not(Box<Expression>),
+    Repeat(RepInfo),
     RuleName(String),
 }
 
 /// Opaque type to manage multiple expressions
 #[derive(Debug)]
-pub struct MultiExpr<'a>(pub(crate) Vec<Expression<'a>>);
+pub struct MultiExpr(pub(crate) Vec<Expression>);
 
-impl<'a> MultiExpr<'a> {
+impl MultiExpr {
     /// Creates a new instance of ```MultiExpr``` from a vector
-    pub fn new(v: Vec<Expression<'a>>) -> Self {
+    pub fn new(v: Vec<Expression>) -> Self {
         MultiExpr(v)
     }
 }
 
 /// Opaque type to manage repetition subexpression
 #[derive(Debug)]
-pub struct RepInfo<'a> {
-    pub(crate) expression: Box<Expression<'a>>,
+pub struct RepInfo {
+    pub(crate) expression: Box<Expression>,
     pub(crate) min: NRep,
     pub(crate) max: Option<NRep>,
 }
 
-impl<'a> RepInfo<'a> {
+impl RepInfo {
     /// Creates a Repeticion Info for an expression with min and
     /// optionally max values to repeat
-    pub fn new(expression: Box<Expression<'a>>, min: usize, max: Option<usize>) -> Self {
+    pub fn new(expression: Box<Expression>, min: usize, max: Option<usize>) -> Self {
         RepInfo {
             expression,
             min: NRep(min),
