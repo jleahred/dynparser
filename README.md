@@ -7,17 +7,14 @@ It's not a compile time parser.
 You can create and modify the grammar on runtime.
 
 In order to create the grammar, you can build a map, or you can use
-macros to use a better syntax.
+macros to use a better syntax. But, the easier way, is to use a `peg` grammar.
 
-It's also possible to pass a PEG string to create the grammar rules.
+More info about the `peg` syntax bellow.
 
-In order to use a PEG string, we need to parse it. We could parse with...
-Hey!!! myself could parse it. OK, OK
+You can also generate `rust` code from rules generated from `peg`.
 
-As we can generate the rules with a PEG string, the parser for the PEG
-string, could be written in a PEG string.
-
-A parser parsing it's own parser :-P
+In fact, in order to use a `peg` grammar, you have to parse it.
+How to parse a `peg` grammar? Well, this is a parser, therefore...
 
 ## Usage
 
@@ -37,10 +34,28 @@ Watch examples below
 ## TODO
 
 - Move to an isolated module IVector
-- test for match
+- insert and test EOF
+
+```
+    main    =   "hello" " "  "world"
+            /   "hola"
+            /   "hola"  " "  "mundo"
+
+        "#,
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    })
+        .unwrap();
+
+    println!("{:#?}", rules);
+
+    let result = parse("hola mundo", &rules);
+```
+
+- Create rules from PEG
   - document rules from peg
   - calculator parser example
-- Create rules from PEG
 - generate code from rules
 - add errors to grammar
 - Upload to crates.io
@@ -70,35 +85,31 @@ Lets create the next grammar:
     b_and_c =   "b" "c"
     d_or_z  =   "d" / "z"
 
-You can create this grammar and parse the string "abcd" with macros like:
+### Just from peg
 
 ```rust
-#[macro_use]
 extern crate dynparser;
-use dynparser::parse;
+use dynparser::{parse, rules_from_peg};
 
 fn main() {
-    let rules = rules!{
-       "main"   =>  and!{
-                        lit!("a"),
-                        or!(
-                            and!(lit!("bc"), lit!("c")),
-                            lit!("bcdd"),
-                            and!(
-                                ref_rule!("b_and_c"),
-                                ref_rule!("d_or_z")
-                            )
-                        )
-                    },
-        "b_and_c"  => and!(lit!("b"), lit!("c")),
-        "d_or_z"  => or!(lit!("d"), lit!("z"))
-    };
+    let rules = rules_from_peg(
+        r#"
 
-    let result = parse("abcd", &rules);
-    match result {
-        Ok(ast) => println!("{:#?}", ast),
-        Err(e) => println!("Error: {:?}", e),
-    };
+    main    =   "a" ( "bc" "c"
+                    / "bcdd"
+                    / b_and_c  d_or_z
+                    )
+
+    b_and_c =   "b" "c"
+    d_or_z  =   "d" / "z"
+
+        "#,
+    ).unwrap();
+
+    assert!(parse("abcz", &rules).is_ok());
+    assert!(parse("abcdd", &rules).is_ok());
+    assert!(parse("abcc", &rules).is_ok());
+    assert!(parse("bczd", &rules).is_err());
 }
 ```
 
@@ -148,6 +159,44 @@ pub enum Node {
 }
 ```
 
+This is a dynamic parser, you can add rules at execution time.
+
+pending: example
+
+### Generating the rules by hand with macros
+
+You can create this grammar and parse the string "abcd" with macros like:
+
+```rust
+#[macro_use]
+extern crate dynparser;
+use dynparser::parse;
+
+fn main() {
+    let rules = rules!{
+       "main"   =>  and!{
+                        lit!("a"),
+                        or!(
+                            and!(lit!("bc"), lit!("c")),
+                            lit!("bcdd"),
+                            and!(
+                                ref_rule!("b_and_c"),
+                                ref_rule!("d_or_z")
+                            )
+                        )
+                    },
+        "b_and_c"  => and!(lit!("b"), lit!("c")),
+        "d_or_z"  => or!(lit!("d"), lit!("z"))
+    };
+
+    let result = parse("abcd", &rules);
+    match result {
+        Ok(ast) => println!("{:#?}", ast),
+        Err(e) => println!("Error: {:?}", e),
+    };
+}
+```
+
 Adding a rule on execution time:
 
 ```rust
@@ -192,6 +241,90 @@ set of rules. This helps to reduce mutability
 "main" rule is the entry point.
 
 More information in doc (link pending)
+
+## Example 2
+
+Lets create the next grammar:
+
+```
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+```
+
+This grammar will accept a letter, followed from one or more letters or
+numbers
+
+### Just from peg
+
+Quiet direct...
+
+```rust
+    extern crate dynparser;
+    use dynparser::{parse, rules_from_peg};
+
+    fn main() {
+        let rules = rules_from_peg(
+            r#"
+
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+
+            "#,
+        ).unwrap();
+
+        assert!(parse("a2AA456bzJ88", &rules).is_ok());
+    }
+```
+
+If you want to print more information...
+
+```rust
+    extern crate dynparser;
+    use dynparser::{parse, rules_from_peg};
+
+    fn main() {
+        let rules = rules_from_peg(
+            r#"
+
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+
+            "#,
+        ).map_err(|e| {
+            println!("{}", e);
+            panic!("FAIL");
+        })
+            .unwrap();
+
+        println!("{:#?}", rules);
+
+        let result = parse("a2AA456bzJ88", &rules);
+        match result {
+            Ok(ast) => println!("{:#?}", ast),
+            Err(e) => println!("Error: {:?}", e),
+        };
+    }
+```
+
+Just it (remember, more information about the peg grammar bellow)
 
 ## PEG
 
@@ -485,9 +618,9 @@ rule            =   symbol  _  "="  _   expr  (_ / eof)
 
 expr            =   or
 
-or              =   and         ( _ "/"  _  or)*
+or              =   and         ( _ "/" _  or  )*
 
-and             =   rep_or_neg  (   " "  _  and)*
+and             =   rep_or_neg  (   " " _  and )*
 
 rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
                 /   "!" atom_or_par

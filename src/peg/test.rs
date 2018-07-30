@@ -161,14 +161,17 @@ fn parse_and_literal() {
 fn parse_or_literal() {
     let peg = r#"
 
-    main    = "hello"   /   "hola"
+    main    =   "hello" " "  "world"   
+            /   "hola"  " "  "mundo"
+            /   "hola"
 
     "#;
 
     let rules = peg::rules_from_peg(peg).unwrap();
 
-    assert!(parse("hello", &rules).is_ok());
+    assert!(parse("hello world", &rules).is_ok());
     assert!(parse("hola", &rules).is_ok());
+    assert!(parse("hola mundo", &rules).is_ok());
     assert!(parse("bye", &rules).is_err());
 }
 
@@ -323,4 +326,24 @@ fn peg_incorrect_match() {
     "#;
 
     assert!(peg::rules_from_peg(peg).is_err());
+}
+
+#[test]
+fn test_match() {
+    let peg = r#"
+
+    main    =   [123A-X]+
+
+    "#;
+
+    let rules = peg::rules_from_peg(peg).unwrap();
+
+    assert!(parse("1111", &rules).is_ok());
+    assert!(parse("222311", &rules).is_ok());
+    assert!(parse("ABCDEF", &rules).is_ok());
+    assert!(parse("ABCDEF4", &rules).is_err());
+    assert!(parse("", &rules).is_err());
+    assert!(parse("1234", &rules).is_err());
+    assert!(parse("Z", &rules).is_err());
+    assert!(parse("ABZ", &rules).is_err());
 }

@@ -268,10 +268,11 @@ fn consume_and(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node])
         match sub_nodes.len() {
             0 => Ok((exprs, nodes)),
             _ => {
-                let (exprs, nodes) = match ast::consume_this_value(" ", sub_nodes) {
+                let (exprs, sub_nodes) = match ast::consume_this_value(" ", sub_nodes) {
                     Ok(sub_nodes) => rec_consume_and(&sub_nodes, exprs)?,
                     _ => (exprs, nodes),
                 };
+                ast::check_empty_nodes(sub_nodes)?;
 
                 Ok((exprs, nodes))
             }
