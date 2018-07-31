@@ -6,15 +6,28 @@ It's not a compile time parser.
 
 You can create and modify the grammar on runtime.
 
-In order to create the grammar, you can build a map, or you can use
+A parser is something that takes an `input`, process it with some `rules`
+and generate an `AST`
+
+![simple_parser](./doc_images/simple_parser.png "Simple parser")
+
+In order to create the grammar, you can build a set of rules, or you can use
 macros to use a better syntax. But, the easier way, is to use a `peg` grammar.
+
+Then we need an additional step.
+
+![basic_diagram](./doc_images/basic.png "Basic diagram")
 
 More info about the `peg` syntax bellow.
 
 You can also generate `rust` code from rules generated from `peg`.
 
+This allow you to avoid the `peg` step and more...
+
 In fact, in order to use a `peg` grammar, you have to parse it.
 How to parse a `peg` grammar? Well, this is a parser, therefore...
+
+More details about it bellow on section (parsing the parser)
 
 ## Usage
 
@@ -68,6 +81,162 @@ Watch examples below
   - check. is it interesting to detail branches on or?
 
 ## Basic example
+
+Lets create the next grammar:
+
+```
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+```
+
+This grammar will accept a letter, followed from one or more letters or
+numbers
+
+### Just from peg
+
+[comment]: # "
+echo '[ input peg ] -- rules_from_peg --> [ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/basic.png
+"
+
+![basic_diagram](./doc_images/basic.png "Basic diagram")
+
+Quiet direct...
+
+```rust
+    extern crate dynparser;
+    use dynparser::{parse, rules_from_peg};
+
+    fn main() {
+        let rules = rules_from_peg(
+            r#"
+
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+
+            "#,
+        ).unwrap();
+
+        assert!(parse("a2AA456bzJ88", &rules).is_ok());
+    }
+```
+
+If you want to print more information...
+
+```rust
+    extern crate dynparser;
+    use dynparser::{parse, rules_from_peg};
+
+    fn main() {
+        let rules = rules_from_peg(
+            r#"
+
+    main            =   letter letter_or_num+
+
+    letter          =   [a-zA-Z]
+
+    letter_or_num   =   letter
+                    /   number
+
+    number          =   [0-9]
+
+            "#,
+        ).map_err(|e| {
+            println!("{}", e);
+            panic!("FAIL");
+        })
+            .unwrap();
+
+        println!("{:#?}", rules);
+
+        let result = parse("a2Z", &rules);
+        match result {
+            Ok(ast) => println!("{:#?}", ast),
+            Err(e) => println!("Error: {:?}", e),
+        };
+    }
+```
+
+The AST produced will be:
+
+```peg
+Rule(
+    (
+        "main",
+        [
+            Rule(
+                (
+                    "letter",
+                    [
+                        Val(
+                            "a"
+                        )
+                    ]
+                )
+            ),
+            Rule(
+                (
+                    "letter_or_num",
+                    [
+                        Rule(
+                            (
+                                "number",
+                                [
+                                    Val(
+                                        "2"
+                                    )
+                                ]
+                            )
+                        )
+                    ]
+                )
+            ),
+            Rule(
+                (
+                    "letter_or_num",
+                    [
+                        Rule(
+                            (
+                                "letter",
+                                [
+                                    Val(
+                                        "Z"
+                                    )
+                                ]
+                            )
+                        )
+                    ]
+                )
+            )
+        ]
+    )
+)
+```
+
+The AST type is:
+
+```rust
+pub enum Node {
+    Val(String),
+    Rule((String, Vec<Node>)),
+    EOF,
+}
+```
+
+Just it (remember, more information about the peg grammar bellow)
+
+## Example 2
 
 You will configure a set of rules to parse.
 
@@ -148,16 +317,6 @@ The exit will be the next AST
             ]
         )
     )
-
-The AST type is:
-
-```rust
-pub enum Node {
-    Val(String),
-    Rule((String, Vec<Node>)),
-    EOF,
-}
-```
 
 This is a dynamic parser, you can add rules at execution time.
 
@@ -241,90 +400,6 @@ set of rules. This helps to reduce mutability
 "main" rule is the entry point.
 
 More information in doc (link pending)
-
-## Example 2
-
-Lets create the next grammar:
-
-```
-    main            =   letter letter_or_num+
-
-    letter          =   [a-zA-Z]
-
-    letter_or_num   =   letter
-                    /   number
-
-    number          =   [0-9]
-```
-
-This grammar will accept a letter, followed from one or more letters or
-numbers
-
-### Just from peg
-
-Quiet direct...
-
-```rust
-    extern crate dynparser;
-    use dynparser::{parse, rules_from_peg};
-
-    fn main() {
-        let rules = rules_from_peg(
-            r#"
-
-    main            =   letter letter_or_num+
-
-    letter          =   [a-zA-Z]
-
-    letter_or_num   =   letter
-                    /   number
-
-    number          =   [0-9]
-
-            "#,
-        ).unwrap();
-
-        assert!(parse("a2AA456bzJ88", &rules).is_ok());
-    }
-```
-
-If you want to print more information...
-
-```rust
-    extern crate dynparser;
-    use dynparser::{parse, rules_from_peg};
-
-    fn main() {
-        let rules = rules_from_peg(
-            r#"
-
-    main            =   letter letter_or_num+
-
-    letter          =   [a-zA-Z]
-
-    letter_or_num   =   letter
-                    /   number
-
-    number          =   [0-9]
-
-            "#,
-        ).map_err(|e| {
-            println!("{}", e);
-            panic!("FAIL");
-        })
-            .unwrap();
-
-        println!("{:#?}", rules);
-
-        let result = parse("a2AA456bzJ88", &rules);
-        match result {
-            Ok(ast) => println!("{:#?}", ast),
-            Err(e) => println!("Error: {:?}", e),
-        };
-    }
-```
-
-Just it (remember, more information about the peg grammar bellow)
 
 ## PEG
 
@@ -708,3 +783,65 @@ parenth_expr    = "(" * expr _ ")"
 
 The or brunch will be executed if there is no closing parenthesis and we can
 write an specific error message.
+
+## Parsing the parser
+
+Or... how to parse yourself
+
+We have a parser that accepts `peg` grammars.
+
+This will generate an `AST`, from which we can generate some parsing rules for our grammar.
+
+Now we give you the input with the generated rules, and we get the desired AST tree.
+
+![basic_diagram](./doc_images/basic.png "Basic diagram")
+
+But the `input peg` grammar has to be processed (parsed). We have to writte `rules_from_peg` code to parse the `input peg`
+
+Who's gonna parse the grammar peg? A parser?
+
+Let me think... Ummmm!!!
+
+I'm a parser!!!!!
+
+We have a feature that allows us to generate the Rust code for an `AST` tree generated from a `peg` grammar. Oh?!
+
+So the code to parse the peg grammar will be generated automatically with this parser
+
+![automatic_diagram](./doc_images/automatic_diagram.png "Automatic")
+
+Then we will generate automatically `rules_from_peg` recursively
+
+Why to do that?
+
+First, it's possible and a great test.
+
+Second. If we want to modify our `peg grammar`, it's boring and error
+prone to write the code manually.
+
+Using a `peg` file to generate automatically `rules_from_peg`, keeps
+document and code as one (always synchronized)
+
+## diagrams generation
+
+[comment]: # "
+echo '[ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/simple_parser.png
+"
+
+[comment]: # "
+echo '[ input peg ] -- rules_from_peg --> [ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/basic.png
+"
+
+```
+echo '
+[input peg \\n
+  for peg grammar ] -- [rules_from_peg] { shape: none; } -->
+                [rules_peg_gramm] { label: rules\\n
+                                        for peg grammar }
+[input peg \\n
+  for peg grammar ], [ rules_peg_gramm ] -- parse --> { end: back,0; } [ AST ]
+
+[AST] ~~ generate rust ~~> [rules_from_peg] { shape: none; }
+
+' | graph-easy --dot | dot -Tpng -o doc_images/automatic_diagram.png
+```

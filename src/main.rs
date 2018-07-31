@@ -71,10 +71,15 @@ fn main() {
     let rules = rules_from_peg(
         r#"
 
-    main    =   "hello" " "  "world"   
-            /   "hola"
-            /   "hola"  " "  "mundo"
-                
+main            =   letter letter_or_num+
+
+letter          =   [a-zA-Z]
+
+letter_or_num   =   letter
+                /   number
+
+number          =   [0-9]
+
         "#,
     ).map_err(|e| {
         println!("{}", e);
@@ -84,14 +89,9 @@ fn main() {
 
     println!("{:#?}", rules);
 
-    let result = parse("hola mundo", &rules);
+    let result = parse("a2Z", &rules);
     match result {
         Ok(ast) => println!("{:#?}", ast),
         Err(e) => println!("Error: {:?}", e),
     };
-
-    // assert!(parse("ab", &rules).is_ok());
-    // assert!(parse("c", &rules).is_ok());
-    // assert!(parse("de", &rules).is_ok());
-    // assert!(parse("abc", &rules).is_err());
 }
