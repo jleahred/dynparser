@@ -1,115 +1,38 @@
 #![warn(missing_docs)]
-
 // #![feature(external_doc)]
 // #![doc(include = "../README.md")]
 
-//! This library is to create parsing rules, and parsing text
-//! dynamically (not compile time).
+//! For an introduction and context view, read...
 //!
-//! It lets you to create rules to parse text and it will generate an AST
+//! [README.md](https://github.com/jleahred/dynparser)
 //!
-//! examples
+//! A very basic example...
+//! ```rust
+//!    extern crate dynparser;
+//!    use dynparser::{parse, rules_from_peg};
 //!
-//! ```
-//! #[macro_use]  extern crate dynparser;
-//! use dynparser::parse;
+//!    fn main() {
+//!        let rules = rules_from_peg(
+//!            r#"
 //!
-//! fn main() {
-//!     let rules = rules!{
-//!        "main"   =>  and!{
-//!                         lit!("aa"),
-//!                         ref_rule!("rule2")
-//!                     },
-//!        "rule2"  =>  and!{
-//!                         lit!("b"),
-//!                         lit!("c")
-//!                     }
-//!     };
+//!    main            =   letter letter_or_num+
 //!
-//!     assert!(parse("aabc", &rules).is_ok())
-//! }
+//!    letter          =   [a-zA-Z]
 //!
-//! ```
+//!    letter_or_num   =   letter
+//!                    /   number
 //!
-//! main is de starting rule to parse
+//!    number          =   [0-9]
 //!
-//! ```
-//! #[macro_use]  extern crate dynparser;
-//! use dynparser::parse;
+//!            "#,
+//!        ).unwrap();
 //!
-//! fn main() {
-//!     let rules = rules!{
-//!        "main"   =>  and!{
-//!                         rep!(lit!("a"), 1, 5),
-//!                         ref_rule!("rule2")
-//!                     },
-//!         "rule2" =>  or!{
-//!                         lit!("zz"),
-//!                         not!{ lit!("bc") },
-//!                         and!{
-//!                             lit!("b"),
-//!                             dot!(),
-//!                             ematch!(    chlist "abcd",
-//!                                         from 'a', to 'd',
-//!                                         from 'j', to 'p'
-//!                             )
-//!                         }
-//!                     }
-//!     };
+//!        assert!(parse("a2AA456bzJ88", &rules).is_ok());
+//!    }
+//!```
 //!
-//!     assert!(parse("aabcd", &rules).is_ok())
-//! }
-//! ```
-//!
-//! This is a dynamic parser, therefore, it's important to add rules at runtime
-//!
-//! ```
-//! #[macro_use]  extern crate dynparser;
-//! use dynparser::parse;
-//!
-//! fn main() {
-//!     let rules = rules!{
-//!        "main"   =>  and!{
-//!                         rep!(lit!("a"), 1, 5),
-//!                         ref_rule!("rule2")
-//!                     }
-//!     };
-//!
-//!     let rules = rules.add("rule2", lit!("bcd"));
-//!
-//!     assert!(parse("aabcd", &rules).is_ok())
-//! }
-//! ```
-//!
-//! ```add``` take the ownership and returs a "new" (in fact modified)
-//! set of rules. This helps to reduce mutability
-//!
-//! Remember, you can use recursion in order to manage dinamically
-//!
-//!
-//! And ofcourse, you can add several rules at once
-//!
-//! ```
-//! #[macro_use]  extern crate dynparser;
-//! use dynparser::parse;
-//!
-//! fn main() {
-//!     let r = rules!{
-//!        "main"   =>  and!{
-//!                         rep!(lit!("a"), 1, 5),
-//!                         ref_rule!("rule2")
-//!                     }
-//!     };
-//!
-//!     let r = r.merge(rules!{"rule2" => lit!("bcd")});
-//!
-//!     assert!(parse("aabcd", &r).is_ok())
-//! }
-//! ```
-//!
-//! ```merge``` take the ownership and returs a "new" (in fact modified)
-//! set of rules. This helps to reduce mutability
-//!
+//! Please, read [README.md](https://github.com/jleahred/dynparser) for
+//! more context information
 
 // -------------------------------------------------------------------------------------
 //  M A C R O S
@@ -403,7 +326,7 @@ macro_rules! ref_rule {
 
 pub mod ast;
 pub mod parser;
-mod peg;
+pub mod peg;
 
 // -------------------------------------------------------------------------------------
 //  T Y P E S

@@ -46,10 +46,13 @@ Watch examples below
 
 ## TODO
 
+- Upload version 0.1 to cargo
+- Document peg module
 - Move to an isolated module IVector
 - insert and test EOF
 
-```
+```ignore
+    let peg = r#"
     main    =   "hello" " "  "world"
             /   "hola"
             /   "hola"  " "  "mundo"
@@ -84,7 +87,7 @@ Watch examples below
 
 Lets create the next grammar:
 
-```
+```ignore
     main            =   letter letter_or_num+
 
     letter          =   [a-zA-Z]
@@ -100,13 +103,9 @@ numbers
 
 ### Just from peg
 
-[comment]: # "
-echo '[ input peg ] -- rules_from_peg --> [ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/basic.png
-"
-
 ![basic_diagram](./doc_images/basic.png "Basic diagram")
 
-Quiet direct...
+Straightforward...
 
 ```rust
     extern crate dynparser;
@@ -246,13 +245,15 @@ A basic example
 
 Lets create the next grammar:
 
-    main    =   "a" ( "bc" "c"
-                    / "bcdd"
-                    / b_and_c  d_or_z
-                    )
+```ignore
+   main    =   "a" ( "bc" "c"
+                   / "bcdd"
+                   / b_and_c  d_or_z
+                   )
 
-    b_and_c =   "b" "c"
-    d_or_z  =   "d" / "z"
+   b_and_c =   "b" "c"
+   d_or_z  =   "d" / "z"
+```
 
 ### Just from peg
 
@@ -284,39 +285,41 @@ fn main() {
 
 The exit will be the next AST
 
-    Rule(
-        (
-            "main",
-            [
-                Val(
-                    "a"
-                ),
-                Rule(
-                    (
-                        "b_and_c",
-                        [
-                            Val(
-                                "b"
-                            ),
-                            Val(
-                                "c"
-                            )
-                        ]
-                    )
-                ),
-                Rule(
-                    (
-                        "d_or_z",
-                        [
-                            Val(
-                                "d"
-                            )
-                        ]
-                    )
-                )
-            ]
-        )
-    )
+```ignore
+   Rule(
+       (
+           "main",
+           [
+               Val(
+                   "a"
+               ),
+               Rule(
+                   (
+                       "b_and_c",
+                       [
+                           Val(
+                               "b"
+                           ),
+                           Val(
+                               "c"
+                           )
+                       ]
+                   )
+               ),
+               Rule(
+                   (
+                       "d_or_z",
+                       [
+                           Val(
+                               "d"
+                           )
+                       ]
+                   )
+               )
+           ]
+       )
+   )
+```
 
 This is a dynamic parser, you can add rules at execution time.
 
@@ -591,7 +594,7 @@ Hey, I'm a text parser, I need a text to parse ;-P
 If you want to parse text indentation sensitive, I recomend you the lib
 [indentation_flattener](https://github.com/jleahred/indentation_flattener)
 
-```rust
+```ignore
 pending...
 ```
 
@@ -745,7 +748,7 @@ In order to improve error messages, would be interesting to modify the grammar.
 
 Look this code:
 
-```rust
+```ignore
 pending...
 ```
 
@@ -754,7 +757,7 @@ Wich is an error.
 
 Showing an error informing that we didn't consume full input, is not the best.
 
-```
+```ignore
 pending...
 ```
 
@@ -788,11 +791,19 @@ write an specific error message.
 
 Or... how to parse yourself
 
-We have a parser that accepts `peg` grammars.
+Remember, we started with the concept of a simple parser...
 
-This will generate an `AST`, from which we can generate some parsing rules for our grammar.
+Starting with a set of rules and the input to process, we will generate the `AST`
 
-Now we give you the input with the generated rules, and we get the desired AST tree.
+![simple_parser](./doc_images/simple_parser.png "Simple parser")
+
+On this, we added an additional step to generate the rules from a `peg grammar`
+avoiding written by hand on code.
+
+Then, we have a parser that accepts `peg` grammars.
+
+Now instead of giving the set of rules, we can provide a `peg` definition
+and the input to genterate the `AST`
 
 ![basic_diagram](./doc_images/basic.png "Basic diagram")
 
@@ -810,7 +821,23 @@ So the code to parse the peg grammar will be generated automatically with this p
 
 ![automatic_diagram](./doc_images/automatic_diagram.png "Automatic")
 
-Then we will generate automatically `rules_from_peg` recursively
+Then we will generate automatically `rules_from_peg` recursively.
+
+Once this is done, we can now use the parser in a classic way
+
+Remember, a normal parsing, we have two inputs.
+
+1.  The `peg grammar`
+1.  The input text
+
+Now, for start with, both inputs will be a `peg grammar` defining it self (a `peg grammar` defining a `peg grammar`)
+
+1.  input: `peg grammar` defining itself
+1.  running `rules_from_peg` to generate a set of rules for this `peg grammar`
+1.  With the two previous points, we will parse creating the `AST` for the `peg grammar`
+1.  Now we will call `ast::genetarte_rust` to generate the code for `rules_from_peg`
+1.  We will insert this code on the parser
+1.  And we are ready to parse an `input` with a `peg grammar` to generate the `AST`
 
 Why to do that?
 
@@ -824,16 +851,16 @@ document and code as one (always synchronized)
 
 ## diagrams generation
 
-[comment]: # "
-echo '[ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/simple_parser.png
-"
-
-[comment]: # "
-echo '[ input peg ] -- rules_from_peg --> [ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]' | graph-easy --dot | dot -Tpng -o doc_images/basic.png
-"
-
+```ignore
+echo "[ input peg ] -- rules_from_peg --> [ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]" | graph-easy --dot | dot -Tpng -o doc_images/basic.png
 ```
-echo '
+
+```ignore
+echo "[ rules ][ input text ], [ rules ] --> { end: back,0; } [ AST ]" | graph-easy --dot | dot -Tpng -o doc_images/simple_parser.png
+```
+
+```ignore
+echo "
 [input peg \\n
   for peg grammar ] -- [rules_from_peg] { shape: none; } -->
                 [rules_peg_gramm] { label: rules\\n
@@ -843,5 +870,5 @@ echo '
 
 [AST] ~~ generate rust ~~> [rules_from_peg] { shape: none; }
 
-' | graph-easy --dot | dot -Tpng -o doc_images/automatic_diagram.png
+" | graph-easy --dot | dot -Tpng -o doc_images/automatic_diagram.png
 ```
