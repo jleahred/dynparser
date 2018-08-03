@@ -3,9 +3,10 @@ name = "dynparser"
 version = "0.1.0"
 authors = ["maiquel <jleahred@gmail.com>"]
 license = "GPL-3.0"
-description = "Dynamic parser. You can define rules with peg format"
+description = "Dynamic parser. You can define rules at run time. It's possible to use peg format"
 readme = "README.adoc"
 repository = "https://github.com/jleahred/dynparser"
 keywords = ["parsing", "dynamic", "peg"]
 
 [dependencies]
+

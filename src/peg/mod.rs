@@ -15,9 +15,17 @@ use std::{self, result};
 mod test;
 
 #[derive(Debug)]
+/// Most of peg functions will return a result with this type
+/// on Error side
 pub enum Error {
+    /// When error has been on `peg` side
+    /// we will receive a description and
+    /// optionally, a link to a stacked error
+    /// Then, we can have a errors stack of ilimited size
     Peg((String, Option<Box<Error>>)),
+    /// When error is on parser side
     Parser(parser::Error),
+    /// When error is on ast side
     Ast(ast::Error),
 }
 
@@ -54,6 +62,8 @@ impl std::fmt::Display for Error {
     }
 }
 
+/// Most of functions on peg module, will return a set of rules
+/// or an error
 pub type Result = result::Result<expression::SetOfRules, Error>;
 
 // -------------------------------------------------------------------------------------
