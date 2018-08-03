@@ -1,8 +1,10 @@
 # DynParser
 
-A small and simple Dynamic Parser
+- [repository](https://github.com/jleahred/dynparser)
+- [doc](https://docs.rs/dynparser/)
+- [rust-crate](https://crates.io/crates/dynparser)
 
-It's not a compile time parser.
+A small and simple Dynamic Parser. It's not a compile time parser.
 
 You can create and modify the grammar on runtime.
 
@@ -46,8 +48,8 @@ Watch examples below
 
 ## TODO
 
-- Upload version 0.1 to cargo
-- Document peg module
+- Or and And simplification
+  If only one, remove it
 - Move to an isolated module IVector
 - insert and test EOF
 

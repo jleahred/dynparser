@@ -6,7 +6,7 @@ license = "GPL-3.0"
 description = "Dynamic parser. You can define rules at run time. It's possible to use peg format"
 readme = "README.md"
 repository = "https://github.com/jleahred/dynparser"
-keywords = ["parsing", "dynamic", "peg"]
+keywords = ["parsing", "parser", "dynamic", "peg"]
 
 [dependencies]
 
