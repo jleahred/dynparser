@@ -1,12 +1,62 @@
 extern crate dynparser;
-use dynparser::{parse, rules_from_peg};
+use dynparser::{peg, rules_from_peg};
 
 fn main() {
     let rules = rules_from_peg(
         r#"
 
-main            =   "hello"
+main            =   grammar
 
+grammar         =   rule+
+
+rule            =   symbol  _  "="  _   expr  (_ / eof)
+
+expr            =   or
+
+or              =   and         ( _ "/" _  or  )*
+
+and             =   rep_or_neg  (   " " _  and )*
+
+rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+                /   "!" atom_or_par
+
+atom_or_par     =   (atom / parenth)
+
+
+parenth         =   "("  _  expr  _  ")"
+
+
+
+atom            =   literal
+                /   match
+                /   dot
+                /   symbol
+
+//literal         =   _"  (!_" .)*  _"
+//_"              =   "\u{34}"
+
+//match           =   "["
+//                        (
+//                            (mchars+  mbetween*)
+//                            / mbetween+
+//                        )
+//                    "]"
+mchars          =   (!"]" !(. "-") .)+
+mbetween        =   (.  "-"  .)
+
+dot             =   "."
+//symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
+
+
+_               =  (  " "
+                      /   eol
+                      /   comment
+                   )*
+
+//eol             = ("\r\n"  \  "\n"  \  "\r")
+
+comment         =  "//" (!eol .)* "/n"
+                /  "/*" (!"*/" .)* "*/"
         "#,
     ).map_err(|e| {
         println!("{}", e);
@@ -16,11 +66,13 @@ main            =   "hello"
 
     println!("{:#?}", rules);
 
-    let result = parse("a2Z", &rules);
-    match result {
-        Ok(ast) => println!("{:#?}", ast),
-        Err(e) => println!("Error: {:?}", e),
-    };
+    println!("{}", peg::gcode::rust_from_rules(&rules))
+
+    // let result = parse("a2Z", &rules);
+    // match result {
+    //     Ok(ast) => println!("{:#?}", ast),
+    //     Err(e) => println!("Error: {:?}", e),
+    // };
 }
 
 // extern crate dynparser;

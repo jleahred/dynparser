@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 //! Here we have the parser for non atomic things
 
+use super::super::idata::{tail_call, TailCall};
 use ast;
 use parser::{atom, atom::Atom, Error, Result, Status};
 use std::collections::HashMap;
@@ -298,28 +299,3 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
 }
 //  SUPPORT
 //-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
-//  TailCall
-//-----------------------------------------------------------------------
-enum TailCall<T, R> {
-    Call(T),
-    Return(R),
-}
-
-fn tail_call<T, R, F>(seed: T, recursive_function: F) -> R
-where
-    F: Fn(T) -> TailCall<T, R>,
-{
-    let mut state = TailCall::Call(seed);
-    loop {
-        match state {
-            TailCall::Call(arg) => {
-                state = recursive_function(arg);
-            }
-            TailCall::Return(result) => {
-                return result;
-            }
-        }
-    }
-}

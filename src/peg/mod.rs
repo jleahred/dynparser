@@ -2,10 +2,11 @@
 //! Module with functions to generate rules from PEG grammar
 //!
 
+pub mod gcode;
 mod rules;
 
 use ast;
-use icont::IVec;
+use idata::IVec;
 use parse;
 use parser::{
     self, expression::{self, Expression},

@@ -33,7 +33,7 @@ pub enum Atom {
 /// if char matches one in char slice -> OK
 /// if char matches between tuple in elems slice -> OK
 #[derive(Debug)]
-pub struct MatchRules(String, Vec<(char, char)>);
+pub struct MatchRules(pub(crate) String, pub(crate) Vec<(char, char)>);
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------

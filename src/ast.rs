@@ -2,7 +2,7 @@
 //! And some functions to work with AST
 //!
 
-use icont::IVec;
+use idata::IVec;
 use std::result::Result;
 
 // -------------------------------------------------------------------------------------

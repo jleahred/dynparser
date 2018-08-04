@@ -48,7 +48,7 @@ Watch examples below
 
 ## TODO
 
-- Move to an isolated module IVector
+- Move to an external crate IVector
 - insert and test EOF
 
 ```ignore
