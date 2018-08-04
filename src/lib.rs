@@ -325,6 +325,7 @@ macro_rules! ref_rule {
 // -------------------------------------------------------------------------------------
 
 pub mod ast;
+mod icont;
 pub mod parser;
 pub mod peg;
 

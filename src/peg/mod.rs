@@ -5,6 +5,7 @@
 mod rules;
 
 use ast;
+use icont::IVec;
 use parse;
 use parser::{
     self, expression::{self, Expression},
@@ -34,7 +35,7 @@ fn error_peg_s(s: &str) -> Error {
 }
 
 impl Error {
-    fn push(self, desc: &str) -> Self {
+    fn ipush(self, desc: &str) -> Self {
         Error::Peg((desc.to_string(), Some(Box::new(self))))
     }
 }
@@ -142,7 +143,7 @@ fn rules_from_ast(ast: &ast::Node) -> Result {
 macro_rules! push_err {
     ($descr:expr, $e:expr) => {{
         let l = || $e;
-        l().map_err(|e: Error| e.push($descr))
+        l().map_err(|e: Error| e.ipush($descr))
     }};
 }
 
@@ -273,20 +274,6 @@ fn consume_or(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]),
             ExprOrVecExpr::VExpr(v) => Ok((build_or_expr(v), nodes)),
         }
     })
-}
-
-trait IVec<T> {
-    fn ipush(self, T) -> Self;
-}
-
-impl<T> IVec<T> for Vec<T>
-where
-    T: std::fmt::Debug,
-{
-    fn ipush(mut self, v: T) -> Self {
-        self.push(v);
-        self
-    }
 }
 
 fn consume_and(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {

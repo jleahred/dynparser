@@ -2,6 +2,7 @@
 //! And some functions to work with AST
 //!
 
+use icont::IVec;
 use std::result::Result;
 
 // -------------------------------------------------------------------------------------
@@ -75,11 +76,12 @@ impl Node {
             _ => false,
         };
         let prune_vn = |vnodes: &[Node]| {
-            vnodes.iter().fold(vec![], |mut acc, n| {
+            vnodes.iter().fold(vec![], |acc, n| {
                 if node2prune(n) == false {
-                    acc.push(n.prune(nodes2prune));
+                    acc.ipush(n.prune(nodes2prune))
+                } else {
+                    acc
                 }
-                acc
             })
         };
         match self {
