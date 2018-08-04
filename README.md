@@ -48,8 +48,6 @@ Watch examples below
 
 ## TODO
 
-- Or and And simplification
-  If only one, remove it
 - Move to an isolated module IVector
 - insert and test EOF
 

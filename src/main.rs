@@ -1,3 +1,28 @@
+extern crate dynparser;
+use dynparser::{parse, rules_from_peg};
+
+fn main() {
+    let rules = rules_from_peg(
+        r#"
+
+main            =   "hello"
+
+        "#,
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    })
+        .unwrap();
+
+    println!("{:#?}", rules);
+
+    let result = parse("a2Z", &rules);
+    match result {
+        Ok(ast) => println!("{:#?}", ast),
+        Err(e) => println!("Error: {:?}", e),
+    };
+}
+
 // extern crate dynparser;
 // use dynparser::ast::{self, get_node_val};
 // fn main() {
@@ -64,34 +89,34 @@
 //     // assert!(parse("bczd", &rules).is_err());
 // }
 
-extern crate dynparser;
-use dynparser::{parse, rules_from_peg};
+// extern crate dynparser;
+// use dynparser::{parse, rules_from_peg};
 
-fn main() {
-    let rules = rules_from_peg(
-        r#"
+// fn main() {
+//     let rules = rules_from_peg(
+//         r#"
 
-main            =   letter letter_or_num+
+// main            =   letter letter_or_num+
 
-letter          =   [a-zA-Z]
+// letter          =   [a-zA-Z]
 
-letter_or_num   =   letter
-                /   number
+// letter_or_num   =   letter
+//                 /   number
 
-number          =   [0-9]
+// number          =   [0-9]
 
-        "#,
-    ).map_err(|e| {
-        println!("{}", e);
-        panic!("FAIL");
-    })
-        .unwrap();
+//         "#,
+//     ).map_err(|e| {
+//         println!("{}", e);
+//         panic!("FAIL");
+//     })
+//         .unwrap();
 
-    println!("{:#?}", rules);
+//     println!("{:#?}", rules);
 
-    let result = parse("a2Z", &rules);
-    match result {
-        Ok(ast) => println!("{:#?}", ast),
-        Err(e) => println!("Error: {:?}", e),
-    };
-}
+//     let result = parse("a2Z", &rules);
+//     match result {
+//         Ok(ast) => println!("{:#?}", ast),
+//         Err(e) => println!("Error: {:?}", e),
+//     };
+// }

@@ -216,36 +216,62 @@ fn consume_peg_expr(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::N
     })
 }
 
+//  This is to manage And & Or multiexpressions
+//  in consume_or and consume_and
+enum ExprOrVecExpr {
+    Expr(Expression),
+    VExpr(Vec<Expression>),
+    None,
+}
+impl ExprOrVecExpr {
+    fn ipush(self, expr: Expression) -> Self {
+        match self {
+            ExprOrVecExpr::Expr(e) => ExprOrVecExpr::VExpr(vec![e, expr]),
+            ExprOrVecExpr::VExpr(v) => ExprOrVecExpr::VExpr(v.ipush(expr)),
+            ExprOrVecExpr::None => ExprOrVecExpr::Expr(expr),
+        }
+    }
+}
+
 fn consume_or(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
     //  or              =   and         ( _ "/"  _  or)*
 
     fn rec_consume_or(
+        eov: ExprOrVecExpr,
         nodes: &[ast::Node],
-        exprs: Vec<Expression>,
-    ) -> result::Result<(Vec<Expression>, &[ast::Node]), Error> {
+    ) -> result::Result<(ExprOrVecExpr, &[ast::Node]), Error> {
         let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("or", nodes)?;
 
         let (expr, sub_nodes) = consume_and(sub_nodes)?;
-        let exprs = exprs.ipush(expr);
+        let eov = eov.ipush(expr);
+
+        let consume_next_or = |eov, nodes, sub_nodes| {
+            let (exprs, sub_nodes) = match ast::consume_this_value("/", sub_nodes) {
+                Ok(sub_nodes) => rec_consume_or(eov, &sub_nodes)?,
+                _ => (eov, nodes),
+            };
+            ast::check_empty_nodes(sub_nodes)?;
+            Ok((exprs, nodes))
+        };
+        // ----
 
         match sub_nodes.len() {
-            0 => Ok((exprs, nodes)),
-            _ => {
-                let (exprs, nodes) = match ast::consume_this_value("/", sub_nodes) {
-                    Ok(sub_nodes) => rec_consume_or(&sub_nodes, exprs)?,
-                    _ => (exprs, nodes),
-                };
-
-                Ok((exprs, nodes))
-            }
+            0 => Ok((eov, nodes)),
+            _ => consume_next_or(eov, nodes, sub_nodes),
         }
     };
 
-    push_err!("consuming or", {
-        let (vexpr, nodes) = rec_consume_or(nodes, vec![])?;
-        let and_expr = Expression::Or(expression::MultiExpr(vexpr));
+    let build_or_expr = |vexpr| Expression::Or(expression::MultiExpr(vexpr));
+    //-----
 
-        Ok((and_expr, nodes))
+    push_err!("consuming or", {
+        let (eov, nodes) = rec_consume_or(ExprOrVecExpr::None, nodes)?;
+
+        match eov {
+            ExprOrVecExpr::None => Err(error_peg_s("logic error, empty or parsing???")),
+            ExprOrVecExpr::Expr(e) => Ok((e, nodes)),
+            ExprOrVecExpr::VExpr(v) => Ok((build_or_expr(v), nodes)),
+        }
     })
 }
 
@@ -267,33 +293,39 @@ fn consume_and(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node])
     //  and             =   rep_or_neg  (   " "  _  and)*
 
     fn rec_consume_and(
+        eov: ExprOrVecExpr,
         nodes: &[ast::Node],
-        exprs: Vec<Expression>,
-    ) -> result::Result<(Vec<Expression>, &[ast::Node]), Error> {
+    ) -> result::Result<(ExprOrVecExpr, &[ast::Node]), Error> {
         let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("and", nodes)?;
 
         let (expr, sub_nodes) = consume_rep_or_neg(sub_nodes)?;
-        let exprs = exprs.ipush(expr);
+        let consume_next_and = |eov, nodes, sub_nodes| {
+            let (exprs, sub_nodes) = match ast::consume_this_value(" ", sub_nodes) {
+                Ok(sub_nodes) => rec_consume_and(eov, &sub_nodes)?,
+                _ => (eov, nodes),
+            };
+            ast::check_empty_nodes(sub_nodes)?;
+            Ok((exprs, nodes))
+        };
+        //----
 
+        let eov = eov.ipush(expr);
         match sub_nodes.len() {
-            0 => Ok((exprs, nodes)),
-            _ => {
-                let (exprs, sub_nodes) = match ast::consume_this_value(" ", sub_nodes) {
-                    Ok(sub_nodes) => rec_consume_and(&sub_nodes, exprs)?,
-                    _ => (exprs, nodes),
-                };
-                ast::check_empty_nodes(sub_nodes)?;
-
-                Ok((exprs, nodes))
-            }
+            0 => Ok((eov, nodes)),
+            _ => consume_next_and(eov, nodes, sub_nodes),
         }
     };
+    let build_and_expr = |vexpr| Expression::And(expression::MultiExpr(vexpr));
+    //-----
 
     push_err!("consuming and", {
-        let (vexpr, nodes) = rec_consume_and(nodes, vec![])?;
-        let and_expr = Expression::And(expression::MultiExpr(vexpr));
+        let (eov, nodes) = rec_consume_and(ExprOrVecExpr::None, nodes)?;
 
-        Ok((and_expr, nodes))
+        match eov {
+            ExprOrVecExpr::None => Err(error_peg_s("logic error, empty or parsing???")),
+            ExprOrVecExpr::Expr(e) => Ok((e, nodes)),
+            ExprOrVecExpr::VExpr(v) => Ok((build_and_expr(v), nodes)),
+        }
     })
 }
 
