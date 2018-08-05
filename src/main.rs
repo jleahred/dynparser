@@ -1,6 +1,10 @@
 extern crate dynparser;
 use dynparser::{peg, rules_from_peg};
 
+//  a
+//
+//
+
 fn main() {
     let rules = rules_from_peg(
         r#"
@@ -32,37 +36,50 @@ atom            =   literal
                 /   dot
                 /   symbol
 
-//literal         =   _"  (!_" .)*  _"
-//_"              =   "\u{34}"
+literal         =   _"  (!_" .)*  _"
+_"              =   "\u{34}"
 
-//match           =   "["
-//                        (
-//                            (mchars+  mbetween*)
-//                            / mbetween+
-//                        )
-//                    "]"
+symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]+
+
+eol             = ("\r\n"  /  "\n"  /  "\r")
+
+match           =   "["
+                        (
+                            (mchars+  mbetween*)
+                            / mbetween+
+                        )
+                    "]"
+
+
 mchars          =   (!"]" !(. "-") .)+
 mbetween        =   (.  "-"  .)
 
 dot             =   "."
-//symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
-
 
 _               =  (  " "
                       /   eol
                       /   comment
                    )*
 
-//eol             = ("\r\n"  \  "\n"  \  "\r")
-
 comment         =  "//" (!eol .)* "/n"
                 /  "/*" (!"*/" .)* "*/"
-        "#,
+
+"#,
     ).map_err(|e| {
         println!("{}", e);
         panic!("FAIL");
     })
         .unwrap();
+
+    // literal         =   _"  (!_" .)*  _"
+    // _"              =   "\u{34}"
+
+    // symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
+
+    // eol             = ("\r\n"  \  "\n"  \  "\r")
+
+    // comment         =  "//" (!eol .)* "/n"
+    //                 /  "/*" (!"*/" .)* "*/"
 
     println!("{:#?}", rules);
 

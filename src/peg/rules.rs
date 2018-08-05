@@ -13,14 +13,11 @@ pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
         "grammar"   =>       rep!(ref_rule!("rule"), 1),
 
         "rule"      =>       and!(
-                                 ref_rule!("_"), ref_rule!("symbol") ,
+                                 ref_rule!("_"), ref_rule!("symbol"),
                                  ref_rule!("_"), lit! ("="),
                                  ref_rule!("_"), ref_rule!("expr"),
-                                             or!(
-                                                 ref_rule!("_"),
-                                                 ref_rule!("eof")
-                                             ),
-                                 ref_rule!("_")                                                
+                                ref_rule!("_eol"),
+                                ref_rule!("_")                                                
                              ),
 
         "expr"      =>      ref_rule!("or"),
@@ -40,7 +37,12 @@ pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
                                 ref_rule!("rep_or_neg"),
                                 rep!(
                                     and!(
-                                        lit!(" "),  ref_rule!("_"), ref_rule!("and")
+                                        ref_rule!("_1"), ref_rule!("_"), 
+                                        not!(and!(
+                                                ref_rule!("symbol"),
+                                                ref_rule!("_"), lit! ("=")
+                                        )),
+                                        ref_rule!("and")
                                     ),
                                     0
                                 )
@@ -124,51 +126,76 @@ pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
 
         "dot"           =>  lit!("."),
 
-        "symbol"        =>  rep!(
+        "symbol"        =>  and!(
                                 ematch!(    chlist "_'",
-                                         from 'a', to 'z',
-                                         from 'A', to 'Z',
-                                         from '0', to '9'
+                                        from 'a', to 'z',
+                                        from 'A', to 'Z',
+                                        from '0', to '9'
                                 ),
-                                1
+                                rep!(
+                                    ematch!(    chlist "_'\"",
+                                            from 'a', to 'z',
+                                            from 'A', to 'Z',
+                                            from '0', to '9'
+                                    ),
+                                    0
+                                )
                             ),
 
         "_"             =>  rep!(   or!(
                                         lit!(" "),
-                                        ref_rule!("eol"),
-                                        ref_rule!("comment")
+                                        ref_rule!("eol")
+                                        // ref_rule!("comment")
                                     )
                                     , 0
                             ),
+
+        "_eol"          =>  and!(
+                                rep!(   or!(
+                                        lit!(" ")
+                                    )
+                                    , 0
+                                ),
+                                ref_rule!("eol")
+                            ),
+
+        "_1"            =>  or!(
+                                        lit!(" "),
+                                        ref_rule!("eol")
+                                        // ref_rule!("comment")
+                                ),
+
+        "spaces"        =>  rep!(lit!(" "), 0),
 
         "eol"          =>   or!(
                                     lit!("\r\n"),
                                     lit!("\n"),
                                     lit!("\r")
-                                ),
-        "comment"       =>  or!(
-                                and!(
-                                    lit!("//"),
-                                    rep!(
-                                        and!(
-                                            not!(ref_rule!("eol")),
-                                            dot!()
-                                        )
-                                        , 0
-                                    ),
-                                    ref_rule!("eol")
-                                ),
-                                and!(
-                                    lit!("/*"),
-                                    rep!(
-                                        and!(
-                                            not!(lit!("*/")),
-                                            dot!()
-                                        )
-                                        , 0
-                                    ),
-                                    lit!("*/")
                                 )
-                        )
+
+        // "comment"       =>  or!(
+        //                         and!(
+        //                             lit!("//"),
+        //                             rep!(
+        //                                 and!(
+        //                                     not!(ref_rule!("eol")),
+        //                                     dot!()
+        //                                 )
+        //                                 , 0
+        //                             ),
+        //                             ref_rule!("eol")
+        //                         ),
+        //                         and!(
+        //                             lit!("/*"),
+        //                             rep!(
+        //                                 and!(
+        //                                     not!(lit!("*/")),
+        //                                     dot!()
+        //                                 )
+        //                                 , 0
+        //                             ),
+        //                             lit!("*/")
+        //                         )
+        //                 )
     )
 }

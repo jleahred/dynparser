@@ -130,7 +130,7 @@ pub fn rules_from_peg(peg: &str) -> Result {
 // -------------------------------------------------------------------------------------
 
 fn rules_from_ast(ast: &ast::Node) -> Result {
-    let ast = ast.compact().prune(&vec!["_"]);
+    let ast = ast.compact().prune(&vec!["_", "_eol"]);
     println!(":::::::  {:#?}", ast);
 
     let vast = vec![ast];
@@ -288,10 +288,11 @@ fn consume_and(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node])
 
         let (expr, sub_nodes) = consume_rep_or_neg(sub_nodes)?;
         let consume_next_and = |eov, nodes, sub_nodes| {
-            let (exprs, sub_nodes) = match ast::consume_this_value(" ", sub_nodes) {
-                Ok(sub_nodes) => rec_consume_and(eov, &sub_nodes)?,
-                _ => (eov, nodes),
-            };
+            let (exprs, sub_nodes) =
+                match ast::consume_node_get_subnodes_for_rule_name_is("_1", sub_nodes) {
+                    Ok((sub_nodes, _)) => rec_consume_and(eov, &sub_nodes)?,
+                    _ => (eov, nodes),
+                };
             ast::check_empty_nodes(sub_nodes)?;
             Ok((exprs, nodes))
         };
