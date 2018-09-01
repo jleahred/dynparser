@@ -5,28 +5,6 @@ fn main() {
     let rules = rules_from_peg(
         r#"
 
-            main            =   as / a  bs
-
-            as              =   a+
-
-            a               =   "a"
-
-            bs              =   "b"+
-
-"#,
-    ).map_err(|e| {
-        println!("{}", e);
-        panic!("FAIL");
-    })
-        .unwrap();
-
-    println!("{}", peg::gcode::rust_from_rules(&rules))
-}
-
-fn main2() {
-    let rules = rules_from_peg(
-        r#"
-
 main            =   grammar
 
 grammar         =   rule+
@@ -82,7 +60,6 @@ _               =   (  " "
 
 _1              =   (" " / eol)
 
-
 "#,
     ).map_err(|e| {
         println!("{}", e);
@@ -90,16 +67,82 @@ _1              =   (" " / eol)
     })
         .unwrap();
 
-    println!("{:#?}", rules);
-
     println!("{}", peg::gcode::rust_from_rules(&rules))
-
-    // let result = parse("a2Z", &rules);
-    // match result {
-    //     Ok(ast) => println!("{:#?}", ast),
-    //     Err(e) => println!("Error: {:?}", e),
-    // };
 }
+
+// fn main2() {
+//     let rules = rules_from_peg(
+//         r#"
+
+// main            =   grammar
+
+// grammar         =   rule+
+
+// rule            =   _  symbol  _  "="  _  expr  _eol _
+
+// expr            =   or
+
+// or              =   and         ( _ "/" _  or  )*
+
+// and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+
+// rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+//                 /   "!" atom_or_par
+
+// atom_or_par     =   (atom / parenth)
+
+// parenth         =   "("  _  expr  _  ")"
+
+// atom            =   literal
+//                 /   match
+//                 /   dot
+//                 /   symbol
+
+// literal         =   _"  (  "\\" .
+//                         /  !_" .
+//                         )*  _"
+// _"              =   "\""
+
+// symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+
+// eol             =   ("\r\n"  /  "\n"  /  "\r")
+// _eol            =   " "*  eol
+
+// match           =   "["
+//                         (
+//                             (mchars+  mbetween*)
+//                             / mbetween+
+//                         )
+//                     "]"
+
+// mchars          =   (!"]" !(. "-") .)+
+// mbetween        =   (.  "-"  .)
+
+// dot             =   "."
+
+// _               =   (  " "
+//                         /   eol
+//                     )*
+
+// _1              =   (" " / eol)
+
+// "#,
+//     ).map_err(|e| {
+//         println!("{}", e);
+//         panic!("FAIL");
+//     })
+//         .unwrap();
+
+//     println!("{:#?}", rules);
+
+//     println!("{}", peg::gcode::rust_from_rules(&rules))
+
+//     // let result = parse("a2Z", &rules);
+//     // match result {
+//     //     Ok(ast) => println!("{:#?}", ast),
+//     //     Err(e) => println!("Error: {:?}", e),
+//     // };
+// }
 
 // extern crate dynparser;
 // use dynparser::ast::{self, get_node_val};
