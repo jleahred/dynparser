@@ -3,7 +3,7 @@
 
 use super::super::idata::{tail_call, TailCall};
 use ast;
-use parser::{atom, atom::Atom, Error, Result, Status};
+use parser::{atom, atom::Atom, ErrPriority, Error, Result, Status};
 use std::collections::HashMap;
 use std::result;
 
@@ -171,6 +171,7 @@ fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
     let expression = rules.get(rule_name).ok_or(Error::from_status(
         &status,
         &format!("Missing rule: {}", rule_name),
+        ErrPriority::Critical,
     ))?;
     let (st, nodes) = parse_expr(status, &expression)?;
     Ok((st, ast::Node::Rule((rule_name.to_owned(), nodes))))
@@ -224,10 +225,10 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
 //-----------------------------------------------------------------------
 fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a> {
     let deep_err = |oe1: Option<Error>, e2: Error| match oe1 {
-        Some(e1) => if e1.pos.n > e2.pos.n {
-            Some(e1)
-        } else {
-            Some(e2)
+        Some(e1) => match (e1.priority > e2.priority, e1.pos.n > e2.pos.n) {
+            (true, _) => Some(e1),
+            (false, true) => Some(e1),
+            (false, false) => Some(e2),
         },
         None => Some(e2),
     };
@@ -253,8 +254,13 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
             let try_parse = parse_expr(acc.0.clone(), &acc.1[0]);
             match try_parse {
                 Ok(result) => TailCall::Return(Ok(result)),
-                // Err(e) => TailCall::Call((acc.0, &acc.1[1..], add_err(acc.2, e))),
-                Err(e) => TailCall::Call((acc.0, &acc.1[1..], deep_err(acc.2, e))),
+                Err(e) => {
+                    if e.priority == ErrPriority::Critical {
+                        TailCall::Return(Err(e))
+                    } else {
+                        TailCall::Call((acc.0, &acc.1[1..], deep_err(acc.2, e)))
+                    }
+                }
             }
         }
     })
@@ -263,7 +269,7 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
 //-----------------------------------------------------------------------
 fn parse_not<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
     match parse_expr(status.clone(), expression) {
-        Ok(_) => Err(Error::from_status(&status, "not")),
+        Ok(_) => Err(Error::from_status_normal(&status, "not")),
         Err(_) => Ok((status, vec![])),
     }
 }
@@ -282,7 +288,11 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
     Ok(tail_call(init_tc, |acc| {
         let try_parse = parse_expr(acc.0.clone(), &rep_info.expression);
         match (try_parse, big_min_bound(acc.1), touch_max_bound(acc.1)) {
-            (Err(_), true, _) => TailCall::Return(Ok((acc.0, acc.2))),
+            (Err(e), true, _) => if e.priority == ErrPriority::Critical {
+                TailCall::Return(Err(e))
+            } else {
+                TailCall::Return(Ok((acc.0, acc.2)))
+            },
             (Err(e), false, _) => TailCall::Return(Err(e)),
             //     Err(Error::from_status(
             //     &acc.0,

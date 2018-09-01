@@ -46,7 +46,8 @@ pub enum Node {
 }
 
 impl Node {
-    /// Remove nodes with one of the names in the list
+    /// Remove nodes with one of the names in the list.
+    /// It will remove the childs
     /// ```
     ///    use dynparser::ast;
     ///

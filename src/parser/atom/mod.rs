@@ -91,7 +91,7 @@ macro_rules! ok {
 fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
     for ch in literal.chars() {
         status = parse_char(status, ch)
-            .map_err(|st| Error::from_status(&st, &format!("literal {}", literal)))?;
+            .map_err(|st| Error::from_status_normal(&st, &format!("literal {}", literal)))?;
     }
     ok!(status, literal)
 }
@@ -100,7 +100,7 @@ fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
 fn parse_dot<'a>(status: Status<'a>) -> Result<'a> {
     let (status, ch) = status
         .get_char()
-        .map_err(|st| Error::from_status(&st, "dot"))?;
+        .map_err(|st| Error::from_status_normal(&st, "dot"))?;
 
     ok!(status, ch.to_string())
 }
@@ -127,7 +127,7 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
             false => Err(st),
         })
         .map_err(|st| {
-            Error::from_status(
+            Error::from_status_normal(
                 &st,
                 &format!("match. expected {} {:?}", match_rules.0, match_rules.1),
             )
@@ -137,7 +137,7 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
 #[allow(dead_code)]
 fn parse_eof<'a>(status: Status<'a>) -> Result<'a> {
     match status.get_char() {
-        Ok((st, _ch)) => Err(Error::from_status(&st, "expected EOF")),
+        Ok((st, _ch)) => Err(Error::from_status_normal(&st, "expected EOF")),
         Err(st) => ok!(st, "EOF"),
     }
 }

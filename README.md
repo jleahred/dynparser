@@ -50,6 +50,11 @@ Watch examples below
 
 ## TODO
 
+- pass_throw except ast
+- Not consumed full input
+- eof
+- replace " by ' on literals
+
 ```ignore
     let peg = r#"
     main    =   "hello" " "  "world"
@@ -727,7 +732,7 @@ It will be defined on "\_" symbol
 
 This is the general idea. The peg used by the parser will envolve to add error control, vars, scape on strings, and other ideas.
 
-As the parser will generate the code from peg to parse itself... It's easy to keep updated the peg grammar from it.
+As the parser will generate the code from peg to parse itself... It's easy to keep updated the peg grammar used to parse from peg.
 
 ```peg
 main            =   grammar

@@ -366,7 +366,10 @@ pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Nod
     let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules))?;
     match st.pos.n == s.len() {
         true => Ok(ast),
-        false => Err(parser::Error::from_status(&st, "not consumed full input")),
+        false => Err(parser::Error::from_status_normal(
+            &st,
+            "not consumed full input",
+        )),
     }
 }
 

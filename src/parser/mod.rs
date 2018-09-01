@@ -52,6 +52,15 @@ impl Possition {
     }
 }
 
+/// Error priority
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
+pub enum ErrPriority {
+    /// normal error
+    Normal,
+    /// Very important error
+    Critical,
+}
+
 /// Context error information
 #[derive(Debug)]
 pub struct Error {
@@ -65,6 +74,8 @@ pub struct Error {
     pub errors: Vec<Error>,
     /// Rules path followed till got the error
     pub parsing_rules: Vec<String>,
+    /// error priority
+    pub priority: ErrPriority,
 }
 
 //-----------------------------------------------------------------------
@@ -113,23 +124,37 @@ mod test;
 //  I N T E R N A L
 //-----------------------------------------------------------------------
 impl Error {
-    pub(crate) fn from_status(status: &Status, descr: &str) -> Self {
+    pub(crate) fn from_status(status: &Status, descr: &str, prior: ErrPriority) -> Self {
         Error {
             pos: status.pos.clone(),
             descr: descr.to_owned(),
             line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
             errors: vec![],
             parsing_rules: status.walking_rules.clone(),
+            priority: prior,
         }
     }
 
+    pub(crate) fn from_status_normal(status: &Status, descr: &str) -> Self {
+        Self::from_status(status, descr, ErrPriority::Normal)
+    }
+
     pub(crate) fn from_st_errs(status: &Status, descr: &str, errors: Vec<Error>) -> Self {
+        let max_pr = |verrors: &Vec<Error>| {
+            use std::cmp::max;
+            verrors
+                .iter()
+                .fold(ErrPriority::Normal, |acc, err| max(acc, err.priority))
+        };
+
+        let mp = max_pr(&errors);
         Error {
             pos: status.pos.clone(),
             descr: descr.to_owned(),
             line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
             errors,
             parsing_rules: status.walking_rules.clone(),
+            priority: mp,
         }
     }
 }

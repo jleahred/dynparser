@@ -1,76 +1,52 @@
 extern crate dynparser;
-use dynparser::{peg, rules_from_peg};
+use dynparser::{parse, rules_from_peg};
 
 fn main() {
     let rules = rules_from_peg(
         r#"
 
-main            =   grammar
+    main            =   _  expr  _
 
-grammar         =   rule+
+    expr            =   add_t       (_  add_op  _   add_t)*
+                    /   portion_expr
 
-rule            =   _  symbol  _  "="  _  expr  _eol _
+    add_t           =   fact_t    (_  fact_op _   fact_t)*
 
-expr            =   or
+    fact_t          =   portion_expr
 
-or              =   and         ( _ "/" _  or  )*
+    portion_expr    =   "(" expr ")"
+                    /   item
 
-and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+    item            =   num
 
+    num             =   [0-9]+ ("." [0-9]+)?
+    add_op          =   "+"  /  "-"
+    fact_op         =   "*"  /  "/"
 
-rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-                /   "!" atom_or_par
+    _               =   " "*
 
-atom_or_par     =   (atom / parenth)
-
-
-parenth         =   "("  _  expr  _  ")"
-
-
-atom            =   literal
-                /   match
-                /   dot
-                /   symbol
-
-literal         =   _"  (  "\\" .
-                        /  !_" . 
-                        )*  _"
-_"              =   "\""
-
-symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
-
-eol             =   ("\r\n"  /  "\n"  /  "\r")
-_eol            =   " "*  eol
-
-match           =   "["
-                        (
-                            (mchars+  mbetween*)
-                            / mbetween+
-                        )
-                    "]"
-
-mchars          =   (!"]" !(. "-") .)+
-mbetween        =   (.  "-"  .)
-
-dot             =   "."
-
-_               =   (  " "
-                        /   eol
-                    )*
-
-_1              =   (" " / eol)
-
-"#,
+        "#,
     ).map_err(|e| {
         println!("{}", e);
         panic!("FAIL");
     })
         .unwrap();
 
-    println!("{}", peg::gcode::rust_from_rules(&rules))
+    // println!("{:#?}", rules);
+
+    let result = parse(" 1+2*3", &rules);
+    match result {
+        Ok(ast) => println!("{:#?}", ast.compact().prune(&vec!["_"])),
+        Err(e) => println!("Error: {:?}", e),
+    };
 }
 
-// fn main2() {
+//  --------------------------------------------------------------------------
+
+// extern crate dynparser;
+// use dynparser::{peg, rules_from_peg};
+
+// fn main() {
 //     let rules = rules_from_peg(
 //         r#"
 
@@ -133,26 +109,10 @@ _1              =   (" " / eol)
 //     })
 //         .unwrap();
 
-//     println!("{:#?}", rules);
-
 //     println!("{}", peg::gcode::rust_from_rules(&rules))
-
-//     // let result = parse("a2Z", &rules);
-//     // match result {
-//     //     Ok(ast) => println!("{:#?}", ast),
-//     //     Err(e) => println!("Error: {:?}", e),
-//     // };
 // }
 
-// extern crate dynparser;
-// use dynparser::ast::{self, get_node_val};
-// fn main() {
-//     let ast: ast::Node = ast::Node::Val("hello".to_string());
-
-//     let val = get_node_val(&ast).unwrap();
-
-//     assert!(val == "hello");
-// }
+//  --------------------------------------------------------------------------
 
 // extern crate dynparser;
 // use dynparser::{parse, rules_from_peg};
