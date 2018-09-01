@@ -9,7 +9,8 @@ use ast;
 use idata::IVec;
 use parse;
 use parser::{
-    self, expression::{self, Expression},
+    self,
+    expression::{self, Expression},
 };
 use std::{self, result};
 
@@ -122,7 +123,6 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 pub fn rules_from_peg(peg: &str) -> Result {
     let ast = parse(peg, &rules::parse_peg())?;
 
-    // println!("{:#?}", ast);
     rules_from_ast(&ast)
 }
 
@@ -131,7 +131,6 @@ pub fn rules_from_peg(peg: &str) -> Result {
 
 fn rules_from_ast(ast: &ast::Node) -> Result {
     let ast = ast.compact().prune(&vec!["_", "_eol"]);
-    println!(":::::::  {:#?}", ast);
 
     let vast = vec![ast];
     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("main", &vast)?;

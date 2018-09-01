@@ -1,11 +1,29 @@
 extern crate dynparser;
 use dynparser::{peg, rules_from_peg};
 
-//  a
-//
-//
-
 fn main() {
+    let rules = rules_from_peg(
+        r#"
+
+            main            =   as / a  bs
+
+            as              =   a+
+
+            a               =   "a"
+
+            bs              =   "b"+
+
+"#,
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    })
+        .unwrap();
+
+    println!("{}", peg::gcode::rust_from_rules(&rules))
+}
+
+fn main2() {
     let rules = rules_from_peg(
         r#"
 
@@ -13,13 +31,14 @@ main            =   grammar
 
 grammar         =   rule+
 
-rule            =   symbol  _  "="  _   expr  (_ / eof)
+rule            =   _  symbol  _  "="  _  expr  _eol _
 
 expr            =   or
 
 or              =   and         ( _ "/" _  or  )*
 
-and             =   rep_or_neg  (   " " _  and )*
+and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+
 
 rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
                 /   "!" atom_or_par
@@ -30,18 +49,20 @@ atom_or_par     =   (atom / parenth)
 parenth         =   "("  _  expr  _  ")"
 
 
-
 atom            =   literal
                 /   match
                 /   dot
                 /   symbol
 
-literal         =   _"  (!_" .)*  _"
-_"              =   "\u{34}"
+literal         =   _"  (  "\\" .
+                        /  !_" . 
+                        )*  _"
+_"              =   "\""
 
-symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]+
+symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
-eol             = ("\r\n"  /  "\n"  /  "\r")
+eol             =   ("\r\n"  /  "\n"  /  "\r")
+_eol            =   " "*  eol
 
 match           =   "["
                         (
@@ -50,19 +71,17 @@ match           =   "["
                         )
                     "]"
 
-
 mchars          =   (!"]" !(. "-") .)+
 mbetween        =   (.  "-"  .)
 
 dot             =   "."
 
-_               =  (  " "
-                      /   eol
-                      /   comment
-                   )*
+_               =   (  " "
+                        /   eol
+                    )*
 
-comment         =  "//" (!eol .)* "/n"
-                /  "/*" (!"*/" .)* "*/"
+_1              =   (" " / eol)
+
 
 "#,
     ).map_err(|e| {
@@ -70,16 +89,6 @@ comment         =  "//" (!eol .)* "/n"
         panic!("FAIL");
     })
         .unwrap();
-
-    // literal         =   _"  (!_" .)*  _"
-    // _"              =   "\u{34}"
-
-    // symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
-
-    // eol             = ("\r\n"  \  "\n"  \  "\r")
-
-    // comment         =  "//" (!eol .)* "/n"
-    //                 /  "/*" (!"*/" .)* "*/"
 
     println!("{:#?}", rules);
 

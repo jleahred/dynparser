@@ -37,19 +37,18 @@ Add to `cargo.toml`
 
 ```toml
 [dependencies]
-dynparser = "0.1.0"
+dynparser = "0.2.0"
 ```
 
 Watch examples below
 
 ## Modifications
 
-0.1.0 First version
+    0.1.0   First version
+    0.2.0   Fixed some errors
+            Rules code for peg parsing generated automatically from peg
 
 ## TODO
-
-- Move to an external crate IVector
-- insert and test EOF
 
 ```ignore
     let peg = r#"
@@ -69,16 +68,10 @@ Watch examples below
     let result = parse("hola mundo", &rules);
 ```
 
-- Create rules from PEG
-  - document rules from peg
-  - calculator parser example
-- generate code from rules
+- calculator parser example
 - add errors to grammar
-- Upload to crates.io
-  - update usage
-  - update links to doc
-- more examples in doc
-- tail recursion parsing rule
+- Move to an external crate IVector
+- apply tail recursion parsing rule
 - macro for eof
 - rules path on errors configurable (due to performance)
   - check. is it interesting to detail branches on or?
@@ -585,7 +578,52 @@ match_par = "(" match_par ")"
           / "(" ")"
 ```
 
-Grammar bellow (on hacking the code)...
+That's ok and works fine, but we can inprove error messages...
+
+In order to improve error messages, would be interesting to modify the grammar.
+
+Look this code:
+
+```ignore
+pending...
+```
+
+At the beggining it finished with no errors, but not consuming the hole input.
+Wich is an error.
+
+Showing an error informing that we didn't consume full input, is not the best.
+
+```ignore
+pending...
+```
+
+The reason is on
+
+```peg
+pending...
+...
+and_expr        =   compl_expr  (  " "  _  and_expr)*
+...
+```
+
+Here, we said, "hey, try to look for a sequence, or not `*`"
+
+And is not, then the parser say, I matched the rule, I have to continue verifying other
+previus branches. But there are no previus partial applied brunchs.
+Then the parser ends not consuming all the input.
+
+To improve error messages, would be interesting to have something like:
+
+```peg
+pending...
+parenth_expr    = "(" * expr _ ")"
+                / "(" _ expr _ -> error("mismatch parenthesis")
+```
+
+The or brunch will be executed if there is no closing parenthesis and we can
+write an specific error message.
+
+Full grammar in peg formar bellow (a grammar for the grammar)...
 
 ## Text
 
@@ -687,18 +725,23 @@ What about non significative spaces and carry return?
 
 It will be defined on "\_" symbol
 
+This is the general idea. The peg used by the parser will envolve to add error control, vars, scape on strings, and other ideas.
+
+As the parser will generate the code from peg to parse itself... It's easy to keep updated the peg grammar from it.
+
 ```peg
 main            =   grammar
 
 grammar         =   rule+
 
-rule            =   symbol  _  "="  _   expr  (_ / eof)
+rule            =   _  symbol  _  "="  _  expr  _eol _
 
 expr            =   or
 
 or              =   and         ( _ "/" _  or  )*
 
-and             =   rep_or_neg  (   " " _  and )*
+and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+
 
 rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
                 /   "!" atom_or_par
@@ -709,14 +752,20 @@ atom_or_par     =   (atom / parenth)
 parenth         =   "("  _  expr  _  ")"
 
 
-
 atom            =   literal
                 /   match
                 /   dot
                 /   symbol
 
-literal         =   _"  (!_" .)*  _"
-_"              =   "\u{34}"
+literal         =   _"  (  "\\" .
+                        /  !_" .
+                        )*  _"
+_"              =   "\""
+
+symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+
+eol             =   ("\r\n"  /  "\n"  /  "\r")
+_eol            =   " "*  eol
 
 match           =   "["
                         (
@@ -724,68 +773,18 @@ match           =   "["
                             / mbetween+
                         )
                     "]"
+
 mchars          =   (!"]" !(. "-") .)+
 mbetween        =   (.  "-"  .)
 
 dot             =   "."
-symbol          =   [_'a-zA-Z0-9][_'"a-zA-Z0-9]+
 
+_               =   (  " "
+                        /   eol
+                    )*
 
-_               =  (  " "
-                      /   eol
-                      /   comment
-                   )*
-
-eol             = ("\r\n"  \  "\n"  \  "\r")
-
-comment         =  "//" (!eol .)* "/n"
-                /  "/*" (!"*/" .)* "*/"
+_1              =   (" " / eol)
 ```
-
-That's ok an works fine, but we can inprove error messages...
-
-In order to improve error messages, would be interesting to modify the grammar.
-
-Look this code:
-
-```ignore
-pending...
-```
-
-At the beggining it finished with no errors, but not consuming the hole input.
-Wich is an error.
-
-Showing an error informing that we didn't consume full input, is not the best.
-
-```ignore
-pending...
-```
-
-The reason is on
-
-```peg
-pending...
-...
-and_expr        =   compl_expr  (  " "  _  and_expr)*
-...
-```
-
-Here, we said, "hey, try to look for a sequence, or not `*`"
-
-And is not, then the parser say, I matched the rule, I have to continue verifying other
-previus branches. But there are no previus partial applied brunchs.
-Then the parser ends not consuming all the input.
-
-To improve error messages, would be interesting to have something like:
-
-```peg
-pending...
-parenth_expr    = "(" * expr _ ")"
-                / "(" _ expr _ -> error("mismatch parenthesis")
-```
-
-The or brunch will be executed if there is no closing parenthesis and we can
-write an specific error message.
 
 ## Parsing the parser
 
@@ -827,17 +826,17 @@ Once this is done, we can now use the parser in a classic way
 
 Remember, a normal parsing, we have two inputs.
 
-1.  The `peg grammar`
-1.  The input text
+1. The `peg grammar`
+1. The input text
 
 Now, for start with, both inputs will be a `peg grammar` defining it self (a `peg grammar` defining a `peg grammar`)
 
-1.  input: `peg grammar` defining itself
-1.  running `rules_from_peg` to generate a set of rules for this `peg grammar`
-1.  With the two previous points, we will parse creating the `AST` for the `peg grammar`
-1.  Now we will call `ast::genetarte_rust` to generate the code for `rules_from_peg`
-1.  We will insert this code on the parser
-1.  And we are ready to parse an `input` with a `peg grammar` to generate the `AST`
+1. input: `peg grammar` defining itself
+1. running `rules_from_peg` to generate a set of rules for this `peg grammar`
+1. With the two previous points, we will parse creating the `AST` for the `peg grammar`
+1. Now we will call `ast::genetarte_rust` to generate the code for `rules_from_peg`
+1. We will insert this code on the parser
+1. And we are ready to parse an `input` with a `peg grammar` to generate the `AST`
 
 Why to do that?
 
