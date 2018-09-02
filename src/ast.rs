@@ -92,6 +92,59 @@ impl Node {
         }
     }
 
+    /// Remove nodes excepting names in the list.
+    /// Childs will be connected to the parent node removed
+    /// ```
+    ///
+    /// use dynparser::ast;
+    ///
+    /// let ast_before_passthrow: ast::Node = ast::Node::Rule((
+    ///     "root".to_string(),
+    ///     vec![ast::Node::Rule((
+    ///         "a".to_string(),
+    ///         vec![ast::Node::Rule((
+    ///             "_1".to_string(),
+    ///             vec![ast::Node::Rule(("_2".to_string(), vec![]))],
+    ///         ))],
+    ///     ))],
+    /// ));
+    ///
+    /// let ast_after_passthrow: ast::Node = ast::Node::Rule((
+    ///     "root".to_string(),
+    ///     vec![ast::Node::Rule((
+    ///         "a".to_string(),
+    ///         vec![ast::Node::Rule(("_2".to_string(), vec![]))],
+    ///     ))],
+    /// ));
+    ///
+    /// assert!(ast_before_passthrow.passthrow_except(&vec!["root", "a", "_2"]) == ast_after_passthrow)
+    /// ```
+
+    pub fn passthrow_except(&self, nodes2keep: &[&str]) -> Self {
+        fn pthr_vn(vnodes: &[Node], nodes2keep: &[&str]) -> Vec<Node> {
+            let nname2keep = |nname: &str| nodes2keep.iter().find(|n| *n == &nname);
+            let node2keep = |node: &Node| match node {
+                Node::Rule((nname, _)) => nname2keep(nname).is_some(),
+                _ => true,
+            };
+            vnodes.iter().fold(vec![], |acc, n| {
+                if node2keep(n) == true {
+                    acc.ipush(n.passthrow_except(nodes2keep))
+                } else {
+                    match n {
+                        Node::Rule((_, new_nodes)) => acc.iappend(pthr_vn(new_nodes, nodes2keep)),
+                        _ => acc.ipush(n.passthrow_except(nodes2keep)),
+                    }
+                }
+            })
+        };
+        match self {
+            Node::EOF => Node::EOF,
+            Node::Val(v) => Node::Val(v.clone()),
+            Node::Rule((n, vn)) => Node::Rule((n.clone(), pthr_vn(vn, nodes2keep))),
+        }
+    }
+
     /// Concat consecutive Val nodes
     /// ```
     ///    use dynparser::ast;

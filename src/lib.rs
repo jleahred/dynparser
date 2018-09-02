@@ -31,6 +31,58 @@
 //!    }
 //!```
 //!
+//!
+//! The classical calculator example
+//!
+//! ```rust
+//! extern crate dynparser;
+//! use dynparser::{parse, rules_from_peg};
+//!
+//!
+//! fn main() {
+//!     let rules = rules_from_peg(
+//!         r#"
+//!
+//!     main            =   _  expr  _
+//!
+//!     expr            =   add_t       (_  add_op  _   add_t)*
+//!                     /   portion_expr
+//!
+//!     add_t           =   fact_t      (_  fact_op _   fact_t)*
+//!
+//!     fact_t          =   portion_expr
+//!
+//!     portion_expr    =   "(" expr ")"
+//!                     /   item
+//!
+//!     item            =   num
+//!
+//!     num             =   [0-9]+ ("." [0-9]+)?
+//!     add_op          =   "+"  /  "-"
+//!     fact_op         =   "*"  /  "/"
+//!
+//!     _               =   " "*
+//!
+//!         "#,
+//!     ).map_err(|e| {
+//!         println!("{}", e);
+//!         panic!("FAIL");
+//!     })
+//!         .unwrap();
+//!
+//!     let result = parse(" 1 +  2*  3 +(5/5 - (8-7))", &rules);
+//!     match result {
+//!         Ok(ast) => println!(
+//!             "{:#?}",
+//!             ast.compact()
+//!                 .prune(&vec!["_"])
+//!                 .passthrow_except(&vec!["main", "add_t", "fact_t"])
+//!         ),
+//!         Err(e) => println!("Error: {:?}", e),
+//!     };
+//! }
+//! ```
+//!
 //! Please, read [README.md](https://github.com/jleahred/dynparser) for
 //! more context information
 

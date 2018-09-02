@@ -10,7 +10,7 @@ fn main() {
     expr            =   add_t       (_  add_op  _   add_t)*
                     /   portion_expr
 
-    add_t           =   fact_t    (_  fact_op _   fact_t)*
+    add_t           =   fact_t      (_  fact_op _   fact_t)*
 
     fact_t          =   portion_expr
 
@@ -32,11 +32,14 @@ fn main() {
     })
         .unwrap();
 
-    // println!("{:#?}", rules);
-
-    let result = parse(" 1+2*3", &rules);
+    let result = parse(" 1 +  2*  3 +(5/5 - (8-7))", &rules);
     match result {
-        Ok(ast) => println!("{:#?}", ast.compact().prune(&vec!["_"])),
+        Ok(ast) => println!(
+            "{:#?}",
+            ast.compact()
+                .prune(&vec!["_"])
+                .passthrow_except(&vec!["main", "add_t", "fact_t"])
+        ),
         Err(e) => println!("Error: {:?}", e),
     };
 }

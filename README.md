@@ -11,6 +11,8 @@ You can create and modify the grammar on runtime.
 A parser is something that takes an `input`, process it with some `rules`
 and generate an `AST`
 
+There are also some tools to manage the `AST` (pruning, compacting...)
+
 ![simple_parser](./doc_images/simple_parser.png "Simple parser")
 
 In order to create the grammar, you can build a set of rules, or you can use
@@ -47,39 +49,21 @@ Watch examples below
     0.1.0   First version
     0.2.0   Fixed some errors
             Rules code for peg parsing generated automatically from peg
+    0.3.0   passthrow method on AST
 
 ## TODO
 
-- pass_throw except ast
-- Not consumed full input
-- eof
-- replace " by ' on literals
-
-```ignore
-    let peg = r#"
-    main    =   "hello" " "  "world"
-            /   "hola"
-            /   "hola"  " "  "mundo"
-
-        "#,
-    ).map_err(|e| {
-        println!("{}", e);
-        panic!("FAIL");
-    })
-        .unwrap();
-
-    println!("{:#?}", rules);
-
-    let result = parse("hola mundo", &rules);
-```
-
-- calculator parser example
+- escape
+  - on literals?
+  - replace " by ' on literals
 - add errors to grammar
-- Move to an external crate IVector
-- apply tail recursion parsing rule
-- macro for eof
-- rules path on errors configurable (due to performance)
+
+* apply tail recursion parsing rule
+* Move to an external crate IVector
+* macro for eof
+* rules path on errors configurable (due to performance)
   - check. is it interesting to detail branches on or?
+* eof
 
 ## Basic example
 
@@ -244,13 +228,13 @@ A basic example
 Lets create the next grammar:
 
 ```ignore
-   main    =   "a" ( "bc" "c"
-                   / "bcdd"
+   main    =   'a' ( 'bc' 'c'
+                   / 'bcdd'
                    / b_and_c  d_or_z
                    )
 
-   b_and_c =   "b" "c"
-   d_or_z  =   "d" / "z"
+   b_and_c =   'b' 'c'
+   d_or_z  =   'd' / 'z'
 ```
 
 ### Just from peg
@@ -402,6 +386,60 @@ set of rules. This helps to reduce mutability
 
 More information in doc (link pending)
 
+### Calculator example
+
+A parser is not a parser without basic math expresion parser example.
+
+Here it is...
+
+```rust
+extern crate dynparser;
+use dynparser::{parse, rules_from_peg};
+
+fn main() {
+    let rules = rules_from_peg(
+        r#"
+
+    main            =   _  expr  _
+
+    expr            =   add_t       (_  add_op  _   add_t)*
+                    /   portion_expr
+
+    add_t           =   fact_t      (_  fact_op _   fact_t)*
+
+    fact_t          =   portion_expr
+
+    portion_expr    =   "(" expr ")"
+                    /   item
+
+    item            =   num
+
+    num             =   [0-9]+ ("." [0-9]+)?
+    add_op          =   "+"  /  "-"
+    fact_op         =   "*"  /  "/"
+
+    _               =   " "*
+
+        "#,
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    })
+        .unwrap();
+
+    let result = parse(" 1 +  2*  3 +(5/5 - (8-7))", &rules);
+    match result {
+        Ok(ast) => println!(
+            "{:#?}",
+            ast.compact()
+                .prune(&vec!["_"])
+                .passthrow_except(&vec!["main", "add_t", "fact_t"])
+        ),
+        Err(e) => println!("Error: {:?}", e),
+    };
+}
+```
+
 ## PEG
 
 ### Rule elements enumeration
@@ -479,6 +517,19 @@ Or disorganized
 main = "hello"
      / "hi" / "hola"
 ```
+
+An important note about the `or`
+
+    main    =   "hello"
+            /   "hello world"
+            /   "hola"
+
+Given the text `hello world`, the first option will match processing
+the first word of the input, and the second one will never be executed.
+It coul be fixed, but... doesn't look a great idea.
+
+Fixing the grammar to avoid this problems, it's very easy. Trying to fix
+the parser to let this kind of grammars, is expensive.
 
 Parenthesis
 

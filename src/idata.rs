@@ -1,17 +1,18 @@
 #![warn(missing_docs)]
 
-use std;
-
 pub(crate) trait IVec<T> {
     fn ipush(self, T) -> Self;
+    fn iappend(self, Vec<T>) -> Self;
 }
 
-impl<T> IVec<T> for Vec<T>
-where
-    T: std::fmt::Debug,
-{
+impl<T> IVec<T> for Vec<T> {
     fn ipush(mut self, v: T) -> Self {
         self.push(v);
+        self
+    }
+
+    fn iappend(mut self, mut v: Vec<T>) -> Self {
+        self.append(&mut v);
         self
     }
 }
