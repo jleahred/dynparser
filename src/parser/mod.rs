@@ -62,7 +62,7 @@ pub enum ErrPriority {
 }
 
 /// Context error information
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     /// Possition achive parsing
     pub pos: Possition,
@@ -86,6 +86,12 @@ pub(crate) struct Status<'a> {
     pub(crate) pos: Possition,
     pub(crate) walking_rules: Vec<String>,
     pub(crate) rules: &'a expression::SetOfRules,
+    //  main            =   ("a")*
+    //  if you try to parse "abb" i.e.
+    //  the error will not be processed full input
+    //  It's true, but it could be more useful to know where
+    //  it fail trying to repeat
+    pub(crate) potential_error: Option<Error>,
 }
 
 impl<'a> Status<'a> {
@@ -96,10 +102,15 @@ impl<'a> Status<'a> {
             pos: Possition::init(),
             walking_rules: vec![],
             rules: rules,
+            potential_error: None,
         }
     }
     pub(crate) fn push_rule(mut self, on_node: &str) -> Self {
         self.walking_rules.push(on_node.to_string());
+        self
+    }
+    pub(crate) fn set_potential_error(mut self, err: Error) -> Self {
+        self.potential_error = Some(err);
         self
     }
 }

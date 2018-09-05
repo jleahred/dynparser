@@ -291,7 +291,7 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
             (Err(e), true, _) => if e.priority == ErrPriority::Critical {
                 TailCall::Return(Err(e))
             } else {
-                TailCall::Return(Ok((acc.0, acc.2)))
+                TailCall::Return(Ok((acc.0.set_potential_error(e), acc.2)))
             },
             (Err(e), false, _) => TailCall::Return(Err(e)),
             //     Err(Error::from_status(

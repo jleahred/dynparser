@@ -416,9 +416,10 @@ pub mod peg;
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, parser::Error> {
     let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules))?;
-    match st.pos.n == s.len() {
-        true => Ok(ast),
-        false => Err(parser::Error::from_status_normal(
+    match (st.pos.n == s.len(), st.potential_error.clone()) {
+        (true, _) => Ok(ast),
+        (false, Some(e)) => Err(e),
+        (false, None) => Err(parser::Error::from_status_normal(
             &st,
             "not consumed full input",
         )),
