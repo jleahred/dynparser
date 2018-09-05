@@ -53,6 +53,7 @@ Watch examples below
 
 ## TODO
 
+- performance info parsing rules
 - escape
   - on literals?
   - replace " by ' on literals  ???

@@ -165,6 +165,9 @@ pub(crate) fn parse<'a>(status: Status<'a>) -> Result<'a> {
 
 //-----------------------------------------------------------------------
 fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
+    // use std::time::{Duration, Instant};
+    // let start = Instant::now();
+
     let status = status.push_rule(&format!("r:{}", rule_name));
 
     let rules = &status.rules.0;
@@ -174,6 +177,14 @@ fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
         ErrPriority::Critical,
     ))?;
     let (st, nodes) = parse_expr(status, &expression)?;
+
+    // let elapsed = start.elapsed();
+    // println!(
+    //     "____ elapsed time parsing {} {}.{}",
+    //     rule_name,
+    //     elapsed.as_secs(),
+    //     elapsed.subsec_millis()
+    // );
     Ok((st, ast::Node::Rule((rule_name.to_owned(), nodes))))
 }
 
