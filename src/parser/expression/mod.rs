@@ -138,7 +138,7 @@ impl RepInfo {
         RepInfo {
             expression,
             min: NRep(min),
-            max: max.map(|m| NRep(m)),
+            max: max.map(NRep),
         }
     }
 }
@@ -156,7 +156,7 @@ pub(crate) struct NRep(pub(crate) usize);
 //-----------------------------------------------------------------------
 
 //-----------------------------------------------------------------------
-pub(crate) fn parse<'a>(status: Status<'a>) -> Result<'a> {
+pub(crate) fn parse(status: Status) -> Result {
     parse_rule_name(status, "main")
 }
 
@@ -171,11 +171,13 @@ fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
     let status = status.push_rule(&format!("r:{}", rule_name));
 
     let rules = &status.rules.0;
-    let expression = rules.get(rule_name).ok_or(Error::from_status(
-        &status,
-        &format!("Missing rule: {}", rule_name),
-        ErrPriority::Critical,
-    ))?;
+    let expression = rules.get(rule_name).ok_or_else(|| {
+        Error::from_status(
+            &status,
+            &format!("Missing rule: {}", rule_name),
+            ErrPriority::Critical,
+        )
+    })?;
     let (st, nodes) = parse_expr(status, &expression)?;
 
     // let elapsed = start.elapsed();
@@ -199,13 +201,13 @@ fn parse_rule_name_as_expr<'a>(status: Status<'a>, rule_name: &str) -> ResultExp
 }
 
 fn parse_expr<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<'a> {
-    match expression {
-        &Expression::Simple(ref val) => parse_atom_as_expr(status, &val),
-        &Expression::And(ref val) => parse_and(status, &val),
-        &Expression::Or(ref val) => parse_or(status, &val),
-        &Expression::Not(ref val) => parse_not(status, &val),
-        &Expression::Repeat(ref val) => parse_repeat(status, &val),
-        &Expression::RuleName(ref val) => parse_rule_name_as_expr(status, &val),
+    match *expression {
+        Expression::Simple(ref val) => parse_atom_as_expr(status, &val),
+        Expression::And(ref val) => parse_and(status, &val),
+        Expression::Or(ref val) => parse_or(&status, &val),
+        Expression::Not(ref val) => parse_not(status, &val),
+        Expression::Repeat(ref val) => parse_repeat(status, &val),
+        Expression::RuleName(ref val) => parse_rule_name_as_expr(status, &val),
     }
 }
 
@@ -219,7 +221,7 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
     let init_tc: (_, &[Expression], Vec<ast::Node>) = (status, &(multi_expr.0), vec![]);
 
     tail_call(init_tc, |acc| {
-        if acc.1.len() == 0 {
+        if acc.1.is_empty() {
             TailCall::Return(Ok((acc.0, acc.2)))
         } else {
             let result_parse = parse_expr(acc.0, &acc.1[0]);
@@ -234,7 +236,7 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
 }
 
 //-----------------------------------------------------------------------
-fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a> {
+fn parse_or<'a>(status: &Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a> {
     let deep_err = |oe1: Option<Error>, e2: Error| match oe1 {
         Some(e1) => match (e1.priority > e2.priority, e1.pos.n > e2.pos.n) {
             (true, _) => Some(e1),
@@ -252,7 +254,7 @@ fn parse_or<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a>
     let init_tc: (_, &[Expression], _) = (status.clone(), &(multi_expr.0), None);
 
     tail_call(init_tc, |acc| {
-        if acc.1.len() == 0 {
+        if acc.1.is_empty() {
             TailCall::Return(Err(match acc.2 {
                 Some(err) => err,
                 _ => Error::from_st_errs(

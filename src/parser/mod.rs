@@ -101,7 +101,7 @@ impl<'a> Status<'a> {
             it_parsing: t2p.chars(),
             pos: Possition::init(),
             walking_rules: vec![],
-            rules: rules,
+            rules,
             potential_error: None,
         }
     }

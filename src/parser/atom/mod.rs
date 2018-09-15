@@ -97,7 +97,7 @@ fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
 }
 
 #[allow(dead_code)]
-fn parse_dot<'a>(status: Status<'a>) -> Result<'a> {
+fn parse_dot(status: Status) -> Result {
     let (status, ch) = status
         .get_char()
         .map_err(|st| Error::from_status_normal(&st, "dot"))?;
@@ -122,11 +122,13 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
 
     status
         .get_char()
-        .and_then(|(st, ch)| match match_char(ch) {
-            true => ok!(st, ch.to_string()),
-            false => Err(st),
-        })
-        .map_err(|st| {
+        .and_then(|(st, ch)| {
+            if match_char(ch) {
+                ok!(st, ch.to_string())
+            } else {
+                Err(st)
+            }
+        }).map_err(|st| {
             Error::from_status_normal(
                 &st,
                 &format!("match. expected {} {:?}", match_rules.0, match_rules.1),
@@ -135,18 +137,19 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
 }
 
 #[allow(dead_code)]
-fn parse_eof<'a>(status: Status<'a>) -> Result<'a> {
+fn parse_eof(status: Status) -> Result {
     match status.get_char() {
         Ok((st, _ch)) => Err(Error::from_status_normal(&st, "expected EOF")),
         Err(st) => ok!(st, "EOF"),
     }
 }
 
-fn parse_char<'a>(status: Status<'a>, ch: char) -> result::Result<Status<'a>, Status<'a>> {
+fn parse_char(status: Status, ch: char) -> result::Result<Status, Status> {
     let (st, got_ch) = status.get_char()?;
-    match ch == got_ch {
-        true => Ok(st),
-        false => Err(st),
+    if ch == got_ch {
+        Ok(st)
+    } else {
+        Err(st)
     }
 }
 

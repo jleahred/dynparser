@@ -78,7 +78,7 @@ impl Node {
         };
         let prune_vn = |vnodes: &[Node]| {
             vnodes.iter().fold(vec![], |acc, n| {
-                if node2prune(n) == false {
+                if !node2prune(n) {
                     acc.ipush(n.prune(nodes2prune))
                 } else {
                     acc
@@ -128,7 +128,7 @@ impl Node {
                 _ => true,
             };
             vnodes.iter().fold(vec![], |acc, n| {
-                if node2keep(n) == true {
+                if node2keep(n) {
                     acc.ipush(n.passthrow_except(nodes2keep))
                 } else {
                     match n {
@@ -224,7 +224,7 @@ impl Node {
 ///    assert!(node_name == "root");
 ///    assert!(nodes[0] == ast::Node::Val("hello".to_string()),)
 /// ```
-pub fn get_nodename_and_nodes<'a>(node: &'a Node) -> Result<(&'a str, &'a [Node]), Error> {
+pub fn get_nodename_and_nodes(node: &Node) -> Result<(&str, &[Node]), Error> {
     match node {
         Node::Rule((nname, nodes)) => Ok((nname, nodes)),
         _ => Err(error("expected node::Rule", None)),
@@ -331,10 +331,9 @@ pub fn consume_val(nodes: &[Node]) -> Result<(&str, &[Node]), Error> {
 ///```
 ///
 pub fn split_first_nodes(nodes: &[Node]) -> Result<(&Node, &[Node]), Error> {
-    nodes.split_first().ok_or(error(
-        "trying get first element from nodes on empty slice",
-        None,
-    ))
+    nodes
+        .split_first()
+        .ok_or_else(|| error("trying get first element from nodes on empty slice", None))
 }
 
 /// Consume a node if it's a Val kind and the vaule is
@@ -356,12 +355,13 @@ pub fn consume_this_value<'a>(v: &str, nodes: &'a [Node]) -> Result<&'a [Node], 
     let (node, nodes) = split_first_nodes(nodes)?;
 
     let nv = get_node_val(node)?;
-    match nv == v {
-        true => Ok(nodes),
-        false => Err(error(
+    if nv == v {
+        Ok(nodes)
+    } else {
+        Err(error(
             "trying get first element from nodes on empty slice",
             None,
-        )),
+        ))
     }
 }
 
@@ -411,8 +411,9 @@ pub fn consume_node_get_subnodes_for_rule_name_is<'a>(
 ///```
 ///
 pub fn check_empty_nodes(nodes: &[Node]) -> Result<(), Error> {
-    match nodes.is_empty() {
-        true => Ok(()),
-        false => Err(error("not consumed full nodes", None)),
+    if nodes.is_empty() {
+        Ok(())
+    } else {
+        Err(error("not consumed full nodes", None))
     }
 }

@@ -149,8 +149,8 @@ fn test_parse_repeat_ok() {
     let repeat_literal = |literal, min, max: Option<NRep>| {
         Expression::Repeat(RepInfo {
             expression: Box::new(Expression::Simple(Atom::Literal(literal))),
-            min: min,
-            max: max,
+            min,
+            max,
         })
     };
 
@@ -207,8 +207,8 @@ fn test_parse_repeat_fail() {
     let repeat_literal = |literal, min, max: Option<NRep>| {
         Expression::Repeat(RepInfo {
             expression: Box::new(Expression::Simple(Atom::Literal(literal))),
-            min: min,
-            max: max,
+            min,
+            max,
         })
     };
 

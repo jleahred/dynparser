@@ -130,7 +130,7 @@ pub fn rules_from_peg(peg: &str) -> Result {
 // -------------------------------------------------------------------------------------
 
 fn rules_from_ast(ast: &ast::Node) -> Result {
-    let ast = ast.compact().prune(&vec!["_", "_eol"]);
+    let ast = ast.compact().prune(&["_", "_eol"]);
 
     let vast = vec![ast];
     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("main", &vast)?;
@@ -156,7 +156,7 @@ fn consume_grammar(
         rules: expression::SetOfRules,
         nodes: &[ast::Node],
     ) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
-        if nodes.len() == 0 {
+        if nodes.is_empty() {
             Ok((rules, nodes))
         } else {
             let (name, expr, nodes) = consume_rule(nodes)?;
@@ -340,7 +340,7 @@ fn consume_rep_or_neg(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast:
         let (nodes, sub_nodes) =
             ast::consume_node_get_subnodes_for_rule_name_is("rep_or_neg", nodes)?;
 
-        let expr = neg_and_atom(sub_nodes).or(atom_and_rep(sub_nodes))?;
+        let expr = neg_and_atom(sub_nodes).or_else(|_| atom_and_rep(sub_nodes))?;
 
         Ok((expr, nodes))
     })
@@ -458,8 +458,10 @@ fn consume_match(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node
 
         let (expr, sub_nodes) = consume_chars_mbetween(sub_nodes)
             .and_then(|(chs, vbetw, sub_nodes)| Ok((ematch!(chlist chs, from2 vbetw), sub_nodes)))
-            .or(consume_mbetween(sub_nodes)
-                .and_then(|(vbetw, sub_nodes)| Ok((ematch!(chlist "", from2 vbetw), sub_nodes))))?;
+            .or_else(|_| {
+                consume_mbetween(sub_nodes)
+                    .and_then(|(vbetw, sub_nodes)| Ok((ematch!(chlist "", from2 vbetw), sub_nodes)))
+            })?;
 
         let sub_nodes = ast::consume_this_value("]", sub_nodes)?;
         ast::check_empty_nodes(sub_nodes)?;
@@ -468,19 +470,19 @@ fn consume_match(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node
     })
 }
 
-fn consume_mbetween(
-    nodes: &[ast::Node],
-) -> result::Result<(Vec<(char, char)>, &[ast::Node]), Error> {
+type VecChCh = Vec<(char, char)>;
+
+fn consume_mbetween(nodes: &[ast::Node]) -> result::Result<(VecChCh, &[ast::Node]), Error> {
     // mbetween        =   (.  "-"  .)
 
     fn rec_consume_between(
-        acc: Vec<(char, char)>,
+        acc: VecChCh,
         nodes: &[ast::Node],
-    ) -> result::Result<(Vec<(char, char)>, &[ast::Node]), Error> {
-        let process_between = |acc: Vec<(char, char)>, nodes| {
+    ) -> result::Result<(VecChCh, &[ast::Node]), Error> {
+        let process_between = |acc: VecChCh, nodes| {
             let (val, nodes) = ast::consume_val(nodes)?;
             ast::check_empty_nodes(nodes)?;
-            let _u8_dash = '-' as u8;
+            let _u8_dash = b'-';
             match val.as_bytes() {
                 [init, _u8_dash, end] => Ok((acc.ipush((*init as char, *end as char)), nodes)),
                 unknown => Err(error_peg_s(&format!(
@@ -504,7 +506,7 @@ fn consume_mbetween(
 
 fn consume_chars_mbetween(
     nodes: &[ast::Node],
-) -> result::Result<(&str, Vec<(char, char)>, &[ast::Node]), Error> {
+) -> result::Result<(&str, VecChCh, &[ast::Node]), Error> {
     //  mchars+  mbetween*
 
     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("mchars", nodes)?;
