@@ -11,60 +11,69 @@ main            =   grammar
 
 grammar         =   rule+
 
-rule            =   _  symbol  _  "="  _  expr  _eol _
+rule            =   _  symbol  _  '='  _  expr  _eol _
 
 expr            =   or
 
-or              =   and         ( _ "/" _  or  )*
+or              =   and         ( _  '/'  _  or  )*
 
-and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+and             =   rep_or_neg  ( _1 _ !(symbol _ '=') and )*
 
-rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-                /   "!" atom_or_par
+rep_or_neg      =   atom_or_par ('*' / '+' / '?')?
+                /   '!' atom_or_par
 
 atom_or_par     =   (atom / parenth)
 
-parenth         =   "("  _  expr  _  ")"
+parenth         =   '('  _  expr  _  ')'
 
 atom            =   literal
                 /   match
                 /   dot
                 /   symbol
 
-literal         =   _"  (  "\\" .
-                        /  !_" .
-                        )*  _"
-_"              =   "\""
+literal         =  lit_noesc  /  lit_esc
 
-symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+lit_noesc       =   _'    (!_' .)*   _'
+_'              =   "'"
+
+lit_esc         =   _"  (   esc_char
+                        /   !_" .
+                        )*  
+                    _"
+_"              =   '"'
+
+esc_char        =   '\0x'  hexd  hexd
+                /   '\'    [nrt"\]
+hexd            =   [0-9A-F]
+
+symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
 eol             =   ("\r\n"  /  "\n"  /  "\r")
-_eol            =   " "*  eol
+_eol            =   ' '*  eol
 
-match           =   "["
+match           =   '['
                         (
                             (mchars+  mbetween*)
                             / mbetween+
                         )
-                    "]"
+                    ']'
 
-mchars          =   (!"]" !(. "-") .)+
-mbetween        =   (.  "-"  .)
+mchars          =   (!']' !(. '-') .)+
+mbetween        =   (.  '-'  .)
 
-dot             =   "."
+dot             =   '.'
 
-_               =   (  " "
+_               =   (  ' '
                         /   eol
                     )*
 
-_1              =   (" " / eol)
+_1              =   (' ' / eol)
 
 "#,
     ).map_err(|e| {
         println!("{}", e);
         panic!("FAIL");
-    })
-        .unwrap();
+    }).unwrap();
 
     println!("{}", peg::gcode::rust_from_rules(&rules))
 }

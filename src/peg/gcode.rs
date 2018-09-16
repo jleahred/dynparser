@@ -48,7 +48,7 @@ use parser::{
 /// Generate a string with rust code from a ```expression::SetOfRules```
 pub fn rust_from_rules(rules: &expression::SetOfRules) -> String {
     let add_rule = |crules: String, rule: &str| -> String {
-        let begin = if crules == "" { " " } else { ", " };
+        let begin = if crules == "" { "  " } else { ", " };
         crules + "\n       " + begin + rule
     };
 
@@ -57,12 +57,8 @@ pub fn rust_from_rules(rules: &expression::SetOfRules) -> String {
     })
 }
 
-fn to_string_wscapes(s: &str) -> String {
-    s.replace(r#"""#, r#"\""#)
-}
-
 fn rule2code(name: &str, expr: &Expression) -> String {
-    format!(r#""{}" => {}"#, to_string_wscapes(name), expr2code(expr))
+    format!(r##"r#"{}"# => {}"##, name, expr2code(expr))
 }
 
 fn expr2code(expr: &Expression) -> String {
@@ -72,7 +68,7 @@ fn expr2code(expr: &Expression) -> String {
         Expression::Or(mexpr) => format!("or!({})", mexpr2code(mexpr)),
         Expression::Not(e) => format!("not!({})", expr2code(e)),
         Expression::Repeat(rep) => repeat2code(rep),
-        Expression::RuleName(rname) => format!("ref_rule!(\"{}\")", to_string_wscapes(rname)),
+        Expression::RuleName(rname) => format!("ref_rule!(r#\"{}\"#)", rname),
     }
 }
 
@@ -88,7 +84,7 @@ fn mexpr2code(mexpr: &expression::MultiExpr) -> String {
 
 fn atom2code(atom: &Atom) -> String {
     match atom {
-        Atom::Literal(s) => format!("lit!(\"{}\")", s),
+        Atom::Literal(s) => format!("lit!(r#\"{}\"#)", s),
         Atom::Match(mrules) => match_rules2code(mrules),
         Atom::Dot => "dot!()".to_string(),
         Atom::EOF => "eof!()".to_string(),
@@ -106,8 +102,8 @@ fn match_rules2code(mrules: &atom::MatchRules) -> String {
     }
 
     format!(
-        "ematch!(chlist \"{}\"  {})",
-        to_string_wscapes(&mrules.0),
+        "ematch!(chlist r#\"{}\"#  {})",
+        &mrules.0,
         bounds2code(String::new(), &mrules.1)
     )
 }

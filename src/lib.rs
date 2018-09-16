@@ -217,11 +217,11 @@ macro_rules! dot {
 
 #[macro_export]
 macro_rules! ematch {
-    (chlist $chars:expr, $(from $from:expr,  to $to:expr),*) => {{
+    (chlist $chars:expr $(, from $from:expr,  to $to:expr)*) => {{
         use $crate::parser;
         let mut v = Vec::<(char, char)>::new();
 
-        $(v.push(($from, $to));)+
+        $(v.push(($from, $to));)*
         let amatch = parser::atom::Atom::Match(parser::atom::MatchRules::init($chars, v));
         parser::expression::Expression::Simple(amatch)
     }};

@@ -529,14 +529,67 @@ fn consume_symbol_rule_ref(
 }
 
 fn consume_literal(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    // literal         =   _" till_quote _"
+    // literal         =  lit_noesc  /  lit_esc
 
     push_err!("consuming literal", {
         let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("literal", nodes)?;
         ast::check_empty_nodes(nodes)?;
 
-        let sub_nodes = consume_quote(sub_nodes)?;
+        let (node, _) = ast::split_first_nodes(sub_nodes)?;
+        let (node_name, _) = ast::get_nodename_and_nodes(node)?;
+
+        let (expr, sub_nodes) = push_err!(&format!("n:{}", node_name), {
+            match &node_name as &str {
+                "lit_noesc" => consume_literal_noesc(sub_nodes),
+                "lit_esc" => consume_literal_esc(sub_nodes),
+                unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
+            }
+        })?;
+
+        ast::check_empty_nodes(sub_nodes)?;
+        Ok((expr, sub_nodes))
+    })
+}
+
+fn consume_literal_noesc(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+    // lit_noesc       =   _'    (!_' .)*   _'
+
+    push_err!("consuming literal no escape", {
+        let (nodes, sub_nodes) =
+            ast::consume_node_get_subnodes_for_rule_name_is("lit_noesc", nodes)?;
+        ast::check_empty_nodes(nodes)?;
+
+        let sub_nodes = consume_single_quote(sub_nodes)?;
         let (val, sub_nodes) = ast::consume_val(sub_nodes)?;
+
+        push_err!(&format!("l:({})", val), {
+            let sub_nodes = consume_single_quote(sub_nodes)?;
+            ast::check_empty_nodes(sub_nodes)?;
+            Ok((lit!(val), sub_nodes))
+        })
+    })
+}
+
+fn consume_literal_esc(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+    // lit_esc         =   _"  (   esc_char
+    //                         /   !_" .
+    //                         )*
+    //                     _"
+    //  todo
+    fn rec_consume_escchar_or_char(
+        s: String,
+        nodes: &[ast::Node],
+    ) -> result::Result<(String, &[ast::Node]), Error> {
+        consume_escchar_or_value(s, nodes)
+    }
+
+    push_err!("consuming literal with escapes", {
+        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("lit_esc", nodes)?;
+        ast::check_empty_nodes(nodes)?;
+
+        let sub_nodes = consume_quote(sub_nodes)?;
+
+        let (val, sub_nodes) = rec_consume_escchar_or_char("".to_string(), sub_nodes)?;
 
         push_err!(&format!("l:({})", val), {
             let sub_nodes = consume_quote(sub_nodes)?;
@@ -546,8 +599,24 @@ fn consume_literal(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::No
     })
 }
 
+fn consume_escchar_or_value(
+    mut s: String,
+    nodes: &[ast::Node],
+) -> result::Result<(String, &[ast::Node]), Error> {
+    let (node, nodes) = ast::split_first_nodes(nodes)?;
+    match node {
+        ast::Node::Rule((_n, nodes)) => {
+            let (ch, nodes) = consume_esc_char(nodes)?;
+            s.push(ch);
+            Ok((s, nodes))
+        }
+        ast::Node::Val(v) => Ok((v.to_string(), nodes)),
+        ast::Node::EOF => Err(error_peg_s("waiting escchar or char, received EOF")),
+    }
+}
+
 fn consume_quote(nodes: &[ast::Node]) -> result::Result<&[ast::Node], Error> {
-    // _"              =   "\u{34}"
+    // _"              =   "\""
 
     push_err!("consuming quote", {
         let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is(r#"_""#, nodes)?;
@@ -555,5 +624,30 @@ fn consume_quote(nodes: &[ast::Node]) -> result::Result<&[ast::Node], Error> {
         ast::check_empty_nodes(sub_nodes)?;
 
         Ok(nodes)
+    })
+}
+
+fn consume_single_quote(nodes: &[ast::Node]) -> result::Result<&[ast::Node], Error> {
+    // _'              =   "'"
+
+    push_err!("consuming quote", {
+        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is(r#"_'"#, nodes)?;
+        let sub_nodes = ast::consume_this_value(r#"'"#, sub_nodes)?;
+        ast::check_empty_nodes(sub_nodes)?;
+
+        Ok(nodes)
+    })
+}
+
+fn consume_esc_char(nodes: &[ast::Node]) -> result::Result<(char, &[ast::Node]), Error> {
+    // esc_char        =   '\0x'  hexd  hexd
+    //                 /   '\'    [nrt"\]
+
+    push_err!("consuming escape char", {
+        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is(r#"_'"#, nodes)?;
+        let sub_nodes = ast::consume_this_value(r#"'"#, sub_nodes)?;
+        ast::check_empty_nodes(sub_nodes)?;
+
+        Ok((' ', nodes)) // todo
     })
 }
