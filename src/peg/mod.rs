@@ -643,11 +643,37 @@ fn consume_esc_char(nodes: &[ast::Node]) -> result::Result<(char, &[ast::Node]),
     // esc_char        =   '\0x'  hexd  hexd
     //                 /   '\'    [nrt"\]
 
-    push_err!("consuming escape char", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is(r#"_'"#, nodes)?;
-        let sub_nodes = ast::consume_this_value(r#"'"#, sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
+    fn scape_from_slash(nodes: &[ast::Node]) -> result::Result<(char, &[ast::Node]), Error> {
+        let (first, nodes) = ast::consume_val(nodes)?;
+        match first {
+            "r" => Ok(('\r', nodes)),
+            "n" => Ok(('\n', nodes)),
+            "t" => Ok(('\t', nodes)),
+            r#"""# => Ok(('"', nodes)),
+            r#"\"# => Ok(('\\', nodes)),
+            // _ => Err(error_peg_s("invalid escape slash char")),
+        }
+    };
+    // let scape_from_hex = |nodes: &[ast::Node]| -> result::Result<(char, &[ast::Node]), Error> {
+    //     let (first, nodes) = ast::consume_val(nodes)?;
+    //     Ok(match first {
+    //         "r" => ("\r", nodes),
+    //         "n" => ("\n", nodes),
+    //         "t" => ("\t", nodes),
+    //         r#"""# => (r#"""#, nodes),
+    //         r#"\"# => (r#"\"#, nodes),
+    //     })
+    // };
 
-        Ok((' ', nodes)) // todo
+    push_err!("consuming escape char", {
+        let (first, nodes) = ast::consume_val(nodes)?;
+        let (result, nodes) = match first {
+            r#"\"# => scape_from_slash(nodes)?,
+            // r#"\0x"# => scape_from_hex(nodes)?,
+        };
+
+        ast::check_empty_nodes(nodes)?;
+
+        Ok((result, nodes)) // todo
     })
 }
