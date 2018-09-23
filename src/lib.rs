@@ -377,7 +377,8 @@ macro_rules! ref_rule {
 // -------------------------------------------------------------------------------------
 
 pub mod ast;
-pub(crate) mod idata;
+// pub(crate) mod idata;
+pub mod idata; //  todo
 pub mod parser;
 pub mod peg;
 

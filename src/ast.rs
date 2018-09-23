@@ -208,6 +208,61 @@ impl Node {
             Node::Rule((n, vn)) => Node::Rule((n.clone(), compact_nodes(vn))),
         }
     }
+
+    /// Flattering tree
+    ///
+    /// It's very commont to visit nodes in order
+    /// The grammar checked the consistency of input
+    /// Flattering the AST, could be interesting in order to process the tree
+    ///
+    /// ```
+    ///    use dynparser::ast;
+    ///    
+    ///    let ast_before_flattern = ast::Node::Rule((
+    ///        "first".to_string(),
+    ///        vec![
+    ///            ast::Node::Rule((
+    ///                "node1".to_string(),
+    ///                vec![
+    ///                    ast::Node::Val("hello".to_string()),
+    ///                    ast::Node::Rule(("node1.1".to_string(), vec![ast::Node::Val(" ".to_string())])),
+    ///                ],
+    ///            )),
+    ///            ast::Node::Rule((
+    ///                "node2".to_string(),
+    ///                vec![ast::Node::Val("world".to_string())],
+    ///            )),
+    ///        ],
+    ///    ));
+    ///
+    ///    let vec_after_flattern =
+    ///        vec![
+    ///            ast::Node::Rule(("first".to_string(), vec![])),
+    ///            ast::Node::Rule(("node1".to_string(), vec![])),
+    ///            ast::Node::Val("hello".to_string()),
+    ///            ast::Node::Rule(("node1.1".to_string(), vec![])),
+    ///            ast::Node::Val(" ".to_string()),
+    ///            ast::Node::Rule(("node2".to_string(), vec![])),
+    ///            ast::Node::Val("world".to_string()),
+    ///        ];
+    ///
+    ///    assert!(ast_before_flattern.flattern() == vec_after_flattern)
+    ///```
+    pub fn flattern(&self) -> Vec<Node> {
+        fn flattern_acc(acc: Vec<Node>, next: &Node) -> Vec<Node> {
+            match next {
+                Node::EOF => acc,
+                Node::Val(v) => acc.ipush(Node::Val(v.clone())),
+                Node::Rule((n, vn)) => {
+                    let acc = acc.ipush(Node::Rule((format!("begin.{}", n), vec![])));
+                    let acc = vn.iter().fold(acc, |facc, n| flattern_acc(facc, n));
+                    acc.ipush(Node::Rule((format!("end.{}", n), vec![])))
+                }
+            }
+        }
+
+        flattern_acc(vec![], self)
+    }
 }
 
 /// It will get the node name and a slice to the nodes contained by the node
