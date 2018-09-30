@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 
-pub trait IVec<T> {
+pub(crate) trait IVec<T> {
     fn ipush(self, T) -> Self;
     fn iappend(self, Vec<T>) -> Self;
 }

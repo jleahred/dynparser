@@ -237,13 +237,17 @@ impl Node {
     ///
     ///    let vec_after_flattern =
     ///        vec![
-    ///            ast::Node::Rule(("first".to_string(), vec![])),
-    ///            ast::Node::Rule(("node1".to_string(), vec![])),
+    ///            ast::Node::Rule(("begin.first".to_string(), vec![])),
+    ///            ast::Node::Rule(("begin.node1".to_string(), vec![])),
     ///            ast::Node::Val("hello".to_string()),
-    ///            ast::Node::Rule(("node1.1".to_string(), vec![])),
+    ///            ast::Node::Rule(("begin.node1.1".to_string(), vec![])),
     ///            ast::Node::Val(" ".to_string()),
-    ///            ast::Node::Rule(("node2".to_string(), vec![])),
+    ///            ast::Node::Rule(("end.node1.1".to_string(), vec![])),
+    ///            ast::Node::Rule(("end.node1".to_string(), vec![])),
+    ///            ast::Node::Rule(("begin.node2".to_string(), vec![])),
     ///            ast::Node::Val("world".to_string()),
+    ///            ast::Node::Rule(("end.node2".to_string(), vec![])),
+    ///            ast::Node::Rule(("end.first".to_string(), vec![])),
     ///        ];
     ///
     ///    assert!(ast_before_flattern.flattern() == vec_after_flattern)
@@ -470,5 +474,25 @@ pub fn check_empty_nodes(nodes: &[Node]) -> Result<(), Error> {
         Ok(())
     } else {
         Err(error("not consumed full nodes", None))
+    }
+}
+
+/// Return a reference to first node
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
+///     ];
+///     
+///     let first = ast::peek_first_node(&nodes).unwrap();
+///     assert!(first == ast::Node::Rule(("hello".to_string()));
+///```
+///
+pub fn peek_first_node<'a>(nodes: &'a [Node]) -> Result<&'a Node, Error> {
+    if nodes.is_empty() {
+        Err(error("exptected node on peek_first_node", None))
+    } else {
+        Ok(&nodes[0])
     }
 }

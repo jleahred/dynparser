@@ -1,6 +1,7 @@
 use parser;
 
-pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
+// pub(crate)
+pub fn parse_peg() -> parser::expression::SetOfRules {
     rules!(
         "rep_or_neg" => or!(and!(ref_rule!("atom_or_par"), rep!(or!(lit!("*"), lit!("+"), lit!("?")), 0, 1)), and!(lit!("!"), ref_rule!("atom_or_par")))
        , "literal" => and!(ref_rule!("_\""), rep!(or!(and!(lit!("\\"), dot!()), and!(not!(ref_rule!("_\"")), dot!())), 0), ref_rule!("_\""))
