@@ -137,10 +137,13 @@ pub fn rules_from_peg2(peg: &str) -> Result {
 //  A P I
 // -------------------------------------------------------------------------------------
 
-fn rules_from_flattern_ast(nodes: &[ast::Node]) -> Result {
+fn rules_from_flattern_ast(nodes: &[ast::FlatNode]) -> Result {
     let (rules, nodes) = consume_main(&nodes)?;
-    ast::check_empty_nodes(nodes)?;
-    Ok(rules)
+    if !nodes.is_empty() {
+        Err(error_peg_s("expected empty nodes after processing main"))
+    } else {
+        Ok(rules)
+    }
 }
 
 macro_rules! push_err {
@@ -151,29 +154,29 @@ macro_rules! push_err {
 }
 
 fn consume_main(
-    nodes: &[ast::Node],
-) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
+    nodes: &[ast::FlatNode],
+) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
     // main            =   grammar
 
     push_err!("consuming main", {
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("begin.main", &nodes)?;
+        let nodes = ast::consume_flat_node_start_rule_name("main", &nodes)?;
         let (rules, nodes) = consume_grammar_f(&nodes)?;
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("end.main", &nodes)?;
+        let nodes = ast::consume_flat_node_end_rule_name("main", &nodes)?;
         Ok((rules, nodes))
     })
 }
 
 fn consume_grammar_f(
-    nodes: &[ast::Node],
-) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
+    nodes: &[ast::FlatNode],
+) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
     // grammar         =   rule+
 
     fn rec_consume_rules(
         rules: expression::SetOfRules,
-        nodes: &[ast::Node],
-    ) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
-        match ast::peek_first_node(nodes)? {
-            ast::Node::Rule((name, _)) => {
+        nodes: &[ast::FlatNode],
+    ) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
+        match ast::peek_first_flat_node(nodes)? {
+            ast::FlatNode::BeginRule(_) => {
                 let (name, expr, nodes) = consume_rule_f(nodes)?;
                 let rules = rules.add(name, expr);
                 rec_consume_rules(rules, nodes)
@@ -183,45 +186,57 @@ fn consume_grammar_f(
     }
 
     push_err!("consuming grammar", {
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("begin.grammar", &nodes)?;
+        let nodes = ast::consume_flat_node_start_rule_name("grammar", &nodes)?;
         let (rules, nodes) = rec_consume_rules(rules!(), nodes)?;
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("end.grammar", &nodes)?;
+        let nodes = ast::consume_flat_node_end_rule_name("grammar", &nodes)?;
         Ok((rules, nodes))
     })
 }
 
 fn consume_rule_f(
-    nodes: &[ast::Node],
-) -> result::Result<(&str, expression::Expression, &[ast::Node]), Error> {
+    nodes: &[ast::FlatNode],
+) -> result::Result<(&str, expression::Expression, &[ast::FlatNode]), Error> {
     // rule            =   _  symbol  _  "="  _  expr  _eol _
 
     push_err!("consuming rule", {
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("begin.rule", &nodes)?;
+        let nodes = ast::consume_flat_node_start_rule_name("rule", &nodes)?;
 
-        let (symbol_name, sub_nodes) = consume_symbol_f(nodes)?;
+        let (symbol_name, nodes) = consume_symbol_f(nodes)?;
 
-        let result = push_err!(&format!("r:({})", symbol_name), {
-            let sub_nodes = ast::consume_this_value("=", sub_nodes)?;
-            let (expr, sub_nodes) = consume_peg_expr_f(sub_nodes)?;
+        push_err!(&format!("r:({})", symbol_name), {
+            let nodes = ast::flat_consume_this_value("=", nodes)?;
+            let (expr, nodes) = consume_peg_expr_f(nodes)?;
+            let nodes = ast::consume_flat_node_end_rule_name("rule", &nodes)?;
 
             Ok((symbol_name, expr, nodes))
-        });
-
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("end.rule", &nodes)?;
-
-        Ok((result, nodes))
+        })
     })
 }
 
-fn consume_symbol_f(nodes: &[ast::Node]) -> result::Result<(&str, &[ast::Node]), Error> {
+fn consume_symbol_f(nodes: &[ast::FlatNode]) -> result::Result<(&str, &[ast::FlatNode]), Error> {
     // symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
     push_err!("consuming symbol", {
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("begin.symbol", nodes)?;
-        let value = ast::get_nodes_unique_val(nodes)?;
-        let (nodes, _) = ast::consume_node_get_subnodes_for_rule_name_is("end.symbol", nodes)?;
+        let nodes = ast::consume_flat_node_start_rule_name("symbol", nodes)?;
+        let value = ast::get_flat_nodes_unique_val(nodes)?;
+        let nodes = ast::consume_flat_node_end_rule_name("symbol", nodes)?;
         Ok((value, nodes))
     })
+}
+
+fn consume_peg_expr_f(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    //  expr            =   or
+
+    Err(error_peg_s("Not implemented"))
+    // push_err!("consuming expr", {
+    //     let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("expr", nodes)?;
+    //     let (expr, sub_nodes) = consume_or(sub_nodes)?;
+    //     ast::check_empty_nodes(sub_nodes)?;
+
+    //     Ok((expr, nodes))
+    // })
 }
 
 //  -----------------------------------------------------------

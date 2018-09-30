@@ -45,6 +45,19 @@ pub enum Node {
     EOF,
 }
 
+/// Information of a node when ast has been flattered
+#[derive(Debug, PartialEq)]
+pub enum FlatNode {
+    /// The node is terminal (atom) with a name
+    Val(String),
+    /// Starts a rule
+    BeginRule(String),
+    /// Ends a rule
+    EndRule(String),
+    /// Reached end of file
+    EOF,
+}
+
 impl Node {
     /// Remove nodes with one of the names in the list.
     /// It will remove the childs
@@ -237,30 +250,34 @@ impl Node {
     ///
     ///    let vec_after_flattern =
     ///        vec![
-    ///            ast::Node::Rule(("begin.first".to_string(), vec![])),
-    ///            ast::Node::Rule(("begin.node1".to_string(), vec![])),
-    ///            ast::Node::Val("hello".to_string()),
-    ///            ast::Node::Rule(("begin.node1.1".to_string(), vec![])),
-    ///            ast::Node::Val(" ".to_string()),
-    ///            ast::Node::Rule(("end.node1.1".to_string(), vec![])),
-    ///            ast::Node::Rule(("end.node1".to_string(), vec![])),
-    ///            ast::Node::Rule(("begin.node2".to_string(), vec![])),
-    ///            ast::Node::Val("world".to_string()),
-    ///            ast::Node::Rule(("end.node2".to_string(), vec![])),
-    ///            ast::Node::Rule(("end.first".to_string(), vec![])),
+    ///            ast::FlatNode::BeginRule("first".to_string()),
+    ///            ast::FlatNode::BeginRule("node1".to_string()),
+    ///            ast::FlatNode::Val("hello".to_string()),
+    ///            ast::FlatNode::BeginRule("node1.1".to_string()),
+    ///            ast::FlatNode::Val(" ".to_string()),
+    ///            ast::FlatNode::EndRule("node1.1".to_string()),
+    ///            ast::FlatNode::EndRule("node1".to_string()),
+    ///            ast::FlatNode::BeginRule("begin.node2".to_string()),
+    ///            ast::FlatNode::Val("world".to_string()),
+    ///            ast::FlatNode::EndRule("node2".to_string()),
+    ///            ast::FlatNode::EndRule("first".to_string()),
     ///        ];
     ///
     ///    assert!(ast_before_flattern.flattern() == vec_after_flattern)
     ///```
-    pub fn flattern(&self) -> Vec<Node> {
-        fn flattern_acc(acc: Vec<Node>, next: &Node) -> Vec<Node> {
+    pub fn flattern(&self) -> Vec<FlatNode> {
+        fn flattern_acc(acc: Vec<FlatNode>, next: &Node) -> Vec<FlatNode> {
             match next {
                 Node::EOF => acc,
-                Node::Val(v) => acc.ipush(Node::Val(v.clone())),
+                Node::Val(v) => acc.ipush(FlatNode::Val(v.clone())),
                 Node::Rule((n, vn)) => {
-                    let acc = acc.ipush(Node::Rule((format!("begin.{}", n), vec![])));
+                    let acc = acc.ipush(FlatNode::BeginRule(n.to_string()));
                     let acc = vn.iter().fold(acc, |facc, n| flattern_acc(facc, n));
-                    acc.ipush(Node::Rule((format!("end.{}", n), vec![])))
+                    acc.ipush(FlatNode::EndRule(n.to_string()))
+
+                    // let acc = acc.ipush(Node::Rule((format!("begin.{}", n), vec![])));
+                    // let acc = vn.iter().fold(acc, |facc, n| flattern_acc(facc, n));
+                    // acc.ipush(Node::Rule((format!("end.{}", n), vec![])))
                 }
             }
         }
@@ -478,21 +495,213 @@ pub fn check_empty_nodes(nodes: &[Node]) -> Result<(), Error> {
 }
 
 /// Return a reference to first node
-///
-///```
+///todo
+///```ignore
 ///     use dynparser::ast;
 ///     let nodes = vec![
 ///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
 ///     ];
 ///     
 ///     let first = ast::peek_first_node(&nodes).unwrap();
-///     assert!(first == ast::Node::Rule(("hello".to_string()));
+///     assert!(first == ast::Node::Rule(("hello".to_string(), vec![])));
 ///```
 ///
-pub fn peek_first_node<'a>(nodes: &'a [Node]) -> Result<&'a Node, Error> {
+pub fn peek_first_node(nodes: &[Node]) -> Result<&Node, Error> {
     if nodes.is_empty() {
         Err(error("exptected node on peek_first_node", None))
     } else {
         Ok(&nodes[0])
+    }
+}
+
+/// Consume a FlatNode if it's a Rule kind with a specific value
+/// and return the rest of nodes
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::FlatNode::BeginRule(("hello".to_string(), ast::Node::Val("world".to_string()))),
+///     ];
+///     
+///     let nodes = ast::consume_flat_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn consume_flat_node_start_rule_name<'a>(
+    name: &str,
+    nodes: &'a [FlatNode],
+) -> Result<&'a [FlatNode], Error> {
+    let (node, nodes) = split_first_flat_nodes(nodes)?;
+    let node_name = match node {
+        FlatNode::BeginRule(n) => Ok(n),
+        _ => Err(error(&format!("expected begin rule for {}", name), None)),
+    }?;
+    if node_name == name {
+        Ok(nodes)
+    } else {
+        Err(error(
+            &format!("expected {} node, received {}", name, node_name),
+            None,
+        ))
+    }
+}
+
+/// Consume a FlatNode if it's a Rule kind with a specific value
+/// and return the rest of nodes
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::FlatNode::BeginRule(("hello".to_string(), ast::Node::Val("world".to_string()))),
+///     ];
+///     
+///     let nodes = ast::consume_flat_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn consume_flat_node_end_rule_name<'a>(
+    name: &str,
+    nodes: &'a [FlatNode],
+) -> Result<&'a [FlatNode], Error> {
+    let (node, nodes) = split_first_flat_nodes(nodes)?;
+    let node_name = match node {
+        FlatNode::EndRule(n) => Ok(n),
+        _ => Err(error(&format!("expected end rule for {}", name), None)),
+    }?;
+    if node_name == name {
+        Ok(nodes)
+    } else {
+        Err(error(
+            &format!("expected {} node, received {}", name, node_name),
+            None,
+        ))
+    }
+}
+
+/// Given a list of nodes, return the first and the rest on a tuple
+///
+///```
+///     use dynparser::astaa;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///                 ast::Node::Val(".".to_string()),
+///     ];
+///     
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == "hello");
+///     assert!(nodes.len() == 2);
+///
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == "world");
+///     assert!(nodes.len() == 1);
+
+///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
+///     assert!(ast::get_node_val(node).unwrap() == ".");
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn split_first_flat_nodes(nodes: &[FlatNode]) -> Result<(&FlatNode, &[FlatNode]), Error> {
+    nodes
+        .split_first()
+        .ok_or_else(|| error("trying get first element from nodes on empty slice", None))
+}
+
+/// Return a reference to first node
+///todo
+///```ignore
+///     use dynparser::ast;
+///     let nodes = vec![
+///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
+///     ];
+///     
+///     let first = ast::peek_first_node(&nodes).unwrap();
+///     assert!(first == ast::Node::Rule(("hello".to_string(), vec![])));
+///```
+///
+pub fn peek_first_flat_node(nodes: &[FlatNode]) -> Result<&FlatNode, Error> {
+    if nodes.is_empty() {
+        Err(error("exptected node on peek_first_node", None))
+    } else {
+        Ok(&nodes[0])
+    }
+}
+
+/// Sometimes, processing the ast, you will exptect to have an unique
+/// child, and it will have to be a simple Node::Val
+/// This function will return the val, or error in other case
+///
+///```
+///     use dynparser::ast;
+///     let nodes = vec![ast::Node::Val("hello".to_string())];
+///     
+///     let val = ast::get_nodes_unique_val(&nodes).unwrap();
+///     
+///     assert!(val == "hello");
+///```
+///
+/// If you pass an slice with more than one element, it will return
+/// an error
+///
+///```
+///     use dynparser::astaaa;
+///     let nodes = vec![ast::Node::Val("hello".to_string()),
+///                      ast::Node::Val("world".to_string())];
+///     
+///     assert!(ast::get_nodes_unique_val(&nodes).is_err());
+///```
+pub fn get_flat_nodes_unique_val(nodes: &[FlatNode]) -> Result<&str, Error> {
+    match (nodes.first(), nodes.len()) {
+        (Some(n), 1) => get_flat_node_val(n),
+        _ => Err(error("expected only one value in nodes", None)),
+    }
+}
+
+/// Get the value of the Node
+/// If node is not a Node::Val, it will return an error
+///```
+///     use dynparser::ast::{self, get_node_val}aaaa;
+///     let ast = ast::Node::Val("hello".to_string());
+///     
+///     let val = get_node_val(&ast).unwrap();
+///     
+///     assert!(val == "hello");
+///```
+pub fn get_flat_node_val(node: &FlatNode) -> Result<&str, Error> {
+    match node {
+        FlatNode::Val(v) => Ok(v),
+        _ => Err(error("expected node::Val", None)),
+    }
+}
+
+/// Consume a node if it's a Val kind and the vaule is
+/// equal to the provider one
+///
+///```
+///     use dynparser::astaaaa;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///                 ast::Node::Val(".".to_string()),
+///     ];
+///     
+///     let nodes = ast::consume_this_value("hello", &nodes).unwrap();
+///     let nodes = ast::consume_this_value("world", &nodes).unwrap();
+///```
+///
+pub fn flat_consume_this_value<'a>(
+    v: &str,
+    nodes: &'a [FlatNode],
+) -> Result<&'a [FlatNode], Error> {
+    let (node, nodes) = split_first_flat_nodes(nodes)?;
+
+    let nv = get_flat_node_val(node)?;
+    if nv == v {
+        Ok(nodes)
+    } else {
+        Err(error(
+            "trying get first element from nodes on empty slice",
+            None,
+        ))
     }
 }
