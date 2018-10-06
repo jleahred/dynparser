@@ -1,73 +1,72 @@
 // //  --------------------------------------------------------------------------
 
-// extern crate dynparser;
-// use dynparser::{peg, rules_from_peg};
+extern crate dynparser;
+use dynparser::{peg, rules_from_peg};
 
-// fn main() {
-//     let rules = rules_from_peg(
-//         r#"
+fn main() {
+    let rules = rules_from_peg(
+        r#"
 
-// main            =   grammar
+main            =   grammar
 
-// grammar         =   rule+
+grammar         =   rule+
 
-// rule            =   _  symbol  _  "="  _  expr  _eol _
+rule            =   _  symbol  _  "="  _  expr  _eol _
 
-// expr            =   or
+expr            =   or
 
-// or              =   and         ( _ "/" _  or  )*
+or              =   and         ( _ "/" _  or  )*
 
-// and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
 
-// rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-//                 /   "!" atom_or_par
+rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+                /   "!" atom_or_par
 
-// atom_or_par     =   (atom / parenth)
+atom_or_par     =   (atom / parenth)
 
-// parenth         =   "("  _  expr  _  ")"
+parenth         =   "("  _  expr  _  ")"
 
-// atom            =   literal
-//                 /   match
-//                 /   dot
-//                 /   symbol
+atom            =   literal
+                /   match
+                /   dot
+                /   symbol
 
-// literal         =   _"  (  "\\" .
-//                         /  !_" .
-//                         )*  _"
-// _"              =   "\""
+literal         =   _"  (  "\\" .
+                        /  !_" .
+                        )*  _"
+_"              =   "\""
 
-// symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
-// eol             =   ("\r\n"  /  "\n"  /  "\r")
-// _eol            =   " "*  eol
+eol             =   ("\r\n"  /  "\n"  /  "\r")
+_eol            =   " "*  eol
 
-// match           =   "["
-//                         (
-//                             (mchars+  mbetween*)
-//                             / mbetween+
-//                         )
-//                     "]"
+match           =   "["
+                        (
+                            (mchars  mbetween*)
+                            / mbetween+
+                        )
+                    "]"
 
-// mchars          =   (!"]" !(. "-") .)+
-// mbetween        =   (.  "-"  .)
+mchars          =   (!"]" !(. "-") .)+
+mbetween        =   (.  "-"  .)
 
-// dot             =   "."
+dot             =   "."
 
-// _               =   (  " "
-//                         /   eol
-//                     )*
+_               =   (  " "
+                        /   eol
+                    )*
 
-// _1              =   (" " / eol)
+_1              =   (" " / eol)
 
-// "#,
-//     ).map_err(|e| {
-//         println!("{}", e);
-//         panic!("FAIL");
-//     })
-//         .unwrap();
+"#,
+    ).map_err(|e| {
+        println!("{}", e);
+        panic!("FAIL");
+    }).unwrap();
 
-//     println!("{}", peg::gcode::rust_from_rules(&rules))
-// }
+    println!("{}", peg::gcode::rust_from_rules(&rules))
+}
 
 //  --------------------------------------------------------------------------
 
@@ -127,41 +126,43 @@
 //     // assert!(parse("bczd", &rules).is_err());
 // }
 
-extern crate dynparser;
-use dynparser::peg;
-use dynparser::{parse, rules_from_peg};
+// extern crate dynparser;
+// use dynparser::peg;
+// use dynparser::{parse, rules_from_peg};
 
-fn main() {
-    let peg_rules = r#"
+// fn main() {
+//     let peg_rules = r#"
 
-main            =   "aaa"
+// main            =   (aaa / "bbb")*  zzz
+// aaa             =   "aaa"
+// zzz             =   "zzz"
 
-        "#;
-    let rules = rules_from_peg(peg_rules)
-        .map_err(|e| {
-            println!("{}", e);
-            panic!("FAIL");
-        }).unwrap();
+//         "#;
+//     let rules = rules_from_peg(peg_rules)
+//         .map_err(|e| {
+//             println!("{}", e);
+//             panic!("FAIL");
+//         }).unwrap();
 
-    // println!("{:#?}", rules);
+//     // println!("{:#?}", rules);
 
-    // let result = parse("a2Z", &rules);
-    // match result {
-    //     Ok(ast) => {
-    //         println!("{:#?}", ast.compact().flattern());
-    //     }
-    //     Err(e) => println!("Error: {:?}", e),
-    // };
-    //    println!("{:#?}", rules_from_peg(&peg_rules))
-    println!("{}", peg::gcode::rust_from_rules(&rules));
+//     // let result = parse("a2Z", &rules);
+//     // match result {
+//     //     Ok(ast) => {
+//     //         println!("{:#?}", ast.compact().flattern());
+//     //     }
+//     //     Err(e) => println!("Error: {:?}", e),
+//     // };
+//     //    println!("{:#?}", rules_from_peg(&peg_rules))
+//     println!("{}", peg::gcode::rust_from_rules(&rules));
 
-    let rules2 = peg::rules_from_peg2(peg_rules)
-        .map_err(|e| {
-            println!("{}", e);
-            panic!("FAIL");
-        }).unwrap();
-    println!("{}", peg::gcode::rust_from_rules(&rules2));
-}
+//     let rules2 = peg::rules_from_peg2(peg_rules)
+//         .map_err(|e| {
+//             println!("{}", e);
+//             panic!("FAIL");
+//         }).unwrap();
+//     println!("{}", peg::gcode::rust_from_rules(&rules2));
+// }
 
 // //  --------------------------------------------------------------------------
 

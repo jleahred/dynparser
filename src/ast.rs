@@ -650,12 +650,12 @@ pub fn peek_first_flat_node(nodes: &[FlatNode]) -> Result<&FlatNode, Error> {
 ///     
 ///     assert!(ast::get_nodes_unique_val(&nodes).is_err());
 ///```
-pub fn get_flat_nodes_unique_val(nodes: &[FlatNode]) -> Result<&str, Error> {
-    match (nodes.first(), nodes.len()) {
-        (Some(n), 1) => get_flat_node_val(n),
-        _ => Err(error("expected only one value in nodes", None)),
-    }
-}
+// pub fn get_flat_nodes_unique_val(nodes: &[FlatNode]) -> Result<&str, Error> {
+//     match (nodes.first(), nodes.len()) {
+//         (Some(n), 1) => get_flat_node_val(n),
+//         _ => Err(error("expected only one value in nodes", None)),
+//     }
+// }
 
 /// Get the value of the Node
 /// If node is not a Node::Val, it will return an error
@@ -703,5 +703,56 @@ pub fn flat_consume_this_value<'a>(
             "trying get first element from nodes on empty slice",
             None,
         ))
+    }
+}
+
+/// It will get the node name and a slice to the nodes contained by the node
+/// ```
+///    use dynparser::ast::{self, get_nodename_and_nodes, Nodeaaa};
+///
+///    let ast: Node = Node::Rule((
+///        "root".to_string(),
+///        vec![Node::Val("hello".to_string())],
+///    ));
+///
+///    let (node_name, nodes) = get_nodename_and_nodes(&ast).unwrap();
+///
+///    assert!(node_name == "root");
+///    assert!(nodes[0] == ast::Node::Val("hello".to_string()),)
+/// ```
+pub fn flat_get_nodename(node: &FlatNode) -> Result<&str, Error> {
+    match node {
+        FlatNode::BeginRule(nname) => Ok(nname),
+        FlatNode::EndRule(nname) => Ok(nname),
+        _ => Err(error("expected node::Rule", None)),
+    }
+}
+
+/// Given a slice of nodes, return the value (&str) of first
+/// node if it is a Node::Rule and return the rest of nodes
+///
+/// If it's not possible, return an error
+///
+///```
+///     use dynparser::astaaa;
+///     let nodes = vec![
+///                 ast::Node::Val("hello".to_string()),
+///                 ast::Node::Val("world".to_string()),
+///     ];
+///     
+///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     assert!(val == "hello");
+///     assert!(nodes.len() == 1);
+///
+///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     assert!(val == "world");
+///     assert!(nodes.len() == 0);
+///```
+///
+pub fn flat_consume_val(nodes: &[FlatNode]) -> Result<(&str, &[FlatNode]), Error> {
+    let (node, nodes) = split_first_flat_nodes(nodes)?;
+    match node {
+        FlatNode::Val(v) => Ok((&v, nodes)),
+        _ => Err(error("expected Val node", None)),
     }
 }
