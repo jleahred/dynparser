@@ -17,6 +17,14 @@ impl<T> IVec<T> for Vec<T> {
     }
 }
 
+use std;
+pub(crate) fn consume_char(mut chars: std::str::Chars) -> Option<(char, std::str::Chars)> {
+    match chars.next() {
+        Some(ch) => Some((ch, chars)),
+        None => None,
+    }
+}
+
 //-----------------------------------------------------------------------
 //  TailCall
 //-----------------------------------------------------------------------

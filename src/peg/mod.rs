@@ -6,7 +6,7 @@ pub mod gcode;
 mod rules;
 
 use ast;
-use idata::IVec;
+use idata::{self, IVec};
 use parse;
 use parser::{
     self,
@@ -619,15 +619,16 @@ fn consume_match_f(
     //                         )
     //                     "]"
 
+    type VecChCh = Vec<(char, char)>;
     consuming_rule("match", nodes, |nodes| {
         fn rec_consume_mbetween_f(
             acc: Vec<(char, char)>,
             nodes: &[ast::FlatNode],
-        ) -> result::Result<(Vec<(char, char)>, &[ast::FlatNode]), Error> {
+        ) -> result::Result<(VecChCh, &[ast::FlatNode]), Error> {
             let next_node = ast::peek_first_flat_node(nodes)?;
-            let node_name = ast::flat_get_nodename(next_node)?;
+            let node_name = ast::flat_get_nodename(next_node);
             match node_name {
-                "mbetween" => {
+                Ok("mbetween") => {
                     let ((from, to), nodes) = consume_mbetween_f(nodes)?;
                     rec_consume_mbetween_f(acc.ipush((from, to)), nodes)
                 }
@@ -635,15 +636,31 @@ fn consume_match_f(
             }
         }
 
+        //  --------------------------------
+
         let nodes = ast::flat_consume_this_value("[", nodes)?;
 
-        let (expr, nodes) = consume_mchars_f(nodes)
-            .and_then(|| rec_consume_mbetween())
-            .and_then(|((chs, vbetw), nodes)| Ok((ematch!(chlist chs, from2 vbetw), nodes)))
-            .or_else(|_| {
-                rec_consume_mbetween(nodes)
-                    .and_then(|(vbetw, nodes)| Ok((ematch!(chlist "", from2 vbetw), nodes)))
-            })?;
+        let (ochars, nodes) = match consume_mchars_f(nodes) {
+            Ok((chars, nodes)) => (Some(chars), nodes),
+            _ => (None, nodes),
+        };
+
+        let (vchars, nodes) = rec_consume_mbetween_f(vec![], nodes)?;
+
+        let (expr, nodes) = match (ochars, vchars.is_empty()) {
+            (Some(chars), true) => Ok((ematch!(chlist chars, from2 vec![]), nodes)),
+            (Some(chars), false) => Ok((ematch!(chlist chars, from2 vchars), nodes)),
+            (None, false) => Ok((ematch!(chlist "", from2 vchars), nodes)),
+            _ => Err(error_peg_s("Invalid match combination")),
+        }?;
+
+        // let (expr, nodes) = consume_mchars_f(nodes)
+        //     .and_then(|| rec_consume_mbetween())
+        //     .and_then(|((chs, vbetw), nodes)| Ok((ematch!(chlist chs, from2 vbetw), nodes)))
+        //     .or_else(|_| {
+        //         rec_consume_mbetween(nodes)
+        //             .and_then(|(vbetw, nodes)| Ok((ematch!(chlist "", from2 vbetw), nodes)))
+        //     })?;
 
         let nodes = ast::flat_consume_this_value("]", nodes)?;
 
@@ -663,20 +680,14 @@ fn consume_mbetween_f(
     // mbetween        =   (.  "-"  .)
 
     consuming_rule("mbetween", nodes, |nodes| {
-        let (from, nodes) = ast::flat_consume_val(nodes)?;
-        let nodes = ast::flat_consume_this_value("-", nodes)?;
-        let (to, nodes) = ast::flat_consume_val(nodes)?;
+        let (from_to, nodes) = ast::flat_consume_val(nodes)?;
 
-        let ch_from = from.chars().next();
-        let ch_to = to.chars().next();
-
-        match (ch_from, ch_to, from.chars().count(), to.chars().count()) {
-            (Some(f), Some(t), 1, 1) => Ok(((f, t), nodes)),
-            _ => Err(error_peg_s(&format!(
-                "from an to has to be a char from:{}, to:{}",
-                from, to
-            ))),
-        }
+        let (from, chars) = idata::consume_char(from_to.chars())
+            .ok_or_else(|| error_peg_s("expected from char"))?;
+        let (_, chars) =
+            idata::consume_char(chars).ok_or_else(|| error_peg_s("expected '-' char"))?;
+        let (to, _) = idata::consume_char(chars).ok_or_else(|| error_peg_s("expected to char"))?;;
+        Ok(((from, to), nodes))
     })
 }
 
@@ -693,7 +704,7 @@ fn consume_mbetween_f(
 //     })
 // }
 
-// type VecChCh = Vec<(char, char)>;
+type VecChCh = Vec<(char, char)>;
 
 // fn consume_mbetween_f(
 //     nodes: &[ast::FlatNode],
