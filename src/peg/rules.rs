@@ -1,7 +1,6 @@
 use parser;
 
-// pub(crate)
-pub fn parse_peg() -> parser::expression::SetOfRules {
+pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
     rules!(
         "dot" => lit!(".")
        , "parenth" => and!(lit!("("), ref_rule!("_"), ref_rule!("expr"), ref_rule!("_"), lit!(")"))

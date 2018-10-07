@@ -3,6 +3,7 @@
 //!
 
 pub mod gcode;
+pub mod peg2code;
 mod rules;
 
 use ast::{self, flat};

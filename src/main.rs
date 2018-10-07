@@ -1,72 +1,79 @@
-// //  --------------------------------------------------------------------------
-
 extern crate dynparser;
-use dynparser::{peg, rules_from_peg};
+use dynparser::peg::peg2code;
 
 fn main() {
-    let rules = rules_from_peg(
-        r#"
-
-main            =   grammar
-
-grammar         =   rule+
-
-rule            =   _  symbol  _  "="  _  expr  _eol _
-
-expr            =   or
-
-or              =   and         ( _ "/" _  or  )*
-
-and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
-
-rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-                /   "!" atom_or_par
-
-atom_or_par     =   (atom / parenth)
-
-parenth         =   "("  _  expr  _  ")"
-
-atom            =   literal
-                /   match
-                /   dot
-                /   symbol
-
-literal         =   _"  (  "\\" .
-                        /  !_" .
-                        )*  _"
-_"              =   "\""
-
-symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
-
-eol             =   ("\r\n"  /  "\n"  /  "\r")
-_eol            =   " "*  eol
-
-match           =   "["
-                        (
-                            (mchars  mbetween*)
-                            / mbetween+
-                        )
-                    "]"
-
-mchars          =   (!"]" !(. "-") .)+
-mbetween        =   (.  "-"  .)
-
-dot             =   "."
-
-_               =   (  " "
-                        /   eol
-                    )*
-
-_1              =   (" " / eol)
-
-"#,
-    ).map_err(|e| {
-        println!("{}", e);
-        panic!("FAIL");
-    }).unwrap();
-
-    println!("{}", peg::gcode::rust_from_rules(&rules))
+    peg2code::print_rules2parse_peg();
 }
+
+// //  --------------------------------------------------------------------------
+
+// extern crate dynparser;
+// use dynparser::{peg, rules_from_peg};
+
+// fn main() {
+//     let rules = rules_from_peg(
+//         r#"
+
+// main            =   grammar
+
+// grammar         =   rule+
+
+// rule            =   _  symbol  _  "="  _  expr  _eol _
+
+// expr            =   or
+
+// or              =   and         ( _ "/" _  or  )*
+
+// and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+
+// rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+//                 /   "!" atom_or_par
+
+// atom_or_par     =   (atom / parenth)
+
+// parenth         =   "("  _  expr  _  ")"
+
+// atom            =   literal
+//                 /   match
+//                 /   dot
+//                 /   symbol
+
+// literal         =   _"  (  "\\" .
+//                         /  !_" .
+//                         )*  _"
+// _"              =   "\""
+
+// symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+
+// eol             =   ("\r\n"  /  "\n"  /  "\r")
+// _eol            =   " "*  eol
+
+// match           =   "["
+//                         (
+//                             (mchars  mbetween*)
+//                             / mbetween+
+//                         )
+//                     "]"
+
+// mchars          =   (!"]" !(. "-") .)+
+// mbetween        =   (.  "-"  .)
+
+// dot             =   "."
+
+// _               =   (  " "
+//                         /   eol
+//                     )*
+
+// _1              =   (" " / eol)
+
+// "#,
+//     ).map_err(|e| {
+//         println!("{}", e);
+//         panic!("FAIL");
+//     }).unwrap();
+
+//     println!("{}", peg::gcode::rust_from_rules(&rules))
+// }
 
 //  --------------------------------------------------------------------------
 
