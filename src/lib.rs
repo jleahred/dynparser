@@ -112,6 +112,7 @@
 /// }
 /// ```
 #[macro_export]
+#[cfg_attr(feature = "cargo-clippy", allow(let_and_return))]
 macro_rules! rules {
     ($($n:expr => $e:expr),*) => {{
         use $crate::parser::expression;

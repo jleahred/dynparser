@@ -3,6 +3,7 @@
 pub(crate) trait IVec<T> {
     fn ipush(self, T) -> Self;
     fn iappend(self, Vec<T>) -> Self;
+    fn ipop(self) -> (Option<T>, Self);
 }
 
 impl<T> IVec<T> for Vec<T> {
@@ -14,6 +15,10 @@ impl<T> IVec<T> for Vec<T> {
     fn iappend(mut self, mut v: Vec<T>) -> Self {
         self.append(&mut v);
         self
+    }
+
+    fn ipop(mut self) -> (Option<T>, Self) {
+        (self.pop(), self)
     }
 }
 

@@ -48,7 +48,7 @@ use parser::{
 /// Generate a string with rust code from a ```expression::SetOfRules```
 pub fn rust_from_rules(rules: &expression::SetOfRules) -> String {
     let add_rule = |crules: String, rule: &str| -> String {
-        let begin = if crules == "" { " " } else { ", " };
+        let begin = if crules == "" { "  " } else { ", " };
         crules + "\n       " + begin + rule
     };
 

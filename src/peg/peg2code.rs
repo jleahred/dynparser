@@ -22,7 +22,7 @@
 
 use {peg, rules_from_peg};
 
-fn peg2code() -> &'static str {
+fn text_peg2code() -> &'static str {
     r#"
     main            =   grammar
 
@@ -83,7 +83,7 @@ fn peg2code() -> &'static str {
 /// It will take the peg grammar to parse peg grammars
 ///
 pub fn print_rules2parse_peg() {
-    let rules = rules_from_peg(peg2code())
+    let rules = rules_from_peg(text_peg2code())
         .map_err(|e| {
             println!("{}", e);
             panic!("FAIL");

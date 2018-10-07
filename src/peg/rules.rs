@@ -2,7 +2,7 @@ use parser;
 
 pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
     rules!(
-        "dot" => lit!(".")
+         "dot" => lit!(".")
        , "parenth" => and!(lit!("("), ref_rule!("_"), ref_rule!("expr"), ref_rule!("_"), lit!(")"))
        , "atom_or_par" => or!(ref_rule!("atom"), ref_rule!("parenth"))
        , "and" => and!(ref_rule!("rep_or_neg"), rep!(and!(ref_rule!("_1"), ref_rule!("_"), not!(and!(ref_rule!("symbol"), ref_rule!("_"), lit!("="))), ref_rule!("and")), 0))

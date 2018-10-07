@@ -3,6 +3,7 @@
 
 use super::super::idata::{tail_call, TailCall};
 use ast;
+use idata::IVec;
 use parser::{atom, atom::Atom, ErrPriority, Error, Result, Status};
 use std::collections::HashMap;
 use std::result;
@@ -294,8 +295,6 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
         Some(ref m) => counter + 1 == m.0,
         None => false,
     };
-    let merge_vnodes =
-        |v1: Vec<ast::Node>, v2: Vec<_>| v2.into_iter().chain(v1).collect::<Vec<_>>();
 
     let init_tc: (_, _, Vec<ast::Node>) = (status, 0, vec![]);
     Ok(tail_call(init_tc, |acc| {
@@ -312,10 +311,10 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
             //     &format!("inside repeat {:#?}", e),
             // ))),
             (Ok((status, vnodes)), _, false) => {
-                TailCall::Call((status, acc.1 + 1, merge_vnodes(vnodes, acc.2)))
+                TailCall::Call((status, acc.1 + 1, acc.2.iappend(vnodes)))
             }
             (Ok((status, vnodes)), _, true) => {
-                TailCall::Return(Ok((status, merge_vnodes(vnodes, acc.2))))
+                TailCall::Return(Ok((status, acc.2.iappend(vnodes))))
             }
         }
     })?)

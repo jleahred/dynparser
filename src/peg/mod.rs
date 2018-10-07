@@ -410,7 +410,9 @@ fn consume_parenth(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::
 }
 
 fn consume_literal(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
-    // literal         =   _" till_quote _"
+    // literal         =   _"  (  "\\" .
+    //                         /  !_" .
+    //                         )*  _"
 
     consuming_rule("literal", nodes, |nodes| {
         let nodes = consume_quote(nodes)?;
