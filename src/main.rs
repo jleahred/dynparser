@@ -149,7 +149,7 @@ _1              =   (" " / eol)
 //     // let result = parse("a2Z", &rules);
 //     // match result {
 //     //     Ok(ast) => {
-//     //         println!("{:#?}", ast.compact().flattern());
+//     //         println!("{:#?}", ast.compact().flatten());
 //     //     }
 //     //     Err(e) => println!("Error: {:?}", e),
 //     // };
@@ -212,7 +212,7 @@ _1              =   (" " / eol)
 //         parsed
 //             .prune(&["_", "_eol"])
 //             .compact()
-//             .flattern()
+//             .flatten()
 //             .iter()
 //             .filter(|n| {
 //                 let remove = [

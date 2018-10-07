@@ -11,7 +11,7 @@ You can create and modify the grammar on runtime.
 A parser is something that takes an `input`, process it with some `rules`
 and generate an `AST`
 
-There are also some tools to manage the `AST` (pruning, compacting...)
+There are also some tools to manage the `AST` (pruning, compacting, flattening...)
 
 ![simple_parser](./doc_images/simple_parser.png "Simple parser")
 
@@ -53,7 +53,6 @@ Watch examples below
 
 ## TODO
 
-- ast::flat module (recheck docs)
 - performance info parsing rules
 - escape
   - on literals?
@@ -216,6 +215,23 @@ pub enum Node {
     EOF,
 }
 ```
+
+You can also work with flattened AST.In several cases will be easier
+to visit a flattened AST.
+
+The Flattened AST is:
+
+```rust
+pub enum Node {
+    Val(String),
+    BeginRule(String),
+    EndRule(String),
+    EOF,
+}
+}
+```
+
+
 
 Just it (remember, more information about the peg grammar bellow)
 
