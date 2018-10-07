@@ -257,7 +257,7 @@ impl Node {
     ///            ast::FlatNode::Val(" ".to_string()),
     ///            ast::FlatNode::EndRule("node1.1".to_string()),
     ///            ast::FlatNode::EndRule("node1".to_string()),
-    ///            ast::FlatNode::BeginRule("begin.node2".to_string()),
+    ///            ast::FlatNode::BeginRule("node2".to_string()),
     ///            ast::FlatNode::Val("world".to_string()),
     ///            ast::FlatNode::EndRule("node2".to_string()),
     ///            ast::FlatNode::EndRule("first".to_string()),
@@ -274,10 +274,6 @@ impl Node {
                     let acc = acc.ipush(FlatNode::BeginRule(n.to_string()));
                     let acc = vn.iter().fold(acc, |facc, n| flattern_acc(facc, n));
                     acc.ipush(FlatNode::EndRule(n.to_string()))
-
-                    // let acc = acc.ipush(Node::Rule((format!("begin.{}", n), vec![])));
-                    // let acc = vn.iter().fold(acc, |facc, n| flattern_acc(facc, n));
-                    // acc.ipush(Node::Rule((format!("end.{}", n), vec![])))
                 }
             }
         }
@@ -495,15 +491,15 @@ pub fn check_empty_nodes(nodes: &[Node]) -> Result<(), Error> {
 }
 
 /// Return a reference to first node
-///todo
-///```ignore
+///
+///```
 ///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
-///     ];
+///                 ast::Node::Rule(("hello".to_string(), vec![])),
+///                 ast::Node::Val("world".to_string())];
 ///     
 ///     let first = ast::peek_first_node(&nodes).unwrap();
-///     assert!(first == ast::Node::Rule(("hello".to_string(), vec![])));
+///     assert!(first == &ast::Node::Rule(("hello".to_string(), vec![])));
 ///```
 ///
 pub fn peek_first_node(nodes: &[Node]) -> Result<&Node, Error> {
@@ -520,10 +516,14 @@ pub fn peek_first_node(nodes: &[Node]) -> Result<&Node, Error> {
 ///```
 ///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::FlatNode::BeginRule(("hello".to_string(), ast::Node::Val("world".to_string()))),
-///     ];
+///                    ast::FlatNode::BeginRule("hello".to_string()),
+///                    ast::FlatNode::Val("world".to_string()),
+///                ];
 ///     
-///     let nodes = ast::consume_flat_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
+///     let nodes = ast::consume_flat_node_start_rule_name("hello", &nodes).unwrap();
+///
+///     let (node, nodes)  = ast::flat_consume_val(nodes).unwrap();
+///     assert!(node == "world");
 ///     assert!(nodes.len() == 0);
 ///```
 ///
@@ -546,16 +546,19 @@ pub fn consume_flat_node_start_rule_name<'a>(
     }
 }
 
-/// Consume a FlatNode if it's a Rule kind with a specific value
+/// Consume a FlatNode indicating the end of a rule,
+/// if it's a Rule kind with a specific name
 /// and return the rest of nodes
 ///
 ///```
 ///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::FlatNode::BeginRule(("hello".to_string(), ast::Node::Val("world".to_string()))),
+///                 ast::FlatNode::EndRule("hello".to_string()),
+///                 ast::FlatNode::EndRule("hi".to_string()),
 ///     ];
 ///     
-///     let nodes = ast::consume_flat_node_get_subnodes_for_rule_name_is("hello", &nodes).unwrap();
+///     let nodes = ast::consume_flat_node_end_rule_name("hello", &nodes).unwrap();
+///     let nodes = ast::consume_flat_node_end_rule_name("hi", &nodes).unwrap();
 ///     assert!(nodes.len() == 0);
 ///```
 ///
@@ -581,23 +584,23 @@ pub fn consume_flat_node_end_rule_name<'a>(
 /// Given a list of nodes, return the first and the rest on a tuple
 ///
 ///```
-///     use dynparser::astaa;
+///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::Node::Val("hello".to_string()),
-///                 ast::Node::Val("world".to_string()),
-///                 ast::Node::Val(".".to_string()),
+///                 ast::FlatNode::Val("hello".to_string()),
+///                 ast::FlatNode::Val("world".to_string()),
+///                 ast::FlatNode::Val(".".to_string()),
 ///     ];
 ///     
-///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
-///     assert!(ast::get_node_val(node).unwrap() == "hello");
+///     let (node, nodes) = ast::split_first_flat_nodes(&nodes).unwrap();
+///     assert!(ast::get_flat_node_val(node).unwrap() == "hello");
 ///     assert!(nodes.len() == 2);
 ///
-///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
-///     assert!(ast::get_node_val(node).unwrap() == "world");
+///     let (node, nodes) = ast::split_first_flat_nodes(&nodes).unwrap();
+///     assert!(ast::get_flat_node_val(node).unwrap() == "world");
 ///     assert!(nodes.len() == 1);
 
-///     let (node, nodes) = ast::split_first_nodes(&nodes).unwrap();
-///     assert!(ast::get_node_val(node).unwrap() == ".");
+///     let (node, nodes) = ast::split_first_flat_nodes(&nodes).unwrap();
+///     assert!(ast::get_flat_node_val(node).unwrap() == ".");
 ///     assert!(nodes.len() == 0);
 ///```
 ///
@@ -608,15 +611,16 @@ pub fn split_first_flat_nodes(nodes: &[FlatNode]) -> Result<(&FlatNode, &[FlatNo
 }
 
 /// Return a reference to first node
-///todo
-///```ignore
+///
+///```
 ///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::Node::Rule(("hello".to_string(), vec![ast::Node::Val("world".to_string())])),
-///     ];
+///                    ast::FlatNode::BeginRule("hello".to_string()),
+///                    ast::FlatNode::Val("world".to_string()),
+///                ];
 ///     
-///     let first = ast::peek_first_node(&nodes).unwrap();
-///     assert!(first == ast::Node::Rule(("hello".to_string(), vec![])));
+///     let first = ast::peek_first_flat_node(&nodes).unwrap();
+///     assert!(first == &ast::FlatNode::BeginRule("hello".to_string()));
 ///```
 ///
 pub fn peek_first_flat_node(nodes: &[FlatNode]) -> Result<&FlatNode, Error> {
@@ -627,43 +631,13 @@ pub fn peek_first_flat_node(nodes: &[FlatNode]) -> Result<&FlatNode, Error> {
     }
 }
 
-/// Sometimes, processing the ast, you will exptect to have an unique
-/// child, and it will have to be a simple Node::Val
-/// This function will return the val, or error in other case
-///
-///```
-///     use dynparser::ast;
-///     let nodes = vec![ast::Node::Val("hello".to_string())];
-///     
-///     let val = ast::get_nodes_unique_val(&nodes).unwrap();
-///     
-///     assert!(val == "hello");
-///```
-///
-/// If you pass an slice with more than one element, it will return
-/// an error
-///
-///```
-///     use dynparser::astaaa;
-///     let nodes = vec![ast::Node::Val("hello".to_string()),
-///                      ast::Node::Val("world".to_string())];
-///     
-///     assert!(ast::get_nodes_unique_val(&nodes).is_err());
-///```
-// pub fn get_flat_nodes_unique_val(nodes: &[FlatNode]) -> Result<&str, Error> {
-//     match (nodes.first(), nodes.len()) {
-//         (Some(n), 1) => get_flat_node_val(n),
-//         _ => Err(error("expected only one value in nodes", None)),
-//     }
-// }
-
 /// Get the value of the Node
 /// If node is not a Node::Val, it will return an error
 ///```
-///     use dynparser::ast::{self, get_node_val}aaaa;
-///     let ast = ast::Node::Val("hello".to_string());
+///     use dynparser::ast;
+///     let node = ast::FlatNode::Val("hello".to_string());
 ///     
-///     let val = get_node_val(&ast).unwrap();
+///     let val = ast::get_flat_node_val(&node).unwrap();
 ///     
 ///     assert!(val == "hello");
 ///```
@@ -678,15 +652,15 @@ pub fn get_flat_node_val(node: &FlatNode) -> Result<&str, Error> {
 /// equal to the provider one
 ///
 ///```
-///     use dynparser::astaaaa;
+///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::Node::Val("hello".to_string()),
-///                 ast::Node::Val("world".to_string()),
-///                 ast::Node::Val(".".to_string()),
+///                 ast::FlatNode::Val("hello".to_string()),
+///                 ast::FlatNode::Val("world".to_string()),
+///                 ast::FlatNode::Val(".".to_string()),
 ///     ];
 ///     
-///     let nodes = ast::consume_this_value("hello", &nodes).unwrap();
-///     let nodes = ast::consume_this_value("world", &nodes).unwrap();
+///     let nodes = ast::flat_consume_this_value("hello", &nodes).unwrap();
+///     let nodes = ast::flat_consume_this_value("world", &nodes).unwrap();
 ///```
 ///
 pub fn flat_consume_this_value<'a>(
@@ -706,19 +680,17 @@ pub fn flat_consume_this_value<'a>(
     }
 }
 
-/// It will get the node name and a slice to the nodes contained by the node
+/// It will get the node name of a node if it's a rule one (begin or end).
+/// In other case, it will return an error
+///
 /// ```
-///    use dynparser::ast::{self, get_nodename_and_nodes, Nodeaaa};
+///    use dynparser::ast;
 ///
-///    let ast: Node = Node::Rule((
-///        "root".to_string(),
-///        vec![Node::Val("hello".to_string())],
-///    ));
+///    let node = ast::FlatNode::BeginRule("aaa".to_string());
 ///
-///    let (node_name, nodes) = get_nodename_and_nodes(&ast).unwrap();
+///    let node_name = ast::flat_get_nodename(&node).unwrap();
 ///
-///    assert!(node_name == "root");
-///    assert!(nodes[0] == ast::Node::Val("hello".to_string()),)
+///    assert!(node_name == "aaa");
 /// ```
 pub fn flat_get_nodename(node: &FlatNode) -> Result<&str, Error> {
     match node {
@@ -729,22 +701,22 @@ pub fn flat_get_nodename(node: &FlatNode) -> Result<&str, Error> {
 }
 
 /// Given a slice of nodes, return the value (&str) of first
-/// node if it is a Node::Rule and return the rest of nodes
+/// node if it is a Node::Val and return the rest of nodes
 ///
-/// If it's not possible, return an error
+/// If it's not possible, it returns an error
 ///
 ///```
-///     use dynparser::astaaa;
+///     use dynparser::ast;
 ///     let nodes = vec![
-///                 ast::Node::Val("hello".to_string()),
-///                 ast::Node::Val("world".to_string()),
+///                 ast::FlatNode::Val("hello".to_string()),
+///                 ast::FlatNode::Val("world".to_string()),
 ///     ];
 ///     
-///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     let (val, nodes) = ast::flat_consume_val(&nodes).unwrap();
 ///     assert!(val == "hello");
 ///     assert!(nodes.len() == 1);
 ///
-///     let (val, nodes) = ast::consume_val(&nodes).unwrap();
+///     let (val, nodes) = ast::flat_consume_val(&nodes).unwrap();
 ///     assert!(val == "world");
 ///     assert!(nodes.len() == 0);
 ///```

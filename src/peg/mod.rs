@@ -123,7 +123,6 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 pub fn rules_from_peg(peg: &str) -> Result {
     let ast = parse(peg, &rules::parse_peg())?;
     let nodes = ast.compact().prune(&["_", "_1", "_eol"]).flattern();
-    println!("{:#?}", nodes);
 
     rules_from_flat_ast(&nodes)
 }
