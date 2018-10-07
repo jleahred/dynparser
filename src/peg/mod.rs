@@ -6,7 +6,7 @@ pub mod gcode;
 mod rules;
 
 use ast;
-use idata::IVec;
+use idata::{self, IVec};
 use parse;
 use parser::{
     self,
@@ -122,22 +122,21 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 
 pub fn rules_from_peg(peg: &str) -> Result {
     let ast = parse(peg, &rules::parse_peg())?;
+    let nodes = ast.compact().prune(&["_", "_1", "_eol"]).flattern();
 
-    rules_from_ast(&ast)
+    rules_from_flat_ast(&nodes)
 }
 
 //  A P I
 // -------------------------------------------------------------------------------------
 
-fn rules_from_ast(ast: &ast::Node) -> Result {
-    let ast = ast.compact().prune(&["_", "_eol"]);
-
-    let vast = vec![ast];
-    let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("main", &vast)?;
-    ast::check_empty_nodes(nodes)?;
-    let (rules, _sub_nodes) = consume_grammar(sub_nodes)?;
-
-    Ok(rules)
+fn rules_from_flat_ast(nodes: &[ast::FlatNode]) -> Result {
+    let (rules, nodes) = consume_main(&nodes)?;
+    if !nodes.is_empty() {
+        Err(error_peg_s("expected empty nodes after processing main"))
+    } else {
+        Ok(rules)
+    }
 }
 
 macro_rules! push_err {
@@ -147,74 +146,85 @@ macro_rules! push_err {
     }};
 }
 
+fn consuming_rule<'a, F, R>(
+    rule_name: &str,
+    nodes: &'a [ast::FlatNode],
+    f: F,
+) -> result::Result<(R, &'a [ast::FlatNode]), Error>
+where
+    F: FnOnce(&'a [ast::FlatNode]) -> result::Result<(R, &'a [ast::FlatNode]), Error>, //result::Result<(expression::SetOfRules, &'a [ast::FlatNode]), Error>
+                                                                                       // R: std::ops::Try,
+{
+    push_err!(&format!("consuming {}", rule_name), {
+        let nodes = ast::consume_flat_node_start_rule_name(rule_name, &nodes)?;
+        let (result, nodes) = f(&nodes)?;
+        let nodes = ast::consume_flat_node_end_rule_name(rule_name, &nodes)?;
+        Ok((result, nodes))
+    })
+}
+
+fn consume_main(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
+    // main            =   grammar
+
+    consuming_rule("main", nodes, |nodes| consume_grammar(&nodes))
+}
+
 fn consume_grammar(
-    nodes: &[ast::Node],
-) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
-    //  grammar         =   rule+
+    nodes: &[ast::FlatNode],
+) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
+    // grammar         =   rule+
 
     fn rec_consume_rules(
         rules: expression::SetOfRules,
-        nodes: &[ast::Node],
-    ) -> result::Result<(expression::SetOfRules, &[ast::Node]), Error> {
-        if nodes.is_empty() {
-            Ok((rules, nodes))
-        } else {
-            let (name, expr, nodes) = consume_rule(nodes)?;
-            let rules = rules.add(name, expr);
-            rec_consume_rules(rules, nodes)
+        nodes: &[ast::FlatNode],
+    ) -> result::Result<(expression::SetOfRules, &[ast::FlatNode]), Error> {
+        match ast::peek_first_flat_node(nodes)? {
+            ast::FlatNode::BeginRule(_) => {
+                let ((name, expr), nodes) = consume_rule(nodes)?;
+                let rules = rules.add(name, expr);
+                rec_consume_rules(rules, nodes)
+            }
+            _ => Ok((rules, nodes)),
         }
     }
+    //  --------------------------
 
-    push_err!("consuming grammar", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("grammar", nodes)?;
-        ast::check_empty_nodes(nodes)?;
-
-        let (rules, nodes) = rec_consume_rules(rules!(), sub_nodes)?;
-        ast::check_empty_nodes(nodes)?;
-
-        Ok((rules, nodes))
+    consuming_rule("grammar", nodes, |nodes| {
+        rec_consume_rules(rules!(), &nodes)
     })
 }
 
 fn consume_rule(
-    nodes: &[ast::Node],
-) -> result::Result<(&str, expression::Expression, &[ast::Node]), Error> {
-    //  rule            =   symbol  _  "="  _   expr  (_ / eof)
+    nodes: &[ast::FlatNode],
+) -> result::Result<((&str, expression::Expression), &[ast::FlatNode]), Error> {
+    // rule            =   _  symbol  _  "="  _  expr  _eol _
 
-    push_err!("consuming rule", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("rule", nodes)?;
-        let (symbol_name, sub_nodes) = consume_symbol(sub_nodes)?;
+    consuming_rule("rule", nodes, |nodes| {
+        let (symbol_name, nodes) = consume_symbol(nodes)?;
+        let nodes = ast::flat_consume_this_value("=", nodes)?;
+        let (expr, nodes) = consume_peg_expr(nodes)?;
 
-        push_err!(&format!("r:({})", symbol_name), {
-            let sub_nodes = ast::consume_this_value("=", sub_nodes)?;
-            let (expr, sub_nodes) = consume_peg_expr(sub_nodes)?;
-            ast::check_empty_nodes(sub_nodes)?;
-
-            Ok((symbol_name, expr, nodes))
-        })
+        Ok(((symbol_name, expr), nodes))
     })
 }
 
-fn consume_symbol(nodes: &[ast::Node]) -> result::Result<(&str, &[ast::Node]), Error> {
-    //  symbol          =   [a-zA-Z0-9_']+
+fn consume_symbol(nodes: &[ast::FlatNode]) -> result::Result<(&str, &[ast::FlatNode]), Error> {
+    // symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
-    push_err!("consuming symbol", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("symbol", nodes)?;
-        let value = ast::get_nodes_unique_val(sub_nodes)?;
-        Ok((value, nodes))
+    consuming_rule("symbol", nodes, |nodes| {
+        let (val, nodes) = ast::flat_consume_val(nodes)?;
+        Ok((val, nodes))
     })
 }
 
-fn consume_peg_expr(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+fn consume_peg_expr(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
     //  expr            =   or
 
-    push_err!("consuming expr", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("expr", nodes)?;
-        let (expr, sub_nodes) = consume_or(sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
-
-        Ok((expr, nodes))
-    })
+    consuming_rule("expr", nodes, |nodes| consume_or(nodes))
 }
 
 //  This is to manage And & Or multiexpressions
@@ -234,38 +244,35 @@ impl ExprOrVecExpr {
     }
 }
 
-fn consume_or(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+fn consume_or(nodes: &[ast::FlatNode]) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
     //  or              =   and         ( _ "/"  _  or)*
 
     fn rec_consume_or(
         eov: ExprOrVecExpr,
-        nodes: &[ast::Node],
-    ) -> result::Result<(ExprOrVecExpr, &[ast::Node]), Error> {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("or", nodes)?;
+        nodes: &[ast::FlatNode],
+    ) -> result::Result<(ExprOrVecExpr, &[ast::FlatNode]), Error> {
+        consuming_rule("or", nodes, move |nodes| {
+            let (expr, nodes) = consume_and(nodes)?;
+            let eov = eov.ipush(expr);
 
-        let (expr, sub_nodes) = consume_and(sub_nodes)?;
-        let eov = eov.ipush(expr);
-
-        let consume_next_or = |eov, nodes, sub_nodes| {
-            let (exprs, sub_nodes) = match ast::consume_this_value("/", sub_nodes) {
-                Ok(sub_nodes) => rec_consume_or(eov, &sub_nodes)?,
-                _ => (eov, nodes),
+            let consume_next_or = |eov, nodes| {
+                let (exprs, nodes) = match ast::flat_consume_this_value("/", nodes) {
+                    Ok(nodes) => rec_consume_or(eov, &nodes)?,
+                    _ => (eov, nodes),
+                };
+                Ok((exprs, nodes))
             };
-            ast::check_empty_nodes(sub_nodes)?;
-            Ok((exprs, nodes))
-        };
-        // ----
-
-        match sub_nodes.len() {
-            0 => Ok((eov, nodes)),
-            _ => consume_next_or(eov, nodes, sub_nodes),
-        }
+            match nodes.len() {
+                0 => Ok((eov, nodes)),
+                _ => consume_next_or(eov, nodes),
+            }
+        })
     };
 
     let build_or_expr = |vexpr| Expression::Or(expression::MultiExpr(vexpr));
-    //-----
+    //  --------------------------
 
-    push_err!("consuming or", {
+    push_err!("or:", {
         let (eov, nodes) = rec_consume_or(ExprOrVecExpr::None, nodes)?;
 
         match eov {
@@ -276,284 +283,249 @@ fn consume_or(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]),
     })
 }
 
-fn consume_and(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    //  and             =   rep_or_neg  (   " "  _  and)*
+fn consume_and(nodes: &[ast::FlatNode]) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    // and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
 
     fn rec_consume_and(
         eov: ExprOrVecExpr,
-        nodes: &[ast::Node],
-    ) -> result::Result<(ExprOrVecExpr, &[ast::Node]), Error> {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("and", nodes)?;
+        nodes: &[ast::FlatNode],
+    ) -> result::Result<(ExprOrVecExpr, &[ast::FlatNode]), Error> {
+        consuming_rule("and", nodes, move |nodes| {
+            let (expr, nodes) = consume_rep_or_neg(nodes)?;
+            let eov = eov.ipush(expr);
+            let next_node = ast::peek_first_flat_node(nodes)?;
 
-        let (expr, sub_nodes) = consume_rep_or_neg(sub_nodes)?;
-        let consume_next_and = |eov, nodes, sub_nodes| {
-            let (exprs, sub_nodes) =
-                match ast::consume_node_get_subnodes_for_rule_name_is("_1", sub_nodes) {
-                    Ok((sub_nodes, _)) => rec_consume_and(eov, &sub_nodes)?,
-                    _ => (eov, nodes),
-                };
-            ast::check_empty_nodes(sub_nodes)?;
-            Ok((exprs, nodes))
-        };
-        //----
+            match (next_node, ast::flat_get_nodename(next_node)) {
+                (ast::FlatNode::BeginRule(_), Ok("and")) => rec_consume_and(eov, nodes),
+                _ => Ok((eov, nodes)),
+            }
+        })
+    }
 
-        let eov = eov.ipush(expr);
-        match sub_nodes.len() {
-            0 => Ok((eov, nodes)),
-            _ => consume_next_and(eov, nodes, sub_nodes),
-        }
-    };
     let build_and_expr = |vexpr| Expression::And(expression::MultiExpr(vexpr));
-    //-----
+    //  --------------------------
 
-    push_err!("consuming and", {
-        let (eov, nodes) = rec_consume_and(ExprOrVecExpr::None, nodes)?;
-
-        match eov {
-            ExprOrVecExpr::None => Err(error_peg_s("logic error, empty or parsing???")),
-            ExprOrVecExpr::Expr(e) => Ok((e, nodes)),
-            ExprOrVecExpr::VExpr(v) => Ok((build_and_expr(v), nodes)),
-        }
-    })
-}
-
-fn consume_rep_or_neg(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    // rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-    //                 /   "!" atom_or_par
-
-    let atom_and_rep = |sub_nodes| {
-        let (expr, sub_nodes) = consume_atom_or_par(sub_nodes)?;
-
-        match sub_nodes {
-            [node] => process_repetition_indicator(expr, node),
-            [] => Ok(expr),
-            _ => Err(error_peg_s("expected one node with repeticion info")),
-        }
-    };
-    let neg_and_atom = |nodes| -> result::Result<Expression, Error> {
-        let nodes = ast::consume_this_value(r#"!"#, nodes)?;
-        let (expr, _) = consume_atom_or_par(nodes)?;
-        Ok(not!(expr))
-    };
-
-    push_err!("consuming rep_or_neg", {
-        let (nodes, sub_nodes) =
-            ast::consume_node_get_subnodes_for_rule_name_is("rep_or_neg", nodes)?;
-
-        let expr = neg_and_atom(sub_nodes).or_else(|_| atom_and_rep(sub_nodes))?;
-
-        Ok((expr, nodes))
-    })
-}
-
-fn process_repetition_indicator(
-    expr: Expression,
-    node: &ast::Node,
-) -> result::Result<Expression, Error> {
-    let rsymbol = ast::get_node_val(node)?;
-
-    match rsymbol {
-        "+" => Ok(rep!(expr, 1)),
-        "*" => Ok(rep!(expr, 0)),
-        "?" => Ok(rep!(expr, 0, 1)),
-        unknown => Err(error_peg_s(&format!(
-            "repetition symbol unknown {}",
-            unknown
-        ))),
+    let (eov, nodes) = rec_consume_and(ExprOrVecExpr::None, nodes)?;
+    match eov {
+        ExprOrVecExpr::None => Err(error_peg_s("logic error, empty or parsing???")),
+        ExprOrVecExpr::Expr(e) => Ok((e, nodes)),
+        ExprOrVecExpr::VExpr(v) => Ok((build_and_expr(v), nodes)),
     }
 }
 
-fn consume_atom_or_par(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+fn consume_rep_or_neg(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    // rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
+    //                 /   "!" atom_or_par
+
+    fn process_repetition_indicator(
+        expr: Expression,
+        rsymbol: &str,
+    ) -> result::Result<Expression, Error> {
+        match rsymbol {
+            "+" => Ok(rep!(expr, 1)),
+            "*" => Ok(rep!(expr, 0)),
+            "?" => Ok(rep!(expr, 0, 1)),
+            unknown => Err(error_peg_s(&format!(
+                "repetition symbol unknown {}",
+                unknown
+            ))),
+        }
+    }
+
+    let atom_and_rep = |nodes| {
+        let (expr, nodes) = consume_atom_or_par(nodes)?;
+        let next_node = ast::peek_first_flat_node(nodes)?;
+
+        match next_node {
+            ast::FlatNode::Val(_) => {
+                let (sep, nodes) = ast::flat_consume_val(nodes)?;
+                Ok((process_repetition_indicator(expr, sep)?, nodes))
+            }
+            _ => Ok((expr, nodes)),
+        }
+    };
+    let neg_and_atom = |nodes| -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+        let nodes = ast::flat_consume_this_value(r#"!"#, nodes)?;
+        let (expr, nodes) = consume_atom_or_par(nodes)?;
+        Ok((not!(expr), nodes))
+    };
+    //  --------------------------
+
+    consuming_rule("rep_or_neg", nodes, |nodes| {
+        neg_and_atom(nodes).or_else(|_| atom_and_rep(nodes))
+    })
+}
+
+fn consume_atom_or_par(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
     // atom_or_par     =   (atom / parenth)
 
-    push_err!("consuming atom_or_par", {
-        let (nodes, sub_nodes) =
-            ast::consume_node_get_subnodes_for_rule_name_is("atom_or_par", nodes)?;
+    consuming_rule("atom_or_par", nodes, |nodes| {
+        let next_node = ast::peek_first_flat_node(nodes)?;
+        let node_name = ast::flat_get_nodename(next_node)?;
 
-        let (node, _) = ast::split_first_nodes(sub_nodes)?;
-        let (node_name, _) = ast::get_nodename_and_nodes(node)?;
-
-        let (expr, sub_nodes) = push_err!(&format!("n:{}", node_name), {
+        let (expr, nodes) = push_err!(&format!("n:{}", node_name), {
             match &node_name as &str {
-                "atom" => consume_atom(sub_nodes),
-                "parenth" => consume_parenth(sub_nodes),
+                "atom" => consume_atom(nodes),
+                "parenth" => consume_parenth(nodes),
                 unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
             }
         })?;
 
-        ast::check_empty_nodes(sub_nodes)?;
         Ok((expr, nodes))
     })
 }
 
-fn consume_atom(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
+fn consume_atom(nodes: &[ast::FlatNode]) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
     // atom            =   literal
     //                 /   match
     //                 /   dot
     //                 /   symbol
 
-    push_err!("consuming atom", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("atom", nodes)?;
-        ast::check_empty_nodes(nodes)?;
+    consuming_rule("atom", nodes, |nodes| {
+        let next_node = ast::peek_first_flat_node(nodes)?;
+        let node_name = ast::flat_get_nodename(next_node)?;
 
-        let (node, _) = ast::split_first_nodes(sub_nodes)?;
-        let (node_name, _) = ast::get_nodename_and_nodes(node)?;
-
-        let (expr, sub_nodes) = push_err!(&format!("n:{}", node_name), {
+        let (expr, nodes) = push_err!(&format!("n:{}", node_name), {
             match &node_name as &str {
-                "literal" => consume_literal(sub_nodes),
-                "symbol" => consume_symbol_rule_ref(sub_nodes),
-                "dot" => consume_dot(sub_nodes),
-                "match" => consume_match(sub_nodes),
+                "literal" => consume_literal(nodes),
+                "symbol" => consume_symbol_rule_ref(nodes),
+                "dot" => consume_dot(nodes),
+                "match" => consume_match(nodes),
                 unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
             }
         })?;
-
-        ast::check_empty_nodes(sub_nodes)?;
-        Ok((expr, sub_nodes))
-    })
-}
-
-fn consume_parenth(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    //  parenth         =   "("  _  expr  _  ")"
-
-    push_err!("consuming parenth", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("parenth", nodes)?;
-        ast::check_empty_nodes(nodes)?;
-
-        let sub_nodes = ast::consume_this_value(r#"("#, sub_nodes)?;
-        let (expr, sub_nodes) = consume_peg_expr(sub_nodes)?;
-        let sub_nodes = ast::consume_this_value(r#")"#, sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
-        Ok((expr, sub_nodes))
-    })
-}
-
-fn consume_dot(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    //  dot             =   "."
-    push_err!("consuming dot", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("dot", nodes)?;
-        ast::check_empty_nodes(nodes)?;
-
-        let (_, sub_nodes) = ast::consume_val(sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
-
-        Ok((dot!(), nodes))
-    })
-}
-
-fn consume_match(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    // match           =   "["
-    //                         (
-    //                             (mchars+  mbetween*)
-    //                             / mbetween+
-    //                         )
-    //                     "]"
-
-    push_err!("consuming match", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("match", nodes)?;
-        ast::check_empty_nodes(nodes)?;
-
-        let sub_nodes = ast::consume_this_value("[", sub_nodes)?;
-
-        let (expr, sub_nodes) = consume_chars_mbetween(sub_nodes)
-            .and_then(|(chs, vbetw, sub_nodes)| Ok((ematch!(chlist chs, from2 vbetw), sub_nodes)))
-            .or_else(|_| {
-                consume_mbetween(sub_nodes)
-                    .and_then(|(vbetw, sub_nodes)| Ok((ematch!(chlist "", from2 vbetw), sub_nodes)))
-            })?;
-
-        let sub_nodes = ast::consume_this_value("]", sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
 
         Ok((expr, nodes))
     })
 }
 
-type VecChCh = Vec<(char, char)>;
+fn consume_parenth(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    //  parenth         =   "("  _  expr  _  ")"
 
-fn consume_mbetween(nodes: &[ast::Node]) -> result::Result<(VecChCh, &[ast::Node]), Error> {
-    // mbetween        =   (.  "-"  .)
-
-    fn rec_consume_between(
-        acc: VecChCh,
-        nodes: &[ast::Node],
-    ) -> result::Result<(VecChCh, &[ast::Node]), Error> {
-        let process_between = |acc: VecChCh, nodes| {
-            let (val, nodes) = ast::consume_val(nodes)?;
-            ast::check_empty_nodes(nodes)?;
-            let _u8_dash = b'-';
-            match val.as_bytes() {
-                [init, _u8_dash, end] => Ok((acc.ipush((*init as char, *end as char)), nodes)),
-                unknown => Err(error_peg_s(&format!(
-                    "gettíng match.between {:?}",
-                    unknown
-                ))),
-            }
-        };
-
-        match ast::consume_node_get_subnodes_for_rule_name_is("mbetween", nodes) {
-            Ok((nodes, sub_nodes)) => {
-                let (vb, _sub_nodes) = process_between(acc, sub_nodes)?;
-                rec_consume_between(vb, nodes)
-            }
-            Err(_) => Ok((acc, nodes)),
-        }
-    };
-
-    rec_consume_between(vec![], nodes)
+    consuming_rule("parenth", nodes, |nodes| {
+        let nodes = ast::flat_consume_this_value(r#"("#, nodes)?;
+        let (expr, nodes) = consume_peg_expr(nodes)?;
+        let nodes = ast::flat_consume_this_value(r#")"#, nodes)?;
+        Ok((expr, nodes))
+    })
 }
 
-fn consume_chars_mbetween(
-    nodes: &[ast::Node],
-) -> result::Result<(&str, VecChCh, &[ast::Node]), Error> {
-    //  mchars+  mbetween*
+fn consume_literal(
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    // literal         =   _" till_quote _"
 
-    let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("mchars", nodes)?;
-    let (val, sub_nodes) = ast::consume_val(sub_nodes)?;
-    ast::check_empty_nodes(sub_nodes)?;
-    let (vb, nodes) = consume_mbetween(nodes)?;
+    consuming_rule("literal", nodes, |nodes| {
+        let nodes = consume_quote(nodes)?;
+        let (val, nodes) = ast::flat_consume_val(nodes)?;
 
-    Ok((val, vb, nodes))
+        push_err!(&format!("l:({})", val), {
+            let nodes = consume_quote(nodes)?;
+            Ok((lit!(val), nodes))
+        })
+    })
+}
+
+fn consume_quote(nodes: &[ast::FlatNode]) -> result::Result<&[ast::FlatNode], Error> {
+    // _"              =   "\u{34}"
+
+    Ok(consuming_rule(r#"_""#, nodes, |nodes| {
+        Ok(((), ast::flat_consume_this_value(r#"""#, nodes)?))
+    })?.1)
+}
+
+fn consume_dot(nodes: &[ast::FlatNode]) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    //  dot             =   "."
+
+    consuming_rule("dot", nodes, |nodes| {
+        let (_, nodes) = ast::flat_consume_val(nodes)?;
+        Ok((dot!(), nodes))
+    })
 }
 
 fn consume_symbol_rule_ref(
-    nodes: &[ast::Node],
-) -> result::Result<(Expression, &[ast::Node]), Error> {
+    nodes: &[ast::FlatNode],
+) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
     push_err!("consuming symbol rule_ref", {
         let (symbol_name, nodes) = consume_symbol(nodes)?;
-        ast::check_empty_nodes(nodes)?;
 
         Ok((ref_rule!(symbol_name), nodes))
     })
 }
 
-fn consume_literal(nodes: &[ast::Node]) -> result::Result<(Expression, &[ast::Node]), Error> {
-    // literal         =   _" till_quote _"
+fn consume_match(nodes: &[ast::FlatNode]) -> result::Result<(Expression, &[ast::FlatNode]), Error> {
+    // match           =   "["
+    //                         (
+    //                             (mchars  mbetween*)
+    //                             / mbetween+
+    //                         )
+    //                     "]"
 
-    push_err!("consuming literal", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is("literal", nodes)?;
-        ast::check_empty_nodes(nodes)?;
+    type VecChCh = Vec<(char, char)>;
+    consuming_rule("match", nodes, |nodes| {
+        fn rec_consume_mbetween(
+            acc: Vec<(char, char)>,
+            nodes: &[ast::FlatNode],
+        ) -> result::Result<(VecChCh, &[ast::FlatNode]), Error> {
+            let next_node = ast::peek_first_flat_node(nodes)?;
+            let node_name = ast::flat_get_nodename(next_node);
+            match node_name {
+                Ok("mbetween") => {
+                    let ((from, to), nodes) = consume_mbetween(nodes)?;
+                    rec_consume_mbetween(acc.ipush((from, to)), nodes)
+                }
+                _ => Ok((acc, nodes)),
+            }
+        }
+        //  --------------------------
 
-        let sub_nodes = consume_quote(sub_nodes)?;
-        let (val, sub_nodes) = ast::consume_val(sub_nodes)?;
+        let nodes = ast::flat_consume_this_value("[", nodes)?;
 
-        push_err!(&format!("l:({})", val), {
-            let sub_nodes = consume_quote(sub_nodes)?;
-            ast::check_empty_nodes(sub_nodes)?;
-            Ok((lit!(val), sub_nodes))
-        })
+        let (ochars, nodes) = match consume_mchars(nodes) {
+            Ok((chars, nodes)) => (Some(chars), nodes),
+            _ => (None, nodes),
+        };
+
+        let (vchars, nodes) = rec_consume_mbetween(vec![], nodes)?;
+
+        let (expr, nodes) = match (ochars, vchars.is_empty()) {
+            (Some(chars), true) => Ok((ematch!(chlist chars, from2 vec![]), nodes)),
+            (Some(chars), false) => Ok((ematch!(chlist chars, from2 vchars), nodes)),
+            (None, false) => Ok((ematch!(chlist "", from2 vchars), nodes)),
+            _ => Err(error_peg_s("Invalid match combination")),
+        }?;
+
+        let nodes = ast::flat_consume_this_value("]", nodes)?;
+
+        Ok((expr, nodes))
     })
 }
 
-fn consume_quote(nodes: &[ast::Node]) -> result::Result<&[ast::Node], Error> {
-    // _"              =   "\u{34}"
+fn consume_mchars(nodes: &[ast::FlatNode]) -> result::Result<(&str, &[ast::FlatNode]), Error> {
+    // mchars          =   (!"]" !(. "-") .)+
 
-    push_err!("consuming quote", {
-        let (nodes, sub_nodes) = ast::consume_node_get_subnodes_for_rule_name_is(r#"_""#, nodes)?;
-        let sub_nodes = ast::consume_this_value(r#"""#, sub_nodes)?;
-        ast::check_empty_nodes(sub_nodes)?;
+    consuming_rule("mchars", nodes, |nodes| Ok(ast::flat_consume_val(nodes)?))
+}
 
-        Ok(nodes)
+fn consume_mbetween(
+    nodes: &[ast::FlatNode],
+) -> result::Result<((char, char), &[ast::FlatNode]), Error> {
+    // mbetween        =   (.  "-"  .)
+
+    consuming_rule("mbetween", nodes, |nodes| {
+        let (from_to, nodes) = ast::flat_consume_val(nodes)?;
+
+        let (from, chars) = idata::consume_char(from_to.chars())
+            .ok_or_else(|| error_peg_s("expected from char"))?;
+        let (_, chars) =
+            idata::consume_char(chars).ok_or_else(|| error_peg_s("expected '-' char"))?;
+        let (to, _) = idata::consume_char(chars).ok_or_else(|| error_peg_s("expected to char"))?;;
+        Ok(((from, to), nodes))
     })
 }

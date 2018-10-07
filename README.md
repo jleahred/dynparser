@@ -53,6 +53,7 @@ Watch examples below
 
 ## TODO
 
+- ast::flat module (recheck docs)
 - performance info parsing rules
 - escape
   - on literals?
