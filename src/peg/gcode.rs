@@ -91,6 +91,7 @@ fn atom2code(atom: &Atom) -> String {
 
     match atom {
         Atom::Literal(s) => format!(r#"lit!("{}")"#, replace_esc(s.to_string())),
+        Atom::Error(s) => format!(r#"error!("{}")"#, replace_esc(s.to_string())),
         Atom::Match(mrules) => match_rules2code(mrules),
         Atom::Dot => "dot!()".to_string(),
         Atom::EOF => "eof!()".to_string(),

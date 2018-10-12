@@ -124,6 +124,34 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 ///
 ///     assert!(parse("hello world", &rules).is_ok());
 /// ```
+///
+/// Next is an example with some  error info
+///
+/// ```
+///    extern crate dynparser;
+///    use dynparser::{parse, rules_from_peg};
+///
+///    let rules = rules_from_peg(
+///        r#"
+///         main    =   '('  main  ( ')'  /  error("unbalanced parenthesys") )
+///                 /   'hello'
+///        "#,
+///    ).unwrap();
+///
+///     assert!(parse("hello", &rules).is_ok());
+///     println!("{:?}", parse("(hello)", &rules));
+///     assert!(parse("(hello)", &rules).is_ok());
+///     assert!(parse("((hello))", &rules).is_ok());
+///     assert!(parse("(((hello)))", &rules).is_ok());
+///     match parse("(hello", &rules) {
+///         Err(e) => {assert!(e.descr == "error unbalanced parenthesys");},
+///         _ => ()
+///     }
+///     match parse("((hello)", &rules) {
+///         Err(e) => {assert!(e.descr == "error unbalanced parenthesys");},
+///         _ => ()
+///     }
+/// ```
 
 pub fn rules_from_peg(peg: &str) -> Result {
     let ast = parse(peg, &rules::parse_peg())?;
@@ -146,8 +174,8 @@ fn rules_from_flat_ast(nodes: &[flat::Node]) -> Result {
 
 macro_rules! push_err {
     ($descr:expr, $e:expr) => {{
-        let l = || $e;
-        l().map_err(|e: Error| e.ipush($descr))
+        let l = move || $e;
+        l().map_err(move |e: Error| e.ipush($descr))
     }};
 }
 
@@ -248,26 +276,33 @@ impl ExprOrVecExpr {
 }
 
 fn consume_or(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
-    //  or              =   and         ( _ "/"  _  or)*
+    // or              =   and         ( _  '/'  _  (error  /  or)  )?
 
     fn rec_consume_or(
         eov: ExprOrVecExpr,
         nodes: &[flat::Node],
     ) -> result::Result<(ExprOrVecExpr, &[flat::Node]), Error> {
         consuming_rule("or", nodes, move |nodes| {
+            let consume_err_or_or = |eov: ExprOrVecExpr, nodes| {
+                let next_node_name = flat::get_nodename(flat::peek_first_node(nodes)?)?;
+                match next_node_name {
+                    "error" => consume_error(nodes).map(|(e, n)| (eov.ipush(e), n)),
+                    "or" => rec_consume_or(eov, nodes),
+                    unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
+                }
+            };
+            //  ----------------
+
             let (expr, nodes) = consume_and(nodes)?;
             let eov = eov.ipush(expr);
+            let next_node = flat::peek_first_node(nodes)?;
 
-            let consume_next_or = |eov, nodes| {
-                let (exprs, nodes) = match flat::consume_this_value("/", nodes) {
-                    Ok(nodes) => rec_consume_or(eov, &nodes)?,
-                    _ => (eov, nodes),
-                };
-                Ok((exprs, nodes))
-            };
-            match nodes.len() {
-                0 => Ok((eov, nodes)),
-                _ => consume_next_or(eov, nodes),
+            match next_node {
+                flat::Node::Val(_) => {
+                    let nodes = flat::consume_this_value("/", nodes)?;
+                    consume_err_or_or(eov, nodes)
+                }
+                _ => Ok((eov, nodes)),
             }
         })
     };
@@ -284,6 +319,19 @@ fn consume_or(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]
             ExprOrVecExpr::VExpr(v) => Ok((build_or_expr(v), nodes)),
         }
     })
+}
+
+fn consume_error(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
+    // error           =   'error' _ '('  _  literal  _  ')'
+    let (val, nodes) = consuming_rule("error", nodes, move |nodes| {
+        let nodes = flat::consume_this_value("error", nodes)?;
+        let nodes = flat::consume_this_value("(", nodes)?;
+        let (text, nodes) = consume_literal_string(nodes)?;
+        let nodes = flat::consume_this_value(")", nodes)?;
+        Ok((text, nodes))
+    })?;
+
+    Ok((error!(val), nodes))
 }
 
 fn consume_and(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
@@ -390,7 +438,7 @@ fn consume_atom(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Nod
 
         let (expr, nodes) = push_err!(&format!("n:{}", node_name), {
             match &node_name as &str {
-                "literal" => consume_literal(nodes),
+                "literal" => consume_literal_expr(nodes),
                 "symbol" => consume_symbol_rule_ref(nodes),
                 "dot" => consume_dot(nodes),
                 "match" => consume_match(nodes),
@@ -413,7 +461,7 @@ fn consume_parenth(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::
     })
 }
 
-fn consume_literal(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
+fn consume_literal_string(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
     // literal         =  lit_noesc  /  lit_esc
 
     consuming_rule("literal", nodes, |nodes| {
@@ -426,7 +474,14 @@ fn consume_literal(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::
     })
 }
 
-fn consume_literal_esc(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
+fn consume_literal_expr(
+    nodes: &[flat::Node],
+) -> result::Result<(Expression, &[flat::Node]), Error> {
+    let (val, nodes) = consume_literal_string(nodes)?;
+    Ok((lit!(val), nodes))
+}
+
+fn consume_literal_esc(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
     // lit_esc         =   _"
     //                         (   esc_char
     //                         /   hex_char
@@ -471,9 +526,10 @@ fn consume_literal_esc(nodes: &[flat::Node]) -> result::Result<(Expression, &[fl
 
         let (val, nodes) = rec_consume_lit_esc_ch(String::new(), nodes)?;
 
-        push_err!(&format!("lesc:({})", val), {
+        let vclone = val.clone();
+        push_err!(&format!("lesc:({})", vclone), {
             let nodes = consume_quote(nodes)?;
-            Ok((lit!(val), nodes))
+            Ok((val, nodes))
         })
     })
 }
@@ -514,9 +570,7 @@ fn consume_hex_char(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Nod
     })
 }
 
-fn consume_literal_no_esc(
-    nodes: &[flat::Node],
-) -> result::Result<(Expression, &[flat::Node]), Error> {
+fn consume_literal_no_esc(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
     // lit_noesc       =   _'   (  !_' .  )*   _'
     // _'              =   "'"
 
@@ -525,9 +579,10 @@ fn consume_literal_no_esc(
         let (val, nodes) = flat::consume_val(nodes)?;
 
         let val = val.replace(r#"\"#, r#"\\"#);
-        push_err!(&format!("l:({})", val), {
+        let vclone = val.clone();
+        push_err!(&format!("l:({})", vclone), {
             let nodes = consume_single_quote(nodes)?;
-            Ok((lit!(val), nodes))
+            Ok((val, nodes))
         })
     })
 }

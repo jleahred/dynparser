@@ -36,7 +36,8 @@ fn text_peg2code() -> &'static str {
 
     expr            =   or
 
-    or              =   and         ( _  '/'  _  or  )*
+    or              =   and         ( _  '/'  _  (error  /  or)  )?
+    error           =   'error' _  '('  _  literal  _  ')'
 
     and             =   rep_or_neg  ( _1 _ !(symbol _ '=') and )*
     _1              =   (' ' / eol)     //  this is the and separator

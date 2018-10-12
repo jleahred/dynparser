@@ -148,6 +148,30 @@ macro_rules! lit {
     }};
 }
 
+/// Generate an error
+///
+/// example
+/// ```
+/// #[macro_use]  extern crate dynparser;
+/// use dynparser::parse;
+///
+/// fn main() {
+///     let rules = rules!{
+///        "main"   =>  error!("aa")
+///     };
+///
+///     assert!(parse("aa", &rules).is_ok())
+/// }
+/// ```
+#[macro_export]
+macro_rules! error {
+    ($e:expr) => {{
+        $crate::parser::expression::Expression::Simple($crate::parser::atom::Atom::Error(
+            $e.to_string(),
+        ))
+    }};
+}
+
 /// Atom::Dot (any character)
 ///
 /// example

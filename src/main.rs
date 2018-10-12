@@ -83,22 +83,13 @@ fn main() {
 // fn main() {
 //     let rules = rules_from_peg(
 //         r#"
-
-// main            =   letter letter_or_num+
-
-// letter          =   [a-zA-Z]
-
-// letter_or_num   =   letter
-//                 /   number
-
-// number          =   [0-9]
-
+//          main    =   '('  main  ( ')'  /  error("unbalanced parenthesys") )
+//                  /   'hello'
 //         "#,
 //     ).map_err(|e| {
 //         println!("{}", e);
 //         panic!("FAIL");
-//     })
-//         .unwrap();
+//     }).unwrap();
 
 //     println!("{:#?}", rules);
 
@@ -109,6 +100,7 @@ fn main() {
 //     };
 // }
 
+//  --------------------------
 // extern crate dynparser;
 // use dynparser::{parse, rules_from_peg};
 
@@ -132,6 +124,8 @@ fn main() {
 //     // assert!(parse("abcc", &rules).is_ok());
 //     // assert!(parse("bczd", &rules).is_err());
 // }
+
+//  --------------------
 
 // extern crate dynparser;
 // use dynparser::peg;

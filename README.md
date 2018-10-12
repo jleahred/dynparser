@@ -39,7 +39,7 @@ Add to `cargo.toml`
 
 ```toml
 [dependencies]
-dynparser = "0.2.0"
+dynparser = "0.4.0"
 ```
 
 Watch examples below
@@ -47,20 +47,21 @@ Watch examples below
 ## Modifications
 
     0.1.0   First version
+
     0.2.0   Fixed some errors
             Rules code for peg parsing generated automatically from peg
-    0.3.0   passthrow method on AST
+
+    0.3.0   Passthrow method on AST
+
+    0.4.0   Literals with escape (optional)
+            Error constructor on peg grammar
+            Flattening the AST
 
 ## TODO
-
-- add errors to grammar
 
 - apply tail recursion parsing rule
 - Move to an external crate IVector
 - macro for eof
-- rules path on errors configurable (due to performance)
-  - check. is it interesting to detail branches on or?
-- eof
 
 ## Basic example
 
@@ -458,27 +459,30 @@ fn main() {
 
 Examples below
 
-| token    | Description                                            |
-|:---------|:-------------------------------------------------------|
-| `=`      | On left, symbol, on right expresion defining symbol    |
-| `symbol` | It's an string without quotes                          |
-| `.`      | Any char                                               |
-| `'...'`  | Literal delimited by single quotes                     |
-| `"..."`  | Literal delimited by quotes. It accepts escape chars   |
-| `space`  | Separate tokens and Rule concatenation (and operation) |
-| `/`      | Or operation                                           |
-| `(...)`  | A expression composed of sub expresions                |
-| `?`      | One optional                                           |
-| `*`      | Repeat 0 or more                                       |
-| `+`      | Repeat 1 or more                                       |
-| `!`      | negate expression                                      |
-| `[...]`  | Match chars. It's a list or ranges (or both)           |
-| `->`     | pending...                                             |
-| `:`      | pending...                                             |
+| token        | Description                                            |
+|:-------------|:-------------------------------------------------------|
+| `=`          | On left, symbol, on right expresion defining symbol    |
+| `symbol`     | It's an string without quotes                          |
+| `.`          | Any char                                               |
+| `'...'`      | Literal delimited by single quotes                     |
+| `"..."`      | Literal delimited by quotes. It accepts escape chars   |
+| `space`      | Separate tokens and Rule concatenation (and operation) |
+| `/`          | Or operation                                           |
+| `(...)`      | A expression composed of sub expresions                |
+| `?`          | One optional                                           |
+| `*`          | Repeat 0 or more                                       |
+| `+`          | Repeat 1 or more                                       |
+| `!`          | negate expression                                      |
+| `[...]`      | Match chars. It's a list or ranges (or both)           |
+| `error(...)` | Let us to define specific errors                       |
+| `->`         | pending...                                             |
+| `:`          | pending...                                             |
 
 Let's see by example
 
 #### Rules by example
+
+The best way to know the peg syntax, is to look the peg grammar. And yes it is on peg syntax :-)
 
 A simple literal string.
 
@@ -711,6 +715,36 @@ The or brunch will be executed if there is no closing parenthesis and we can
 write an specific error message.
 
 Full grammar in peg formar bellow (a grammar for the grammar)...
+
+## Errors
+
+Errors are very important.
+
+Take a look to this grammar
+
+```peg
+    main    =   '('  main  ')'
+            /   'hello'
+```
+
+It will force to match parenthesis arround the word 'hello'
+
+That's great, but what if we write `((hello)`
+
+The system will point the error place, but... whitch is going to be the message?
+
+We would like to have a message like `unbalanced parenthesys`
+
+We can...
+
+```peg
+    main    =   '('  main  ( ')'  /  error("unbalanced parenthesys") )
+            /   'hello'
+```
+
+With this constructor, we can inprove our error messages :-)
+
+Remember.The best way to know the peg syntax, is to look the peg grammar. And yes it is on peg syntax :-)
 
 ## Text
 

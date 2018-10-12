@@ -23,6 +23,9 @@ pub enum Atom {
     Literal(String),
     /// Character matches a list of chars or a list of ranges
     Match(MatchRules),
+    /// Indicates an error.
+    /// It will propagate an error while processing
+    Error(String),
     /// Any char
     Dot,
     /// End Of File
@@ -47,6 +50,7 @@ pub struct MatchRules(pub(crate) String, pub(crate) Vec<(char, char)>);
 pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
         Atom::Literal(literal) => parse_literal(status, &literal),
+        Atom::Error(error) => parse_error(status, &error),
         Atom::Match(ref match_rules) => parse_match(status, &match_rules),
         Atom::Dot => parse_dot(status),
         Atom::EOF => parse_eof(status),
@@ -94,6 +98,15 @@ fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
             .map_err(|st| Error::from_status_normal(&st, &format!("literal {}", literal)))?;
     }
     ok!(status, literal)
+}
+
+#[allow(dead_code)]
+fn parse_error<'a>(mut status: Status<'a>, error: &'a str) -> Result<'a> {
+    for ch in error.chars() {
+        status = parse_char(status, ch)
+            .map_err(|st| Error::from_status_normal(&st, &format!("error {}", error)))?;
+    }
+    ok!(status, error)
 }
 
 #[allow(dead_code)]
