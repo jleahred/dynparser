@@ -53,18 +53,17 @@ Watch examples below
 
 ## TODO
 
-- performance info parsing rules
 - escape
   - on literals?
-  - replace " by ' on literals  ???
+  - replace " by ' on literals ???
 - add errors to grammar
 
-* apply tail recursion parsing rule
-* Move to an external crate IVector
-* macro for eof
-* rules path on errors configurable (due to performance)
+- apply tail recursion parsing rule
+- Move to an external crate IVector
+- macro for eof
+- rules path on errors configurable (due to performance)
   - check. is it interesting to detail branches on or?
-* eof
+- eof
 
 ## Basic example
 
@@ -231,8 +230,6 @@ pub enum Node {
 }
 ```
 
-
-
 Just it (remember, more information about the peg grammar bellow)
 
 ## Example 2
@@ -265,13 +262,13 @@ fn main() {
     let rules = rules_from_peg(
         r#"
 
-    main    =   "a" ( "bc" "c"
-                    / "bcdd"
+    main    =   'a' ( 'bc'  'c'
+                    /  'bcdd'
                     / b_and_c  d_or_z
                     )
 
-    b_and_c =   "b" "c"
-    d_or_z  =   "d" / "z"
+    b_and_c =   'b'   'c'
+    d_or_z  =   'd' / 'z'
 
         "#,
     ).unwrap();
@@ -427,16 +424,16 @@ fn main() {
 
     fact_t          =   portion_expr
 
-    portion_expr    =   "(" expr ")"
+    portion_expr    =   '('  expr ')'
                     /   item
 
     item            =   num
 
-    num             =   [0-9]+ ("." [0-9]+)?
-    add_op          =   "+"  /  "-"
-    fact_op         =   "*"  /  "/"
+    num             =   [0-9]+ ('.' [0-9]+)?
+    add_op          =   '+'  /  '-'
+    fact_op         =   '*'  /  '/'
 
-    _               =   " "*
+    _               =   ' '*
 
         "#,
     ).map_err(|e| {
@@ -465,11 +462,12 @@ fn main() {
 Examples below
 
 | token    | Description                                            |
-| -------- | ------------------------------------------------------ |
+|:---------|:-------------------------------------------------------|
 | `=`      | On left, symbol, on right expresion defining symbol    |
 | `symbol` | It's an string without quotes                          |
 | `.`      | Any char                                               |
-| `"..."`  | Literal delimited by quotes                            |
+| `'...'`  | Literal delimited by single quotes                     |
+| `"..."`  | Literal delimited by quotes. It accepts escape chars   |
 | `space`  | Separate tokens and Rule concatenation (and operation) |
 | `/`      | Or operation                                           |
 | `(...)`  | A expression composed of sub expresions                |
@@ -488,13 +486,26 @@ Let's see by example
 A simple literal string.
 
 ```peg
-main = "Hello world"
+main = 'Hello world'
 ```
+
+There are two literal types.
+
+No escaped literals, are delimited by `'`
+
+And escaped literals, delimited by `"`.
+`"\n"` will be transformed in new-line char i.e.
+
+It's possible to represent a char by an hex number.
+i.e. `"0x13"`
+
+It's recomended to use non escaped literals as much as possible
+and use the escaped literals when necessary.
 
 Concatenation (and)
 
 ```peg
-main = "Hello "  "world"
+main = 'Hello '  'world'
 ```
 
 Referencing symbols (rule)
@@ -503,44 +514,44 @@ Symbol
 
 ```peg
 main = hi
-hi   = "Hello world"
+hi   = 'Hello world'
 ```
 
 Or `/`
 
 ```peg
-main = "hello" / "hi"
+main = 'hello' / 'hi'
 ```
 
 Or multiline
 
 ```peg
 main
-    = "hello"
-    / "hi"
-    / "hola"
+    = 'hello'
+    / 'hi'
+    / 'hola'
 ```
 
 Or multiline 2
 
 ```peg
-main = "hello"
-     / "hi"
-     / "hola"
+main = 'hello'
+     / 'hi'
+     / 'hola'
 ```
 
 Or disorganized
 
 ```peg
-main = "hello"
-     / "hi" / "hola"
+main = 'hello'
+     / 'hi' / 'hola'
 ```
 
 An important note about the `or`
 
-    main    =   "hello"
-            /   "hello world"
-            /   "hola"
+    main    =   'hello'
+            /   'hello world'
+            /   'hola'
 
 Given the text `hello world`, the first option will match processing
 the first word of the input, and the second one will never be executed.
@@ -552,7 +563,7 @@ the parser to let this kind of grammars, is expensive.
 Parenthesis
 
 ```peg
-main = ("hello" / "hi")  " world"
+main = ('hello' / 'hi')  ' world'
 ```
 
 Just multiline
@@ -561,22 +572,22 @@ Multiline1
 
 ```peg
 main
-    = ("hello" / "hi")  " world"
+    = ('hello' / 'hi')  ' world'
 ```
 
 Multiline2
 
 ```peg
 main
-    = ("hello" / "hi")
-    " world"
+    = ('hello' / 'hi')
+    ' world'
 ```
 
 Multiline3
 
 ```peg
-main = ("hello" / "hi")
-     " world"
+main = ('hello' / 'hi')
+     ' world'
 ```
 
 It is recomended to use or operator `/` on each new line and `=` on first line, like
@@ -584,46 +595,46 @@ It is recomended to use or operator `/` on each new line and `=` on first line, 
 Multiline organized
 
 ```peg
-main = ("hello" / "hi")  " world"
-     / "bye"
+main = ('hello' / 'hi')  ' world'
+     / 'bye'
 ```
 
 One optional
 
 ```peg
-main = ("hello" / "hi")  " world"?
+main = ('hello' / 'hi')  ' world'?
 ```
 
 Repetitions
 
 ```peg
 main         = one_or_more_a / zero_or_many_b
-one_or_more  = "a"+
-zero_or_many = "b"*
+one_or_more  = 'a'+
+zero_or_many = 'b'*
 ```
 
 Negation will not move current possition
 
-Next example will consume all chars till get an "a"
+Next example will consume all chars till get an 'a'
 
 Negation
 
 ```peg
-main = (!"a" .)* "a"
+main = (!'a' .)* 'a'
 ```
 
 Consume till
 
 ```peg
-comment = "//" (!"\n" .)*
-        / "/*" (!"*/" .)* "*/"
+comment = '//' (!'\n' .)*
+        / '/*' (!'*/' .)* '*/'
 ```
 
 Match a set of chars.
 Chars can be defined by range.
 
 ```peg
-number  = digit+ ("." digit+)?
+number  = digit+ ('.' digit+)?
 digit   = [0-9]
 a_or_b  = [ab]
 id      = [_a-zA-Z][_a-zA-Z0-9]*
@@ -633,14 +644,14 @@ a_or_b_or_digit  = [ab0-9]
 
 Simple recursion
 
-one or more "a" recursive
+one or more 'a' recursive
 
 ```peg
-as  = "a" as
-    / "a"
+as  = 'a' as
+    / 'a'
 
 //  simplified with `+`
-ak = "a"+
+ak = 'a'+
 ```
 
 Recursion to match parenthesis
@@ -648,8 +659,8 @@ Recursion to match parenthesis
 Recursion match par
 
 ```peg
-match_par = "(" match_par ")"
-          / "(" ")"
+match_par = '(' match_par ')'
+          / '(' ')'
 ```
 
 That's ok and works fine, but we can inprove error messages...
@@ -676,7 +687,7 @@ The reason is on
 ```peg
 pending...
 ...
-and_expr        =   compl_expr  (  " "  _  and_expr)*
+and_expr        =   compl_expr  (  ' '  _  and_expr)*
 ...
 ```
 
@@ -690,8 +701,8 @@ To improve error messages, would be interesting to have something like:
 
 ```peg
 pending...
-parenth_expr    = "(" * expr _ ")"
-                / "(" _ expr _ -> error("mismatch parenthesis")
+parenth_expr    = '(' * expr _ ')'
+                / '(' _ expr _ -> error("mismatch parenthesis")
 ```
 
 The or brunch will be executed if there is no closing parenthesis and we can
@@ -722,7 +733,7 @@ A rule, is a symbol followed by `=` and an expression
 
 ```peg
 grammar = rule+
-rule    = symbol "="  expr
+rule    = symbol '='  expr
 ```
 
 Here we relax the verification to keep the grammar as simple as possible.
@@ -736,19 +747,19 @@ build an AST with proper pritority.
 Next grammar:
 
 ```peg
-main    =  "A" "B"  /  "B" "C"
+main    =  'A' 'B'  /  'B' 'C'
 ```
 
 It's equivalent to:
 
 ```peg
-main    =  ("A" "B")  /  ("B" "C")
+main    =  ('A' 'B')  /  ('B' 'C')
 ```
 
 But not to:
 
 ```peg
-main    =  (("A" "B")  /  "B") "C"
+main    =  (('A' 'B')  /  'B') 'C'
 ```
 
 To represent this priority, the expression rule has to be defined in a descendant priority way:
@@ -756,28 +767,28 @@ To represent this priority, the expression rule has to be defined in a descendan
 ```peg
 expr            =   or_expr
 
-or_expr         =   and_expr     ("/"  or_expr)*
+or_expr         =   and_expr     ('/'  or_expr)*
 
-and_expr        =   simpl_expr   (" "  and_expr)*
+and_expr        =   simpl_expr   (' '  and_expr)*
 
-simpl_expr      =   "!" atom_or_par
-                /   simpl_par ("*" / "+")
+simpl_expr      =   '!' atom_or_par
+                /   simpl_par ('*' / '+')
 
 atom_or_par     =   (atom / parenth_expr)
 
 
-parenth_expr    =   "("  expr ")"
+parenth_expr    =   '('  expr ')'
 ```
 
 Descendant definition
 
 | expr        | Description                                                                              |
-| ----------- | ---------------------------------------------------------------------------------------- |
+|:------------|:-----------------------------------------------------------------------------------------|
 | atom_or_par | It's an atom or a parenthesis experssion                                                 |
 | rep_or_neg  | It's not a composition of `and` or `or` expressions. It can have negation or repetitions |
 | parenth     | It's an expressions with parenthesis                                                     |
 | and         | Sequence of expressions separated by space                                               |
-| or          | Sequence of expression separated by "/"                                                  |
+| or          | Sequence of expression separated by '/'                                                  |
 
 Now, it's the `atom` turn:
 
@@ -788,8 +799,8 @@ atom    =   literal
         /   symbol
 
 literal =   "\""  (!"\"" .)*  "\""
-match   =   "["  ((.  "-"  .)  /  (.))+   "]"
-dot     =   "."
+match   =   '['  ((.  '-'  .)  /  (.))+   ']'
+dot     =   '.'
 symbol  =   [a-zA-Z0-9_]+
 ```
 
@@ -797,67 +808,79 @@ Hey, what about comments?
 
 What about non significative spaces and carry return?
 
-It will be defined on "\_" symbol
+It will be defined on '\_' symbol
 
 This is the general idea. The peg used by the parser will envolve to add error control, vars, scape on strings, and other ideas.
 
 As the parser will generate the code from peg to parse itself... It's easy to keep updated the peg grammar used to parse from peg.
 
 ```peg
-main            =   grammar
+    main            =   grammar
 
-grammar         =   rule+
+    grammar         =   rule+
 
-rule            =   _  symbol  _  "="  _  expr  _eol _
+    rule            =   _  symbol  _  '='  _  expr  _eol _
 
-expr            =   or
+    expr            =   or
 
-or              =   and         ( _ "/" _  or  )*
+    or              =   and         ( _  '/'  _  or  )*
 
-and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+    and             =   rep_or_neg  ( _1 _ !(symbol _ '=') and )*
 
+    rep_or_neg      =   atom_or_par ('*' / '+' / '?')?
+                    /   '!' atom_or_par
 
-rep_or_neg      =   atom_or_par ("*" / "+" / "?")?
-                /   "!" atom_or_par
+    atom_or_par     =   (atom / parenth)
 
-atom_or_par     =   (atom / parenth)
+    parenth         =   '('  _  expr  _  ')'
 
+    atom            =   literal
+                    /   match
+                    /   dot
+                    /   symbol
 
-parenth         =   "("  _  expr  _  ")"
+    literal         =  lit_noesc  /  lit_esc
 
+    lit_noesc       =   _'   (  !_' .  )*   _'
+    _'              =   "'"
 
-atom            =   literal
-                /   match
-                /   dot
-                /   symbol
+    lit_esc         =   _"  
+                            (   esc_char
+                            /   hex_char
+                            /   !_" .
+                            )*  
+                        _"
+    _"              =   '"'
 
-literal         =   _"  (  "\\" .
-                        /  !_" .
-                        )*  _"
-_"              =   "\""
+    esc_char        =   '\r'
+                    /   '\n'
+                    /   '\\'
+                    /   '\"'
 
-symbol          =   [_'a-zA-Z0-9] [_'"a-zA-Z0-9]*
+    hex_char        =   '\0x' [0-9A-F] [0-9A-F]
 
-eol             =   ("\r\n"  /  "\n"  /  "\r")
-_eol            =   " "*  eol
+    symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
-match           =   "["
-                        (
-                            (mchars+  mbetween*)
-                            / mbetween+
-                        )
-                    "]"
+    eol             =   ("\r\n"  /  "\n"  /  "\r")
+    _eol            =   ' '*  eol
 
-mchars          =   (!"]" !(. "-") .)+
-mbetween        =   (.  "-"  .)
+    match           =   '['
+                            (
+                                (mchars  mbetween*)
+                                / mbetween+
+                            )
+                        ']'
 
-dot             =   "."
+    mchars          =   (!']' !(. '-') .)+
+    mbetween        =   (.  '-'  .)
 
-_               =   (  " "
-                        /   eol
-                    )*
+    dot             =   '.'
 
-_1              =   (" " / eol)
+    _               =   (  ' '
+                            /   eol
+                        )*
+
+    _1              =   (' ' / eol)
 ```
 
 ## Parsing the parser

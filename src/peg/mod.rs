@@ -84,7 +84,8 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 /// fn main() {
 ///     let rules = rules_from_peg(
 ///         r#"
-/// main    =   "hello"   " "   "world"
+/// main    =   'hello'   ' '   'world'  dot
+/// dot     =   "\0x2E"
 ///         "#,
 ///     ).map_err(|e| {
 ///         println!("{}", e);
@@ -94,7 +95,7 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 ///
 ///     println!("{:#?}", rules);
 ///
-///     let result = parse("hello world", &rules);
+///     let result = parse("hello world.", &rules);
 ///
 ///     assert!(result.is_ok());
 ///
@@ -113,7 +114,7 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 ///    let rules = rules_from_peg(
 ///        r#"
 ///
-///main    =   "hello"   " "   "world"
+///main    =   'hello'   ' '   'world'
 ///
 ///        "#,
 ///    ).unwrap();
@@ -410,16 +411,119 @@ fn consume_parenth(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::
 }
 
 fn consume_literal(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
-    // literal         =   _"  (  "\\" .
-    //                         /  !_" .
-    //                         )*  _"
+    // literal         =  lit_noesc  /  lit_esc
 
     consuming_rule("literal", nodes, |nodes| {
+        let next_node_name = flat::get_nodename(flat::peek_first_node(nodes)?)?;
+        match next_node_name {
+            "lit_noesc" => consume_literal_no_esc(nodes),
+            "lit_esc" => consume_literal_esc(nodes),
+            _ => Err(error_peg_s(&format!("unexpected node {}", next_node_name))),
+        }
+    })
+}
+
+fn consume_literal_esc(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
+    // lit_esc         =   _"
+    //                         (   esc_char
+    //                         /   hex_char
+    //                         /   !_" .
+    //                         )*
+
+    fn consume_element(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
+        let crule_name = |rule_name, nodes| match rule_name {
+            "esc_char" => consume_esc_char(nodes),
+            "hex_char" => consume_hex_char(nodes),
+            _ => Err(error_peg_s(&format!("unknown rule_name: {}", rule_name))),
+        };
+
+        let next_n = flat::peek_first_node(nodes)?;
+
+        let (val, nodes) = match next_n {
+            flat::Node::BeginRule(r_name) => crule_name(r_name, nodes),
+            flat::Node::Val(_) => Ok(flat::consume_val(nodes).map(|(v, n)| (v.to_string(), n))?),
+            _ => Err(error_peg_s(&format!("looking for element {:#?}", next_n))),
+        }?;
+
+        Ok((val.to_string(), nodes))
+    }
+
+    fn rec_consume_lit_esc_ch(
+        s: String,
+        nodes: &[flat::Node],
+    ) -> result::Result<(String, &[flat::Node]), Error> {
+        let next_node_name = flat::get_nodename(flat::peek_first_node(nodes)?);
+
+        match next_node_name {
+            Ok("_\"") => Ok((s, nodes)),
+            _ => {
+                let (v, nodes) = consume_element(nodes)?;
+                rec_consume_lit_esc_ch(s + &v.to_string(), nodes)
+            }
+        }
+    }
+
+    consuming_rule("lit_esc", nodes, |nodes| {
         let nodes = consume_quote(nodes)?;
+
+        let (val, nodes) = rec_consume_lit_esc_ch(String::new(), nodes)?;
+
+        push_err!(&format!("lesc:({})", val), {
+            let nodes = consume_quote(nodes)?;
+            Ok((lit!(val), nodes))
+        })
+    })
+}
+
+fn consume_esc_char(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
+    // esc_char        =   '\r'
+    //                 /   '\n'
+    //                 /   '\\'
+    //                 /   '\"'
+
+    consuming_rule("esc_char", nodes, |nodes| {
+        let (val, nodes) = flat::consume_val(nodes)?;
+        let val = match val {
+            r#"\r"# => Ok("\r"),
+            r#"\n"# => Ok("\n"),
+            r#"\\"# => Ok(r#"\"#),
+            r#"\""# => Ok(r#"""#),
+            _ => Err(error_peg_s(&format!("unknow esc char: {}", val))),
+        }?;
+        Ok((val.to_string(), nodes))
+    })
+}
+
+fn consume_hex_char(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
+    // hex_char        =   '\0x' [0-9A-F] [0-9A-F]
+
+    use std::u8;
+
+    consuming_rule("hex_char", nodes, |nodes| {
+        let (val, nodes) = flat::consume_val(nodes)?;
+        let val = &val[3..];
+
+        let ch = match u8::from_str_radix(val, 16) {
+            Ok(v) => Ok(v as char),
+            _ => Err(error_peg_s(&format!("error parsing hex {}", &val[2..]))),
+        }?;
+        Ok((ch.to_string(), nodes))
+    })
+}
+
+fn consume_literal_no_esc(
+    nodes: &[flat::Node],
+) -> result::Result<(Expression, &[flat::Node]), Error> {
+    // lit_noesc       =   _'   (  !_' .  )*   _'
+    // _'              =   "'"
+
+    consuming_rule("lit_noesc", nodes, |nodes| {
+        let nodes = consume_single_quote(nodes)?;
         let (val, nodes) = flat::consume_val(nodes)?;
 
+        let val = val.replace(r#"\"#, r#"\\"#);
         push_err!(&format!("l:({})", val), {
-            let nodes = consume_quote(nodes)?;
+            let nodes = consume_single_quote(nodes)?;
             Ok((lit!(val), nodes))
         })
     })
@@ -430,6 +534,14 @@ fn consume_quote(nodes: &[flat::Node]) -> result::Result<&[flat::Node], Error> {
 
     Ok(consuming_rule(r#"_""#, nodes, |nodes| {
         Ok(((), flat::consume_this_value(r#"""#, nodes)?))
+    })?.1)
+}
+
+fn consume_single_quote(nodes: &[flat::Node]) -> result::Result<&[flat::Node], Error> {
+    // _'              =   "'"
+
+    Ok(consuming_rule(r#"_'"#, nodes, |nodes| {
+        Ok(((), flat::consume_this_value(r#"'"#, nodes)?))
     })?.1)
 }
 

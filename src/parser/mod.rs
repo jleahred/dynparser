@@ -99,7 +99,23 @@ pub(crate) struct Status<'a> {
 }
 
 impl<'a> Status<'a> {
-    pub(crate) fn init(t2p: &'a str, rules: &'a expression::SetOfRules, trace_rules: bool) -> Self {
+    pub(crate) fn init(t2p: &'a str, rules: &'a expression::SetOfRules) -> Self {
+        Status {
+            text2parse: t2p,
+            it_parsing: t2p.chars(),
+            pos: Possition::init(),
+            trace_rules: false,
+            walking_rules: vec![],
+            rules,
+            potential_error: None,
+        }
+    }
+
+    pub(crate) fn init_debug(
+        t2p: &'a str,
+        rules: &'a expression::SetOfRules,
+        trace_rules: bool,
+    ) -> Self {
         Status {
             text2parse: t2p,
             it_parsing: t2p.chars(),

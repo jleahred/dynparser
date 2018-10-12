@@ -14,9 +14,9 @@
 //!
 //!             as              =   a+
 //!
-//!             a               =   "a"
+//!             a               =   'a'
 //!
-//!             bs              =   "b"+
+//!             bs              =   'b'+
 //!
 //! "#,
 //!     ).map_err(|e| {
@@ -57,12 +57,8 @@ pub fn rust_from_rules(rules: &expression::SetOfRules) -> String {
     })
 }
 
-fn to_string_wscapes(s: &str) -> String {
-    s.replace(r#"""#, r#"\""#)
-}
-
 fn rule2code(name: &str, expr: &Expression) -> String {
-    format!(r#""{}" => {}"#, to_string_wscapes(name), expr2code(expr))
+    format!(r##"r#"{}"# => {}"##, name, expr2code(expr))
 }
 
 fn expr2code(expr: &Expression) -> String {
@@ -72,7 +68,7 @@ fn expr2code(expr: &Expression) -> String {
         Expression::Or(mexpr) => format!("or!({})", mexpr2code(mexpr)),
         Expression::Not(e) => format!("not!({})", expr2code(e)),
         Expression::Repeat(rep) => repeat2code(rep),
-        Expression::RuleName(rname) => format!("ref_rule!(\"{}\")", to_string_wscapes(rname)),
+        Expression::RuleName(rname) => format!(r##"ref_rule!(r#"{}"#)"##, rname),
     }
 }
 
@@ -87,8 +83,14 @@ fn mexpr2code(mexpr: &expression::MultiExpr) -> String {
 }
 
 fn atom2code(atom: &Atom) -> String {
+    let replace_esc = |s: String| {
+        s.replace("\n", r#"\n"#)
+            .replace("\r", r#"\r"#)
+            .replace(r#"""#, r#"\""#)
+    };
+
     match atom {
-        Atom::Literal(s) => format!("lit!(\"{}\")", s),
+        Atom::Literal(s) => format!(r#"lit!("{}")"#, replace_esc(s.to_string())),
         Atom::Match(mrules) => match_rules2code(mrules),
         Atom::Dot => "dot!()".to_string(),
         Atom::EOF => "eof!()".to_string(),
@@ -106,8 +108,8 @@ fn match_rules2code(mrules: &atom::MatchRules) -> String {
     }
 
     format!(
-        "ematch!(chlist \"{}\"  {})",
-        to_string_wscapes(&mrules.0),
+        r##"ematch!(chlist r#"{}"#  {})"##,
+        &mrules.0,
         bounds2code(String::new(), &mrules.1)
     )
 }

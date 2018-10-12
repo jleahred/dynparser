@@ -52,16 +52,16 @@
 //!
 //!     fact_t          =   portion_expr
 //!
-//!     portion_expr    =   "(" expr ")"
+//!     portion_expr    =   '(' expr ')'
 //!                     /   item
 //!
 //!     item            =   num
 //!
-//!     num             =   [0-9]+ ("." [0-9]+)?
-//!     add_op          =   "+"  /  "-"
-//!     fact_op         =   "*"  /  "/"
+//!     num             =   [0-9]+ ('.' [0-9]+)?
+//!     add_op          =   '+'  /  '-'
+//!     fact_op         =   '*'  /  '/'
 //!
-//!     _               =   " "*
+//!     _               =   ' '*
 //!
 //!         "#,
 //!     ).map_err(|e| {
@@ -437,7 +437,11 @@ fn parse_with_debug(
     rules: &parser::expression::SetOfRules,
     debug: bool,
 ) -> Result<ast::Node, parser::Error> {
-    let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules, debug))?;
+    let (st, ast) = if debug {
+        parser::expression::parse(parser::Status::init_debug(s, &rules, debug))?
+    } else {
+        parser::expression::parse(parser::Status::init(s, &rules))?
+    };
     match (st.pos.n == s.len(), st.potential_error.clone()) {
         (true, _) => Ok(ast),
         (false, Some(e)) => Err(e),
