@@ -537,6 +537,7 @@ fn consume_literal_esc(nodes: &[flat::Node]) -> result::Result<(String, &[flat::
 fn consume_esc_char(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
     // esc_char        =   '\r'
     //                 /   '\n'
+    //                 /   '\t'
     //                 /   '\\'
     //                 /   '\"'
 
@@ -545,6 +546,7 @@ fn consume_esc_char(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Nod
         let val = match val {
             r#"\r"# => Ok("\r"),
             r#"\n"# => Ok("\n"),
+            r#"\t"# => Ok("\t"),
             r#"\\"# => Ok(r#"\"#),
             r#"\""# => Ok(r#"""#),
             _ => Err(error_peg_s(&format!("unknow esc char: {}", val))),

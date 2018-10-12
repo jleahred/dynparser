@@ -69,6 +69,7 @@ fn text_peg2code() -> &'static str {
 
     esc_char        =   '\r'
                     /   '\n'
+                    /   '\t'
                     /   '\\'
                     /   '\"'
 

@@ -86,6 +86,7 @@ fn atom2code(atom: &Atom) -> String {
     let replace_esc = |s: String| {
         s.replace("\n", r#"\n"#)
             .replace("\r", r#"\r"#)
+            .replace("\t", r#"\t"#)
             .replace(r#"""#, r#"\""#)
     };
 

@@ -500,6 +500,25 @@ And escaped literals, delimited by `"`.
 It's possible to represent a char by an hex number.
 i.e. `"0x13"`
 
+```peg
+main   = "Hello\nworld"
+
+main   = "Hello\0x13world"
+
+main   = 'Hello' "\n"    'world'
+
+main   = 'Hello' "\0x13" 'world'
+```
+
+With this two types of literals, it's easy to have `"` and `'`
+
+```peg
+main   = "'"
+
+main   = '"'
+```
+
+
 It's recomended to use non escaped literals as much as possible
 and use the escaped literals when necessary.
 
