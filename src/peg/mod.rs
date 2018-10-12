@@ -107,15 +107,18 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 /// ```
 ///
 /// Next is an example with some ```and``` ```literals```
+/// and comments on peg grammar
 /// ```
 ///extern crate dynparser;
 ///use dynparser::{parse, rules_from_peg};
 ///
 ///    let rules = rules_from_peg(
 ///        r#"
+///         //  classic hello world
+///         main    =   'hello'   ' '   'world'
 ///
-///main    =   'hello'   ' '   'world'
-///
+///         /*  with a multiline comment
+///         */
 ///        "#,
 ///    ).unwrap();
 ///

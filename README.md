@@ -53,9 +53,6 @@ Watch examples below
 
 ## TODO
 
-- escape
-  - on literals?
-  - replace " by ' on literals ???
 - add errors to grammar
 
 - apply tail recursion parsing rule
@@ -252,7 +249,7 @@ Lets create the next grammar:
    d_or_z  =   'd' / 'z'
 ```
 
-### Just from peg
+### Just from peg 2
 
 ```rust
 extern crate dynparser;
@@ -626,8 +623,13 @@ main = (!'a' .)* 'a'
 Consume till
 
 ```peg
-comment = '//' (!'\n' .)*
-        / '/*' (!'*/' .)* '*/'
+//  This is a line comment
+/*  This is a
+    multiline comment  */
+comment = '//' (!'\n' .)*       //  line comment can be at the end of line
+        / '/*' (!'*/' .)* '*/'  /*  a multiline comment can start
+                                    at any place
+                                */
 ```
 
 Match a set of chars.
@@ -934,6 +936,27 @@ Now, for start with, both inputs will be a `peg grammar` defining it self (a `pe
 1. Now we will call `ast::genetarte_rust` to generate the code for `rules_from_peg`
 1. We will insert this code on the parser
 1. And we are ready to parse an `input` with a `peg grammar` to generate the `AST`
+
+The point `rules_from_peg` it's special.
+
+```rust
+pub fn rules_from_peg(peg: &str) -> Result {
+    let ast = parse(peg, &rules::parse_peg())?;
+    let nodes = ast.compact().prune(&["_", "_1", "_eol"]).flatten();
+
+    rules_from_flat_ast(&nodes)
+}
+```
+
+As you can see, we parse the peg grammar (in this case a peg defining the peg grammar).
+
+After it, we transform the AST compacting, removing nodes, and flattening.
+
+An AST flattened, is just something to be parsed, but instead chars, we work with tokens, and it's a LL(1) parser.
+
+Errors will be found and regitered in the previous parsing.
+
+Then, we have to write by hand the LL(1) parser, but it's easy (not necessary to control errors, not working with chars, just LL(1))
 
 Why to do that?
 

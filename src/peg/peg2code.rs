@@ -24,6 +24,10 @@ use {peg, rules_from_peg};
 
 fn text_peg2code() -> &'static str {
     r#"
+    /*      A peg grammar to parse peg grammars
+     *
+     */
+
     main            =   grammar
 
     grammar         =   rule+
@@ -35,6 +39,7 @@ fn text_peg2code() -> &'static str {
     or              =   and         ( _  '/'  _  or  )*
 
     and             =   rep_or_neg  ( _1 _ !(symbol _ '=') and )*
+    _1              =   (' ' / eol)     //  this is the and separator
 
     rep_or_neg      =   atom_or_par ('*' / '+' / '?')?
                     /   '!' atom_or_par
@@ -53,11 +58,11 @@ fn text_peg2code() -> &'static str {
     lit_noesc       =   _'   (  !_' .  )*   _'
     _'              =   "'"
 
-    lit_esc         =   _"  
+    lit_esc         =   _"
                             (   esc_char
                             /   hex_char
                             /   !_" .
-                            )*  
+                            )*
                         _"
     _"              =   '"'
 
@@ -71,7 +76,7 @@ fn text_peg2code() -> &'static str {
     symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
     eol             =   ("\r\n"  /  "\n"  /  "\r")
-    _eol            =   ' '*  eol
+    _eol            =   (' ' / comment)*  eol
 
     match           =   '['
                             (
@@ -86,10 +91,15 @@ fn text_peg2code() -> &'static str {
     dot             =   '.'
 
     _               =   (  ' '
-                            /   eol
+                        /   eol
+                        /   comment
                         )*
 
-    _1              =   (' ' / eol)
+    comment         =   line_comment
+                    /   mline_comment
+
+    line_comment    =   '//' (!eol .)*  eol
+    mline_comment   =   '/*' (!'*/' .)* '*/'
     "#
 }
 
