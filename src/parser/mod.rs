@@ -84,7 +84,6 @@ pub(crate) struct Status<'a> {
     pub(crate) text2parse: &'a str,
     pub(crate) it_parsing: Chars<'a>,
     pub(crate) pos: Possition,
-    pub(crate) walking_rules: Vec<String>,
     pub(crate) rules: &'a expression::SetOfRules,
     //  main            =   ("a")*
     //  if you try to parse "abb" i.e.
@@ -92,14 +91,20 @@ pub(crate) struct Status<'a> {
     //  It's true, but it could be more useful to know where
     //  it fail trying to repeat
     pub(crate) potential_error: Option<Error>,
+
+    /// If true, it will fill walking rules
+    /// too expensive. For use just to debug errors
+    pub(crate) trace_rules: bool,
+    pub(crate) walking_rules: Vec<String>,
 }
 
 impl<'a> Status<'a> {
-    pub(crate) fn init(t2p: &'a str, rules: &'a expression::SetOfRules) -> Self {
+    pub(crate) fn init(t2p: &'a str, rules: &'a expression::SetOfRules, trace_rules: bool) -> Self {
         Status {
             text2parse: t2p,
             it_parsing: t2p.chars(),
             pos: Possition::init(),
+            trace_rules,
             walking_rules: vec![],
             rules,
             potential_error: None,

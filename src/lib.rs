@@ -412,11 +412,32 @@ pub mod peg;
 /// }
 ///
 /// ```
-/// More examples in marcros
+/// More examples in macros
 ///
 
 pub fn parse(s: &str, rules: &parser::expression::SetOfRules) -> Result<ast::Node, parser::Error> {
-    let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules))?;
+    parse_with_debug(s, rules, false)
+}
+
+/// Same as parser, but with debug info
+///
+/// It will trace the rules called
+///
+/// It's expensive, use it just to develop and locate errors
+///
+pub fn parse_debug(
+    s: &str,
+    rules: &parser::expression::SetOfRules,
+) -> Result<ast::Node, parser::Error> {
+    parse_with_debug(s, rules, true)
+}
+
+fn parse_with_debug(
+    s: &str,
+    rules: &parser::expression::SetOfRules,
+    debug: bool,
+) -> Result<ast::Node, parser::Error> {
+    let (st, ast) = parser::expression::parse(parser::Status::init(s, &rules, debug))?;
     match (st.pos.n == s.len(), st.potential_error.clone()) {
         (true, _) => Ok(ast),
         (false, Some(e)) => Err(e),

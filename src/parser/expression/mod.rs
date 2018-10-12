@@ -169,7 +169,11 @@ fn parse_rule_name<'a>(status: Status<'a>, rule_name: &str) -> Result<'a> {
     // use std::time::{Duration, Instant};
     // let start = Instant::now();
 
-    let status = status.push_rule(&format!("r:{}", rule_name));
+    let status = if status.trace_rules {
+        status.push_rule(&format!("r:{}", rule_name))
+    } else {
+        status
+    };
 
     let rules = &status.rules.0;
     let expression = rules.get(rule_name).ok_or_else(|| {
