@@ -16,7 +16,6 @@ mod test;
 //-----------------------------------------------------------------------
 
 /// This is a minimum expression element
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Atom {
     /// Literal string
@@ -46,7 +45,6 @@ pub struct MatchRules(pub(crate) String, pub(crate) Vec<(char, char)>);
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
-#[allow(dead_code)]
 pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
         Atom::Literal(literal) => parse_literal(status, &literal),
@@ -62,17 +60,16 @@ impl MatchRules {
     pub fn init(s: &str, bounds: Vec<(char, char)>) -> Self {
         MatchRules(s.to_string(), bounds)
     }
-    #[allow(dead_code)]
+    #[allow(dead_code)] //  used in tests
     pub(crate) fn new() -> Self {
         MatchRules("".to_string(), vec![])
     }
-    #[allow(dead_code)]
+    #[allow(dead_code)] //  used in tests
     pub(crate) fn with_chars(mut self, chrs: &str) -> Self {
         self.0 = chrs.to_string();
         self
     }
-
-    #[allow(dead_code)]
+    #[allow(dead_code)] //  used in tests
     pub(crate) fn with_bound_chars(mut self, bounds: Vec<(char, char)>) -> Self {
         self.1 = bounds;
         self
@@ -91,7 +88,6 @@ macro_rules! ok {
     };
 }
 
-#[allow(dead_code)]
 fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
     for ch in literal.chars() {
         status = parse_char(status, ch)
@@ -100,7 +96,6 @@ fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
     ok!(status, literal)
 }
 
-#[allow(dead_code)]
 fn parse_error<'a>(mut status: Status<'a>, error: &'a str) -> Result<'a> {
     for ch in error.chars() {
         status = parse_char(status, ch)
@@ -109,7 +104,6 @@ fn parse_error<'a>(mut status: Status<'a>, error: &'a str) -> Result<'a> {
     ok!(status, error)
 }
 
-#[allow(dead_code)]
 fn parse_dot(status: Status) -> Result {
     let (status, ch) = status
         .get_char()
@@ -118,7 +112,6 @@ fn parse_dot(status: Status) -> Result {
     ok!(status, ch.to_string())
 }
 
-#[allow(dead_code)]
 fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
     let match_char = |ch: char| -> bool {
         if match_rules.0.find(ch).is_some() {
@@ -149,7 +142,6 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
         })
 }
 
-#[allow(dead_code)]
 fn parse_eof(status: Status) -> Result {
     match status.get_char() {
         Ok((st, _ch)) => Err(Error::from_status_normal(&st, "expected EOF")),
@@ -167,7 +159,6 @@ fn parse_char(status: Status, ch: char) -> result::Result<Status, Status> {
 }
 
 impl<'a> Status<'a> {
-    #[allow(dead_code)]
     fn get_char(mut self) -> result::Result<(Self, char), Self> {
         match self.it_parsing.next() {
             None => Err(self),

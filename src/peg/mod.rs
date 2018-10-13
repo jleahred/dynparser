@@ -7,7 +7,7 @@ pub mod peg2code;
 mod rules;
 
 use ast::{self, flat};
-use idata::{self, IVec};
+use idata::{self, cont::IVec};
 use parse;
 use parser::{
     self,

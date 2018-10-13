@@ -86,6 +86,8 @@
 //! Please, read [README.md](https://github.com/jleahred/dynparser) for
 //! more context information
 
+extern crate idata;
+
 // -------------------------------------------------------------------------------------
 //  M A C R O S
 
@@ -243,9 +245,11 @@ macro_rules! dot {
 #[macro_export]
 macro_rules! ematch {
     (chlist $chars:expr, $(from $from:expr,  to $to:expr),*) => {{
+        //use idata::cont::IVec;  //  pending macros by example 2.0
         use $crate::parser;
         let mut v = Vec::<(char, char)>::new();
 
+        //$(let v = v.ipush(($from, $to));)+  //  pending macros by example 2.0
         $(v.push(($from, $to));)+
         let amatch = parser::atom::Atom::Match(parser::atom::MatchRules::init($chars, v));
         parser::expression::Expression::Simple(amatch)
@@ -402,7 +406,6 @@ macro_rules! ref_rule {
 // -------------------------------------------------------------------------------------
 
 pub mod ast;
-pub(crate) mod idata;
 pub mod parser;
 pub mod peg;
 

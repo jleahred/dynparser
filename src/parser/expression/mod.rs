@@ -1,9 +1,11 @@
 #![warn(missing_docs)]
 //! Here we have the parser for non atomic things
 
-use super::super::idata::{tail_call, TailCall};
+use super::super::idata::{
+    cont::IVec,
+    tc::{tail_call, TailCall},
+};
 use ast;
-use idata::IVec;
 use parser::{atom, atom::Atom, ErrPriority, Error, Result, Status};
 use std::collections::HashMap;
 use std::result;
@@ -218,11 +220,6 @@ fn parse_expr<'a>(status: Status<'a>, expression: &'a Expression) -> ResultExpr<
 
 //-----------------------------------------------------------------------
 fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a> {
-    let vec_concat = |mut v1: Vec<_>, v2: Vec<_>| {
-        v1.extend(v2);
-        v1
-    };
-
     let init_tc: (_, &[Expression], Vec<ast::Node>) = (status, &(multi_expr.0), vec![]);
 
     tail_call(init_tc, |acc| {
@@ -232,7 +229,7 @@ fn parse_and<'a>(status: Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
             let result_parse = parse_expr(acc.0, &acc.1[0]);
             match result_parse {
                 Ok((status, vnodes)) => {
-                    TailCall::Call((status, &acc.1[1..], vec_concat(acc.2, vnodes)))
+                    TailCall::Call((status, &acc.1[1..], acc.2.iappend(vnodes)))
                 }
                 Err(err) => TailCall::Return(Err(err)),
             }
@@ -250,10 +247,6 @@ fn parse_or<'a>(status: &Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
         },
         None => Some(e2),
     };
-    // let add_err = |mut errors: Vec<Error>, error: Error| {
-    //     errors.push(error);
-    //     errors
-    // };
 
     // let init_tc: (_, &[Expression], Vec<Error>) = (status.clone(), &(multi_expr.0), vec![]);
     let init_tc: (_, &[Expression], _) = (status.clone(), &(multi_expr.0), None);

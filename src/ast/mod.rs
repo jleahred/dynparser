@@ -2,7 +2,7 @@
 //! And some functions to work with AST
 //!
 
-use idata::IVec;
+use idata::cont::IVec;
 use std::result::Result;
 
 pub mod flat;
@@ -174,7 +174,7 @@ impl Node {
     ///    assert!(ast_before_compact.compact() == ast_after_compact)
     ///```
     pub fn compact(&self) -> Self {
-        fn concat_nodes(mut nodes: Vec<Node>, n: &Node) -> Vec<Node> {
+        fn concat_nodes(nodes: Vec<Node>, n: &Node) -> Vec<Node> {
             let get_val = |nodes: &Vec<Node>| match nodes.last() {
                 Some(Node::Val(ref v)) => Some(v.to_string()),
                 _ => None,
@@ -185,19 +185,18 @@ impl Node {
             };
 
             match (n, get_val(&nodes)) {
-                (Node::EOF, _) => nodes.push(Node::EOF),
+                (Node::EOF, _) => nodes.ipush(Node::EOF),
                 (Node::Val(ref v), ref prev_v) => match concat_v(v, prev_v) {
                     Some(c) => {
-                        nodes.pop();
-                        nodes.push(Node::Val(c.clone()));
+                        let (_, nodes) = nodes.ipop();
+                        nodes.ipush(Node::Val(c.clone()))
                     }
-                    _ => nodes.push(Node::Val(v.clone())),
+                    _ => nodes.ipush(Node::Val(v.clone())),
                 },
                 (Node::Rule((ref n, ref vn)), _) => {
-                    nodes.push(Node::Rule((n.clone(), compact_nodes(vn))))
+                    nodes.ipush(Node::Rule((n.clone(), compact_nodes(vn))))
                 }
-            };
-            nodes
+            }
         };
         fn compact_nodes(nodes: &[Node]) -> Vec<Node> {
             nodes

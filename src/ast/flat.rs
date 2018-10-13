@@ -15,7 +15,7 @@
 //!
 
 use ast::{self, error, Error};
-use idata::IVec;
+use idata::cont::IVec;
 use std::result::Result;
 
 // -------------------------------------------------------------------------------------

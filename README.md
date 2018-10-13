@@ -59,8 +59,8 @@ Watch examples below
 
 ## TODO
 
+- move to macros by example 2.0 and inprove some
 - apply tail recursion parsing rule
-- Move to an external crate IVector
 - macro for eof
 
 ## Basic example
