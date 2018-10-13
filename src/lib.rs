@@ -327,7 +327,7 @@ macro_rules! or {
 /// }
 /// ```
 ///
-/// not! will not move the parsing possition
+/// not! will not move the parsing position
 #[macro_export]
 macro_rules! not {
     ($e:expr) => {{
@@ -336,7 +336,7 @@ macro_rules! not {
 }
 
 /// repeat expression.
-/// You have to define minimum repetitions and opionally
+/// You have to define minimum repetitions and optionally
 /// maximum repetitions (if missing, infinite)
 ///
 /// example
@@ -381,7 +381,7 @@ macro_rules! rep {
     }};
 }
 
-/// This will create a subexpression refering to a "rule name"
+/// This will create a subexpression referring to a "rule name"
 ///
 /// ```
 /// #[macro_use]  extern crate dynparser;

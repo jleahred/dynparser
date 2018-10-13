@@ -59,7 +59,7 @@ Watch examples below
 
 ## TODO
 
-- move to macros by example 2.0 and inprove some
+- move to macros by example 2.0 and improve some
 - apply tail recursion parsing rule
 - macro for eof
 
@@ -395,13 +395,13 @@ fn main() {
 `merge` takes the ownership of both set of rules and returns a "new" (in fact modified)
 set of rules. This helps to reduce mutability
 
-"main" rule is the entry point.
+`main` rule is the entry point.
 
-More information in doc (link pending)
+More information in [doc](https://docs.rs/dynparser/)
 
 ### Calculator example
 
-A parser is not a parser without basic math expresion parser example.
+A parser is not a parser without basic math expression parser example.
 
 Here it is...
 
@@ -468,7 +468,7 @@ Examples below
 | `"..."`      | Literal delimited by quotes. It accepts escape chars   |
 | `space`      | Separate tokens and Rule concatenation (and operation) |
 | `/`          | Or operation                                           |
-| `(...)`      | A expression composed of sub expresions                |
+| `(...)`      | A expression composed of sub expressions               |
 | `?`          | One optional                                           |
 | `*`          | Repeat 0 or more                                       |
 | `+`          | Repeat 1 or more                                       |
@@ -575,7 +575,7 @@ An important note about the `or`
 
 Given the text `hello world`, the first option will match processing
 the first word of the input, and the second one will never be executed.
-It coul be fixed, but... doesn't look a great idea.
+It could be fixed, but... doesn't look a great idea.
 
 Fixing the grammar to avoid this problems, it's very easy. Trying to fix
 the parser to let this kind of grammars, is expensive.
@@ -610,7 +610,7 @@ main = ('hello' / 'hi')
      ' world'
 ```
 
-It is recomended to use or operator `/` on each new line and `=` on first line, like
+It is recommended to use or operator `/` on each new line and `=` on first line, like
 
 Multiline organized
 
@@ -633,7 +633,7 @@ one_or_more  = 'a'+
 zero_or_many = 'b'*
 ```
 
-Negation will not move current possition
+Negation will not move current position
 
 Next example will consume all chars till get an 'a'
 
@@ -692,48 +692,32 @@ That's ok and works fine, but we can inprove error messages...
 
 In order to improve error messages, would be interesting to modify the grammar.
 
-Look this code:
+See next section.
 
-```ignore
-pending...
-```
-
-At the beggining it finished with no errors, but not consuming the hole input.
-Wich is an error.
-
-Showing an error informing that we didn't consume full input, is not the best.
-
-```ignore
-pending...
-```
+In some cases, we can have an error for no termination consuming full input.
 
 The reason is on
 
 ```peg
-pending...
 ...
 and_expr        =   compl_expr  (  ' '  _  and_expr)*
 ...
 ```
 
+Showing an error informing that we didn't consume full input, is not the best.
+
+
 Here, we said, "hey, try to look for a sequence, or not `*`"
 
 And is not, then the parser say, I matched the rule, I have to continue verifying other
-previus branches. But there are no previus partial applied brunchs.
+previous branches. But there are no previous partial applied brunch.
 Then the parser ends not consuming all the input.
 
 To improve error messages, would be interesting to have something like:
 
-```peg
-pending...
-parenth_expr    = '(' * expr _ ')'
-                / '(' _ expr _ -> error("mismatch parenthesis")
-```
+Errors included on peg grammar also will help in this case (see next section)
 
-The or brunch will be executed if there is no closing parenthesis and we can
-write an specific error message.
-
-Full grammar in peg formar bellow (a grammar for the grammar)...
+Full grammar in peg format bellow (a grammar for the grammar)...
 
 ## Errors
 
@@ -746,22 +730,24 @@ Take a look to this grammar
             /   'hello'
 ```
 
-It will force to match parenthesis arround the word 'hello'
+It will force to match parenthesis around the word 'hello'
 
 That's great, but what if we write `((hello)`
 
-The system will point the error place, but... whitch is going to be the message?
+The system will point the error place, but... witch is going to be the message?
 
-We would like to have a message like `unbalanced parenthesys`
+We would like to have a message like `unbalanced parenthesis`
 
 We can...
 
 ```peg
-    main    =   '('  main  ( ')'  /  error("unbalanced parenthesys") )
+    main    =   '('  main  ( ')'  /  error("unbalanced parenthesis") )
             /   'hello'
 ```
 
-With this constructor, we can inprove our error messages :-)
+With this constructor, we can improve our error messages :-)
+
+And we also can remove errors kind of `not consumed full input`
 
 Remember.The best way to know the peg syntax, is to look the peg grammar. And yes it is on peg syntax :-)
 
@@ -769,12 +755,8 @@ Remember.The best way to know the peg syntax, is to look the peg grammar. And ye
 
 Hey, I'm a text parser, I need a text to parse ;-P
 
-If you want to parse text indentation sensitive, I recomend you the lib
+If you want to parse text indentation sensitive, I recommend you the lib
 [indentation_flattener](https://github.com/jleahred/indentation_flattener)
-
-```ignore
-pending...
-```
 
 ## A grammar for the grammar
 
@@ -797,7 +779,7 @@ It's missing also the non significant spaces.
 About the expression.
 
 As you know, it's important to accept valid inputs, but also it's important to
-build an AST with proper pritority.
+build an AST with proper priority.
 
 Next grammar:
 
@@ -839,7 +821,7 @@ Descendant definition
 
 | expr        | Description                                                                              |
 |:------------|:-----------------------------------------------------------------------------------------|
-| atom_or_par | It's an atom or a parenthesis experssion                                                 |
+| atom_or_par | It's an atom or a parenthesis expression                                                 |
 | rep_or_neg  | It's not a composition of `and` or `or` expressions. It can have negation or repetitions |
 | parenth     | It's an expressions with parenthesis                                                     |
 | and         | Sequence of expressions separated by space                                               |
@@ -861,11 +843,11 @@ symbol  =   [a-zA-Z0-9_]+
 
 Hey, what about comments?
 
-What about non significative spaces and carry return?
+What about non significate spaces and carry return?
 
 It will be defined on '\_' symbol
 
-This is the general idea. The peg used by the parser will envolve to add error control, vars, scape on strings, and other ideas.
+This is the general idea. The peg used by the parser will evolve to add error control, vars, scape on strings, and other ideas.
 
 As the parser will generate the code from peg to parse itself... It's easy to keep updated the peg grammar used to parse from peg.
 
@@ -954,7 +936,7 @@ avoiding written by hand on code.
 Then, we have a parser that accepts `peg` grammars.
 
 Now instead of giving the set of rules, we can provide a `peg` definition
-and the input to genterate the `AST`
+and the input to generate the `AST`
 
 ![basic_diagram](./doc_images/basic.png "Basic diagram")
 
@@ -986,7 +968,7 @@ Now, for start with, both inputs will be a `peg grammar` defining it self (a `pe
 1. input: `peg grammar` defining itself
 1. running `rules_from_peg` to generate a set of rules for this `peg grammar`
 1. With the two previous points, we will parse creating the `AST` for the `peg grammar`
-1. Now we will call `ast::genetarte_rust` to generate the code for `rules_from_peg`
+1. Now we will call `ast::generate_rust` to generate the code for `rules_from_peg`
 1. We will insert this code on the parser
 1. And we are ready to parse an `input` with a `peg grammar` to generate the `AST`
 
@@ -1007,7 +989,7 @@ After it, we transform the AST compacting, removing nodes, and flattening.
 
 An AST flattened, is just something to be parsed, but instead chars, we work with tokens, and it's a LL(1) parser.
 
-Errors will be found and regitered in the previous parsing.
+Errors will be found and registered in the previous parsing.
 
 Then, we have to write by hand the LL(1) parser, but it's easy (not necessary to control errors, not working with chars, just LL(1))
 
