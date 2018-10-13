@@ -1,7 +1,7 @@
 [package]
 name = "dynparser"
 version = "0.4.0"
-authors = ["maiquel <jleahred@gmail.com>"]
+authors = ["jleahred <jleahred@gmail.com>"]
 license = "GPL-3.0"
 description = "Dynamic parser. You can define rules at run time. It's possible to use peg format"
 readme = "README.md"
