@@ -57,6 +57,9 @@ Watch examples below
             Error constructor on peg grammar
             Flattening the AST
 
+    0.4.2   Fixed error managing error("xxx")
+            Working on modules
+
 ## TODO
 
 - move to macros by example 2.0 and improve some
