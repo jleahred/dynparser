@@ -460,7 +460,7 @@ fn main() {
 Examples below
 
 | token        | Description                                            |
-|:-------------|:-------------------------------------------------------|
+| :----------- | :----------------------------------------------------- |
 | `=`          | On left, symbol, on right expresion defining symbol    |
 | `symbol`     | It's an string without quotes                          |
 | `.`          | Any char                                               |
@@ -517,7 +517,6 @@ main   = "'"
 
 main   = '"'
 ```
-
 
 It's recomended to use non escaped literals as much as possible
 and use the escaped literals when necessary.
@@ -706,7 +705,6 @@ and_expr        =   compl_expr  (  ' '  _  and_expr)*
 
 Showing an error informing that we didn't consume full input, is not the best.
 
-
 Here, we said, "hey, try to look for a sequence, or not `*`"
 
 And is not, then the parser say, I matched the rule, I have to continue verifying other
@@ -750,6 +748,28 @@ With this constructor, we can improve our error messages :-)
 And we also can remove errors kind of `not consumed full input`
 
 Remember.The best way to know the peg syntax, is to look the peg grammar. And yes it is on peg syntax :-)
+
+Full exmample...
+
+```Rust
+extern crate dynparser;
+use dynparser::{parse, rules_from_peg};
+fn main() {
+    let rules = rules_from_peg(
+        r#"
+
+    main    =   '('  main   ( ')'  /  error("unbalanced parenthesis") )
+            /   'hello'
+
+        "#,
+    ).unwrap();
+
+    match parse("((hello)", &rules) {
+        Ok(_) => panic!("It should fail"),
+        Err(e) => assert!(e.descr == "unbalanced parenthesis"),
+    }
+}
+```
 
 ## Text
 
@@ -820,7 +840,7 @@ parenth_expr    =   '('  expr ')'
 Descendant definition
 
 | expr        | Description                                                                              |
-|:------------|:-----------------------------------------------------------------------------------------|
+| :---------- | :--------------------------------------------------------------------------------------- |
 | atom_or_par | It's an atom or a parenthesis expression                                                 |
 | rep_or_neg  | It's not a composition of `and` or `or` expressions. It can have negation or repetitions |
 | parenth     | It's an expressions with parenthesis                                                     |
@@ -881,11 +901,11 @@ As the parser will generate the code from peg to parse itself... It's easy to ke
     lit_noesc       =   _'   (  !_' .  )*   _'
     _'              =   "'"
 
-    lit_esc         =   _"  
+    lit_esc         =   _"
                             (   esc_char
                             /   hex_char
                             /   !_" .
-                            )*  
+                            )*
                         _"
     _"              =   '"'
 

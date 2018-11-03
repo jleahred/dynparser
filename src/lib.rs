@@ -85,6 +85,26 @@
 //!
 //! Please, read [README.md](https://github.com/jleahred/dynparser) for
 //! more context information
+//!
+//! ```rust
+//! extern crate dynparser;
+//! use dynparser::{parse, rules_from_peg};
+//! fn main() {
+//!     let rules = rules_from_peg(
+//!         r#"
+//!
+//!     main    =   '('  main   ( ')'  /  error("unbalanced parenthesis") )
+//!             /   'hello'
+//!
+//!         "#,
+//!     ).unwrap();
+//!
+//!     match parse("((hello)", &rules) {
+//!         Ok(_) => panic!("It should fail"),
+//!         Err(e) => assert!(e.descr == "unbalanced parenthesis"),
+//!     }
+//! }
+//! ```
 
 extern crate idata;
 
@@ -162,9 +182,30 @@ macro_rules! lit {
 ///        "main"   =>  error!("aa")
 ///     };
 ///
-///     assert!(parse("aa", &rules).is_ok())
+///     assert!(parse("aa", &rules).is_err())
 /// }
 /// ```
+///
+/// ```rust
+/// extern crate dynparser;
+/// use dynparser::{parse, rules_from_peg};
+/// fn main() {
+///     let rules = rules_from_peg(
+///         r#"
+///
+///     main    =   '('  main   ( ')'  /  error("unbalanced parenthesis") )
+///             /   'hello'
+///
+///         "#,
+///     ).unwrap();
+///
+///     match parse("((hello)", &rules) {
+///         Ok(_) => panic!("It should fail"),
+///         Err(e) => assert!(e.descr == "unbalanced parenthesis"),
+///     }
+/// }
+/// ```
+
 #[macro_export]
 macro_rules! error {
     ($e:expr) => {{

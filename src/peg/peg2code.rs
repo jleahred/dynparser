@@ -41,10 +41,11 @@ fn text_peg2code() -> &'static str {
 
     expr            =   or
 
-    or              =   and         ( _  '/'  _  (error  /  or)  )?
+    or              =   and         ( _  '/'  _  or )?
     error           =   'error' _  '('  _  literal  _  ')'
 
-    and             =   rep_or_neg  ( _1 _ !(rule_name _ '=') and )*
+    and             =   error 
+                    /   rep_or_neg  ( _1 _ !(rule_name _ ('=' / '{')) and )*
     _1              =   (' ' / eol)     //  this is the and separator
 
     rep_or_neg      =   atom_or_par ('*' / '+' / '?')?
@@ -53,6 +54,7 @@ fn text_peg2code() -> &'static str {
     atom_or_par     =   (atom / parenth)
 
     parenth         =   '('  _  expr  _  ')'
+                    /   '('  _  expr  _  error("unbalanced parethesis: missing ')'")
 
     atom            =   literal
                     /   match

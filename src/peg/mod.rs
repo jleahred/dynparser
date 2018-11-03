@@ -144,11 +144,11 @@ pub type Result = result::Result<expression::SetOfRules, Error>;
 ///     assert!(parse("((hello))", &rules).is_ok());
 ///     assert!(parse("(((hello)))", &rules).is_ok());
 ///     match parse("(hello", &rules) {
-///         Err(e) => {assert!(e.descr == "error unbalanced parenthesys");},
+///         Err(e) => {assert!(e.descr == "unbalanced parenthesys");},
 ///         _ => ()
 ///     }
 ///     match parse("((hello)", &rules) {
-///         Err(e) => {assert!(e.descr == "error unbalanced parenthesys");},
+///         Err(e) => {assert!(e.descr == "unbalanced parenthesys");},
 ///         _ => ()
 ///     }
 /// ```
@@ -316,23 +316,13 @@ impl ExprOrVecExpr {
 }
 
 fn consume_or(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
-    // or              =   and         ( _  '/'  _  (error  /  or)  )?
+    // or              =   and         ( _  '/'  _  or )?
 
     fn rec_consume_or(
         eov: ExprOrVecExpr,
         nodes: &[flat::Node],
     ) -> result::Result<(ExprOrVecExpr, &[flat::Node]), Error> {
         consuming_rule("or", nodes, move |nodes| {
-            let consume_err_or_or = |eov: ExprOrVecExpr, nodes| {
-                let next_node_name = flat::get_nodename(flat::peek_first_node(nodes)?)?;
-                match next_node_name {
-                    "error" => consume_error(nodes).map(|(e, n)| (eov.ipush(e), n)),
-                    "or" => rec_consume_or(eov, nodes),
-                    unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
-                }
-            };
-            //  ----------------
-
             let (expr, nodes) = consume_and(nodes)?;
             let eov = eov.ipush(expr);
             let next_node = flat::peek_first_node(nodes)?;
@@ -340,7 +330,7 @@ fn consume_or(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]
             match next_node {
                 flat::Node::Val(_) => {
                     let nodes = flat::consume_this_value("/", nodes)?;
-                    consume_err_or_or(eov, nodes)
+                    rec_consume_or(eov, nodes)
                 }
                 _ => Ok((eov, nodes)),
             }
@@ -375,20 +365,27 @@ fn consume_error(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::No
 }
 
 fn consume_and(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
-    // and             =   rep_or_neg  ( _1 _ !(symbol _ "=") and )*
+    // and             =   error
+    //                 /   rep_or_neg  ( _1 _ !(rule_name _ ('=' / '{')) and )*
 
     fn rec_consume_and(
         eov: ExprOrVecExpr,
         nodes: &[flat::Node],
     ) -> result::Result<(ExprOrVecExpr, &[flat::Node]), Error> {
         consuming_rule("and", nodes, move |nodes| {
-            let (expr, nodes) = consume_rep_or_neg(nodes)?;
-            let eov = eov.ipush(expr);
-            let next_node = flat::peek_first_node(nodes)?;
+            if "error" == flat::get_nodename(flat::peek_first_node(nodes)?)? {
+                let (expr, nodes) = consume_error(nodes)?;
+                let eov = eov.ipush(expr);
+                Ok((eov, nodes))
+            } else {
+                let (expr, nodes) = consume_rep_or_neg(nodes)?;
+                let eov = eov.ipush(expr);
+                let next_node = flat::peek_first_node(nodes)?;
 
-            match (next_node, flat::get_nodename(next_node)) {
-                (flat::Node::BeginRule(_), Ok("and")) => rec_consume_and(eov, nodes),
-                _ => Ok((eov, nodes)),
+                match (next_node, flat::get_nodename(next_node)) {
+                    (flat::Node::BeginRule(_), Ok("and")) => rec_consume_and(eov, nodes),
+                    _ => Ok((eov, nodes)),
+                }
             }
         })
     }

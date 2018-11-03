@@ -1,7 +1,7 @@
 use ast;
 /// Support for minimum expressions elements
 /// Here we have the parser and types for non dependencies kind
-use parser::{Error, Result, Status};
+use parser::{ErrPriority, Error, Result, Status};
 use std::result;
 
 #[cfg(test)]
@@ -48,7 +48,7 @@ pub struct MatchRules(pub(crate) String, pub(crate) Vec<(char, char)>);
 pub(crate) fn parse<'a>(status: Status<'a>, atom: &'a Atom) -> Result<'a> {
     match atom {
         Atom::Literal(literal) => parse_literal(status, &literal),
-        Atom::Error(error) => parse_error(status, &error),
+        Atom::Error(error) => parse_error(&status, &error),
         Atom::Match(ref match_rules) => parse_match(status, &match_rules),
         Atom::Dot => parse_dot(status),
         Atom::EOF => parse_eof(status),
@@ -89,19 +89,28 @@ macro_rules! ok {
 }
 
 fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
+    use std::str::Chars;
+    pub(super) fn get_till_cr(chrs: Chars) -> String {
+        chrs.take_while(|&ch| ch != '\n' && ch != '\r').collect()
+    }
+
     for ch in literal.chars() {
-        status = parse_char(status, ch)
-            .map_err(|st| Error::from_status_normal(&st, &format!("literal {}", literal)))?;
+        status = parse_char(status, ch).map_err(|st| {
+            Error::from_status_normal(
+                &st,
+                &format!(
+                    "expected literal: <{}>, difference on: <{}>",
+                    literal,
+                    get_till_cr(st.it_parsing.clone())
+                ),
+            )
+        })?;
     }
     ok!(status, literal)
 }
 
-fn parse_error<'a>(mut status: Status<'a>, error: &'a str) -> Result<'a> {
-    for ch in error.chars() {
-        status = parse_char(status, ch)
-            .map_err(|st| Error::from_status_normal(&st, &format!("error {}", error)))?;
-    }
-    ok!(status, error)
+fn parse_error<'a>(status: &Status<'a>, error: &'a str) -> Result<'a> {
+    Err(Error::from_status(&status, &error, ErrPriority::Critical))
 }
 
 fn parse_dot(status: Status) -> Result {
