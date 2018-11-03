@@ -76,7 +76,7 @@
 //!             "{:#?}",
 //!             ast.compact()
 //!                 .prune(&vec!["_"])
-//!                 .passthrow_except(&vec!["main", "add_t", "fact_t"])
+//!                 .pass_through_except(&vec!["main", "add_t", "fact_t"])
 //!         ),
 //!         Err(e) => println!("Error: {:?}", e),
 //!     };

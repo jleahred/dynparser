@@ -100,7 +100,7 @@ impl Node {
     ///
     /// use dynparser::ast;
     ///
-    /// let ast_before_passthrow: ast::Node = ast::Node::Rule((
+    /// let ast_before_pass_through: ast::Node = ast::Node::Rule((
     ///     "root".to_string(),
     ///     vec![ast::Node::Rule((
     ///         "a".to_string(),
@@ -111,7 +111,7 @@ impl Node {
     ///     ))],
     /// ));
     ///
-    /// let ast_after_passthrow: ast::Node = ast::Node::Rule((
+    /// let ast_after_pass_through: ast::Node = ast::Node::Rule((
     ///     "root".to_string(),
     ///     vec![ast::Node::Rule((
     ///         "a".to_string(),
@@ -119,10 +119,10 @@ impl Node {
     ///     ))],
     /// ));
     ///
-    /// assert!(ast_before_passthrow.passthrow_except(&vec!["root", "a", "_2"]) == ast_after_passthrow)
+    /// assert!(ast_before_pass_through.pass_through_except(&vec!["root", "a", "_2"]) == ast_after_pass_through)
     /// ```
 
-    pub fn passthrow_except(&self, nodes2keep: &[&str]) -> Self {
+    pub fn pass_through_except(&self, nodes2keep: &[&str]) -> Self {
         fn pthr_vn(vnodes: &[Node], nodes2keep: &[&str]) -> Vec<Node> {
             let nname2keep = |nname: &str| nodes2keep.iter().find(|n| *n == &nname);
             let node2keep = |node: &Node| match node {
@@ -131,11 +131,11 @@ impl Node {
             };
             vnodes.iter().fold(vec![], |acc, n| {
                 if node2keep(n) {
-                    acc.ipush(n.passthrow_except(nodes2keep))
+                    acc.ipush(n.pass_through_except(nodes2keep))
                 } else {
                     match n {
                         Node::Rule((_, new_nodes)) => acc.iappend(pthr_vn(new_nodes, nodes2keep)),
-                        _ => acc.ipush(n.passthrow_except(nodes2keep)),
+                        _ => acc.ipush(n.pass_through_except(nodes2keep)),
                     }
                 }
             })

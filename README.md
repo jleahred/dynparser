@@ -51,7 +51,7 @@ Watch examples below
     0.2.0   Fixed some errors
             Rules code for peg parsing generated automatically from peg
 
-    0.3.0   Passthrow method on AST
+    0.3.0   pass_through method on AST
 
     0.4.0   Literals with escape (optional)
             Error constructor on peg grammar
@@ -449,7 +449,7 @@ fn main() {
             "{:#?}",
             ast.compact()
                 .prune(&vec!["_"])
-                .passthrow_except(&vec!["main", "add_t", "fact_t"])
+                .pass_through_except(&vec!["main", "add_t", "fact_t"])
         ),
         Err(e) => println!("Error: {:?}", e),
     };
