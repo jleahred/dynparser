@@ -30,16 +30,21 @@ fn text_peg2code() -> &'static str {
 
     main            =   grammar
 
-    grammar         =   rule+
+    grammar         =   (rule  /  module)+
+    
+    module          =   _  mod_name _ '{'  _ grammar  _ '}'
+    mod_name        =   symbol
+    symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
-    rule            =   _  symbol  _  '='  _  expr  _eol _
+    rule            =   _  rule_name  _  '='  _  expr  _eol _
+    rule_name       =   '.'?  symbol  ('.' symbol)*
 
     expr            =   or
 
     or              =   and         ( _  '/'  _  (error  /  or)  )?
     error           =   'error' _  '('  _  literal  _  ')'
 
-    and             =   rep_or_neg  ( _1 _ !(symbol _ '=') and )*
+    and             =   rep_or_neg  ( _1 _ !(rule_name _ '=') and )*
     _1              =   (' ' / eol)     //  this is the and separator
 
     rep_or_neg      =   atom_or_par ('*' / '+' / '?')?
@@ -52,7 +57,7 @@ fn text_peg2code() -> &'static str {
     atom            =   literal
                     /   match
                     /   dot
-                    /   symbol
+                    /   rule_name
 
     literal         =  lit_noesc  /  lit_esc
 
@@ -74,8 +79,6 @@ fn text_peg2code() -> &'static str {
                     /   '\"'
 
     hex_char        =   '\0x' [0-9A-F] [0-9A-F]
-
-    symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
     eol             =   ("\r\n"  /  "\n"  /  "\r")
     _eol            =   (' ' / comment)*  eol

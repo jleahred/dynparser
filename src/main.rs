@@ -5,6 +5,37 @@ fn main() {
     peg2code::print_rules2parse_peg();
 }
 
+//  --------------------------
+//  modules
+// extern crate dynparser;
+// use dynparser::{parse, rules_from_peg};
+
+// fn main() {
+//     let rules = rules_from_peg(
+//         r#"
+
+//     main    =   as  /  b.bs  /  abc.abs  /  abc.c.cs
+
+//     as  =   'a'+
+
+//     b {
+//         bs  =  'b'+
+//     }
+
+//     abc {
+//         abs =  .as  /  .b.bs
+
+//         c {
+//             cs  =   'c'+
+//         }
+//     }
+
+//         "#,
+//     ).unwrap();
+
+//     assert!(parse("abcz", &rules).is_ok());
+// }
+
 // //  --------------------------------------------------------------------------
 
 // extern crate dynparser;

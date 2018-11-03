@@ -216,7 +216,7 @@ fn consume_grammar(
         match flat::peek_first_node(nodes)? {
             flat::Node::BeginRule(_) => {
                 let ((name, expr), nodes) = consume_rule(nodes)?;
-                let rules = rules.add(name, expr);
+                let rules = rules.add(&name, expr);
                 rec_consume_rules(rules, nodes)
             }
             _ => Ok((rules, nodes)),
@@ -231,15 +231,55 @@ fn consume_grammar(
 
 fn consume_rule(
     nodes: &[flat::Node],
-) -> result::Result<((&str, expression::Expression), &[flat::Node]), Error> {
-    // rule            =   _  symbol  _  "="  _  expr  _eol _
+) -> result::Result<((String, expression::Expression), &[flat::Node]), Error> {
+    // rule            =   _  rule_name  _  '='  _  expr  _eol _
 
     consuming_rule("rule", nodes, |nodes| {
-        let (symbol_name, nodes) = consume_symbol(nodes)?;
+        let (rule_name, nodes) = consume_rule_name(nodes)?;
         let nodes = flat::consume_this_value("=", nodes)?;
         let (expr, nodes) = consume_peg_expr(nodes)?;
 
-        Ok(((symbol_name, expr), nodes))
+        Ok(((rule_name, expr), nodes))
+    })
+}
+
+fn consume_rule_name(nodes: &[flat::Node]) -> result::Result<(String, &[flat::Node]), Error> {
+    // rule_name       =   '.'?  symbol  ('.' symbol)*
+
+    fn rec_consume_dot_symbol(
+        acc_name: String,
+        nodes: &[flat::Node],
+    ) -> result::Result<(String, &[flat::Node]), Error> {
+        match flat::peek_first_node(nodes)? {
+            flat::Node::Val(ch) => if ch == "." {
+                let (symbol, nodes) = consume_symbol(nodes)?;
+                let acc_name = format!("{}.{}", acc_name, symbol);
+                rec_consume_dot_symbol(acc_name, nodes)
+            } else {
+                Ok((acc_name, nodes))
+            },
+            _ => Ok((acc_name, nodes)),
+        }
+    }
+
+    let get_dot_or_empty = |nodes| -> result::Result<(&str, &[flat::Node]), Error> {
+        match flat::peek_first_node(nodes)? {
+            flat::Node::Val(ch) => if ch == "." {
+                Ok((".", flat::consume_this_value(".", nodes)?))
+            } else {
+                Ok(("", nodes))
+            },
+            _ => Ok(("", nodes)),
+        }
+    };
+
+    consuming_rule("rule_name", nodes, |nodes| {
+        let (start_dot, nodes) = get_dot_or_empty(nodes)?;
+        let (symbol, nodes) = consume_symbol(nodes)?;
+        let (dot_symbol, nodes) = rec_consume_dot_symbol(String::new(), nodes)?;
+
+        let str_result = format!("{}{}{}", start_dot, symbol, dot_symbol);
+        Ok((str_result, nodes))
     })
 }
 
@@ -430,7 +470,7 @@ fn consume_atom(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Nod
     // atom            =   literal
     //                 /   match
     //                 /   dot
-    //                 /   symbol
+    //                 /   rule_name
 
     consuming_rule("atom", nodes, |nodes| {
         let next_node = flat::peek_first_node(nodes)?;
@@ -439,7 +479,7 @@ fn consume_atom(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Nod
         let (expr, nodes) = push_err!(&format!("n:{}", node_name), {
             match &node_name as &str {
                 "literal" => consume_literal_expr(nodes),
-                "symbol" => consume_symbol_rule_ref(nodes),
+                "rule_name" => consume_rule_ref(nodes),
                 "dot" => consume_dot(nodes),
                 "match" => consume_match(nodes),
                 unknown => Err(error_peg_s(&format!("unknown {}", unknown))),
@@ -614,11 +654,9 @@ fn consume_dot(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node
     })
 }
 
-fn consume_symbol_rule_ref(
-    nodes: &[flat::Node],
-) -> result::Result<(Expression, &[flat::Node]), Error> {
+fn consume_rule_ref(nodes: &[flat::Node]) -> result::Result<(Expression, &[flat::Node]), Error> {
     push_err!("consuming symbol rule_ref", {
-        let (symbol_name, nodes) = consume_symbol(nodes)?;
+        let (symbol_name, nodes) = consume_rule_name(nodes)?;
 
         Ok((ref_rule!(symbol_name), nodes))
     })
