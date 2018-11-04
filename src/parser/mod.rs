@@ -68,11 +68,14 @@ pub struct Error {
     pub pos: Possition,
     /// Error description parsing
     pub descr: String,
-    /// Line content where error was produced
-    pub line: String,
-    /// Suberrors when parsing an *or* (it could be removed!)
-    pub errors: Vec<Error>,
+    /// Line content before where error was produced
+    pub line_before: String,
+    /// Line content after where error was produced
+    pub line_after: String,
+    // Suberrors when parsing an *or* (it could be removed!)
+    // pub errors: Vec<Error>,
     /// Rules path followed till got the error
+    /// Only available if trace_rules is on
     pub parsing_rules: Vec<String>,
     /// error priority
     pub priority: ErrPriority,
@@ -160,8 +163,13 @@ impl Error {
         Error {
             pos: status.pos.clone(),
             descr: descr.to_owned(),
-            line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
-            errors: vec![],
+            line_before: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
+            line_after: status
+                .it_parsing
+                .clone()
+                .take_while(|&ch| ch != '\n' && ch != '\r')
+                .collect(),
+            // errors: vec![],
             parsing_rules: status.walking_rules.clone(),
             priority: prior,
         }
@@ -171,22 +179,22 @@ impl Error {
         Self::from_status(status, descr, ErrPriority::Normal)
     }
 
-    pub(crate) fn from_st_errs(status: &Status, descr: &str, errors: Vec<Error>) -> Self {
-        let max_pr = |verrors: &Vec<Error>| {
-            use std::cmp::max;
-            verrors
-                .iter()
-                .fold(ErrPriority::Normal, |acc, err| max(acc, err.priority))
-        };
+    // pub(crate) fn from_st_errs(status: &Status, descr: &str, errors: Vec<Error>) -> Self {
+    //     let max_pr = |verrors: &Vec<Error>| {
+    //         use std::cmp::max;
+    //         verrors
+    //             .iter()
+    //             .fold(ErrPriority::Normal, |acc, err| max(acc, err.priority))
+    //     };
 
-        let mp = max_pr(&errors);
-        Error {
-            pos: status.pos.clone(),
-            descr: descr.to_owned(),
-            line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
-            errors,
-            parsing_rules: status.walking_rules.clone(),
-            priority: mp,
-        }
-    }
+    //     let mp = max_pr(&errors);
+    //     Error {
+    //         pos: status.pos.clone(),
+    //         descr: descr.to_owned(),
+    //         line: status.text2parse[status.pos.start_line..status.pos.n].to_string(),
+    //         // errors,
+    //         parsing_rules: status.walking_rules.clone(),
+    //         priority: mp,
+    //     }
+    // }
 }

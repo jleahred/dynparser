@@ -248,17 +248,15 @@ fn parse_or<'a>(status: &Status<'a>, multi_expr: &'a MultiExpr) -> ResultExpr<'a
         None => Some(e2),
     };
 
-    // let init_tc: (_, &[Expression], Vec<Error>) = (status.clone(), &(multi_expr.0), vec![]);
-    let init_tc: (_, &[Expression], _) = (status.clone(), &(multi_expr.0), None);
+    let init_tc: (_, &[Expression], Option<Error>) = (status.clone(), &(multi_expr.0), None);
 
     tail_call(init_tc, |acc| {
         if acc.1.is_empty() {
             TailCall::Return(Err(match acc.2 {
                 Some(err) => err,
-                _ => Error::from_st_errs(
+                _ => Error::from_status_normal(
                     &status,
                     "LOGIC ERROR!!! checked all options in or with ¿NO? errors",
-                    vec![],
                 ),
             }))
         } else {

@@ -89,21 +89,9 @@ macro_rules! ok {
 }
 
 fn parse_literal<'a>(mut status: Status<'a>, literal: &'a str) -> Result<'a> {
-    use std::str::Chars;
-    pub(super) fn get_till_cr(chrs: Chars) -> String {
-        chrs.take_while(|&ch| ch != '\n' && ch != '\r').collect()
-    }
-
     for ch in literal.chars() {
         status = parse_char(status, ch).map_err(|st| {
-            Error::from_status_normal(
-                &st,
-                &format!(
-                    "expected literal: <{}>, difference on: <{}>",
-                    literal,
-                    get_till_cr(st.it_parsing.clone())
-                ),
-            )
+            Error::from_status_normal(&st, &format!("expected literal: <{}>", literal))
         })?;
     }
     ok!(status, literal)

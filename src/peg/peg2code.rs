@@ -32,7 +32,7 @@ fn text_peg2code() -> &'static str {
 
     grammar         =   (rule  /  module)+
     
-    module          =   _  mod_name _ '{'  _ grammar  _ '}'
+    module          =   _  mod_name _ '{'  _ grammar  _ '}' _eol _
     mod_name        =   symbol
     symbol          =   [_a-zA-Z0-9] [_'"a-zA-Z0-9]*
 
@@ -53,13 +53,14 @@ fn text_peg2code() -> &'static str {
 
     atom_or_par     =   (atom / parenth)
 
-    parenth         =   '('  _  expr  _  ')'
-                    /   '('  _  expr  _  error("unbalanced parethesis: missing ')'")
+    parenth         =   '('  _  expr  _  (  ')'
+                                         /  error("unbalanced parethesis: missing ')'") 
+                                         )
 
     atom            =   literal
                     /   match
-                    /   dot
                     /   rule_name
+                    /   dot             //  as rule_name can start with a '.', dot has to be after rule_name
 
     literal         =  lit_noesc  /  lit_esc
 
