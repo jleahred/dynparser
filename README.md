@@ -60,6 +60,8 @@ Watch examples below
     0.4.2   Fixed error managing error("xxx")
             Working on modules
 
+    0.4.3   Compiled with 2018 edition
+
 ## TODO
 
 - move to macros by example 2.0 and improve some

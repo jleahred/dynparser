@@ -6,13 +6,13 @@ pub mod gcode;
 pub mod peg2code;
 mod rules;
 
-use ast::{self, flat};
-use idata::{self, cont::IVec};
-use parse;
-use parser::{
+use crate::ast::{self, flat};
+use crate::parse;
+use crate::parser::{
     self,
     expression::{self, Expression},
 };
+use idata::{self, cont::IVec};
 use std::{self, result};
 
 #[cfg(test)]
@@ -349,14 +349,16 @@ fn consume_rule_name(
         context: Context,
     ) -> result::Result<(String, &[flat::Node], Context), Error> {
         match flat::peek_first_node(nodes)? {
-            flat::Node::Val(ch) => if ch == "." {
-                let (_, nodes) = flat::consume_val(nodes)?;
-                let (symbol, nodes, context) = consume_symbol(nodes, context)?;
-                let acc_name = format!("{}.{}", acc_name, symbol);
-                rec_consume_dot_symbol(acc_name, nodes, context)
-            } else {
-                Ok((acc_name, nodes, context))
-            },
+            flat::Node::Val(ch) => {
+                if ch == "." {
+                    let (_, nodes) = flat::consume_val(nodes)?;
+                    let (symbol, nodes, context) = consume_symbol(nodes, context)?;
+                    let acc_name = format!("{}.{}", acc_name, symbol);
+                    rec_consume_dot_symbol(acc_name, nodes, context)
+                } else {
+                    Ok((acc_name, nodes, context))
+                }
+            }
             _ => Ok((acc_name, nodes, context)),
         }
     }
@@ -364,11 +366,13 @@ fn consume_rule_name(
     let get_dot_or_empty =
         |nodes, context| -> result::Result<(&str, &[flat::Node], Context), Error> {
             match flat::peek_first_node(nodes)? {
-                flat::Node::Val(ch) => if ch == "." {
-                    Ok((".", flat::consume_this_value(".", nodes)?, context))
-                } else {
-                    Ok(("", nodes, context))
-                },
+                flat::Node::Val(ch) => {
+                    if ch == "." {
+                        Ok((".", flat::consume_this_value(".", nodes)?, context))
+                    } else {
+                        Ok(("", nodes, context))
+                    }
+                }
                 _ => Ok(("", nodes, context)),
             }
         };
@@ -568,11 +572,13 @@ fn consume_rep_or_neg(
         nodes,
         context,
         |nodes, context| match flat::peek_first_node(nodes)? {
-            flat::Node::Val(v) => if v == "!" {
-                neg_and_atom(nodes, context)
-            } else {
-                Err(error_peg_s(&format!("expected '!', received {}", v)))
-            },
+            flat::Node::Val(v) => {
+                if v == "!" {
+                    neg_and_atom(nodes, context)
+                } else {
+                    Err(error_peg_s(&format!("expected '!', received {}", v)))
+                }
+            }
             _ => atom_and_rep(nodes, context),
         },
     )
@@ -920,7 +926,7 @@ fn consume_mbetween(
             .ok_or_else(|| error_peg_s("expected from char"))?;
         let (_, chars) =
             idata::consume_char(chars).ok_or_else(|| error_peg_s("expected '-' char"))?;
-        let (to, _) = idata::consume_char(chars).ok_or_else(|| error_peg_s("expected to char"))?;;
+        let (to, _) = idata::consume_char(chars).ok_or_else(|| error_peg_s("expected to char"))?;
         Ok(((from, to), nodes, context))
     })
 }

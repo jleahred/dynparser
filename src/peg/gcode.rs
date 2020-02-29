@@ -39,7 +39,7 @@
 //!    , "bs" => rep!(lit!("b"), 1)
 //! ```
 
-use parser::{
+use crate::parser::{
     atom,
     atom::Atom,
     expression::{self, Expression},

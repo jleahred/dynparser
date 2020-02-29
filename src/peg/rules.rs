@@ -1,4 +1,4 @@
-use parser;
+use crate::parser;
 
 pub(crate) fn parse_peg() -> parser::expression::SetOfRules {
   rules!(

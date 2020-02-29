@@ -20,7 +20,7 @@
 //! And the result, has to be pasted in peg::rules.rs
 //!
 
-use {peg, rules_from_peg};
+use {crate::peg, crate::rules_from_peg};
 
 fn text_peg2code() -> &'static str {
     r#"
@@ -120,7 +120,8 @@ pub fn print_rules2parse_peg() {
         .map_err(|e| {
             println!("{}", e);
             panic!("FAIL");
-        }).unwrap();
+        })
+        .unwrap();
 
     println!("{}", peg::gcode::rust_from_rules(&rules))
 }

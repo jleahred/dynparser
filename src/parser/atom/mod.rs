@@ -1,7 +1,7 @@
-use ast;
+use crate::ast;
 /// Support for minimum expressions elements
 /// Here we have the parser and types for non dependencies kind
-use parser::{ErrPriority, Error, Result, Status};
+use crate::parser::{ErrPriority, Error, Result, Status};
 use std::result;
 
 #[cfg(test)]
@@ -131,7 +131,8 @@ fn parse_match<'a>(status: Status<'a>, match_rules: &MatchRules) -> Result<'a> {
             } else {
                 Err(st)
             }
-        }).map_err(|st| {
+        })
+        .map_err(|st| {
             Error::from_status_normal(
                 &st,
                 &format!("match. expected {} {:?}", match_rules.0, match_rules.1),

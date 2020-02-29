@@ -5,8 +5,8 @@ use super::super::idata::{
     cont::IVec,
     tc::{tail_call, TailCall},
 };
-use ast;
-use parser::{atom, atom::Atom, ErrPriority, Error, Result, Status};
+use crate::ast;
+use crate::parser::{atom, atom::Atom, ErrPriority, Error, Result, Status};
 use std::collections::HashMap;
 use std::result;
 
@@ -295,11 +295,13 @@ fn parse_repeat<'a>(status: Status<'a>, rep_info: &'a RepInfo) -> ResultExpr<'a>
     Ok(tail_call(init_tc, |acc| {
         let try_parse = parse_expr(acc.0.clone(), &rep_info.expression);
         match (try_parse, big_min_bound(acc.1), touch_max_bound(acc.1)) {
-            (Err(e), true, _) => if e.priority == ErrPriority::Critical {
-                TailCall::Return(Err(e))
-            } else {
-                TailCall::Return(Ok((acc.0.set_potential_error(e), acc.2)))
-            },
+            (Err(e), true, _) => {
+                if e.priority == ErrPriority::Critical {
+                    TailCall::Return(Err(e))
+                } else {
+                    TailCall::Return(Ok((acc.0.set_potential_error(e), acc.2)))
+                }
+            }
             (Err(e), false, _) => TailCall::Return(Err(e)),
             //     Err(Error::from_status(
             //     &acc.0,

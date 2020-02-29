@@ -5,11 +5,11 @@
 //-----------------------------------------------------------------------
 
 use super::{parse_expr, Expression, MultiExpr, NRep, RepInfo, Status};
-use parser::atom::Atom;
+use crate::parser::atom::Atom;
 
 #[test]
 fn test_parse_literal_ok() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let expr = Expression::Simple(Atom::Literal("aaa".to_string()));
     let (status, _) = parse_expr(status_init, &expr).ok().unwrap();
@@ -21,7 +21,7 @@ fn test_parse_literal_ok() {
 
 #[test]
 fn test_parse_literal_error() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let expr = Expression::Simple(Atom::Literal("bb".to_string()));
     assert!(parse_expr(status_init, &expr).is_err());
@@ -29,7 +29,7 @@ fn test_parse_literal_error() {
 
 #[test]
 fn test_parse_and_ok() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
         Expression::Simple(Atom::Literal("aa".to_string())),
@@ -46,7 +46,7 @@ fn test_parse_and_ok() {
 
 #[test]
 fn test_parse_and_fail() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
         Expression::Simple(Atom::Literal("aa".to_string())),
@@ -59,7 +59,7 @@ fn test_parse_and_fail() {
 
 #[test]
 fn test_parse_not_ok() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aa", &rules);
 
     let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal(
@@ -74,7 +74,7 @@ fn test_parse_not_ok() {
 
 #[test]
 fn test_parse_not_fail() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aa", &rules);
 
     let expr_not = Expression::Not(Box::new(Expression::Simple(Atom::Literal(
@@ -85,7 +85,7 @@ fn test_parse_not_fail() {
 
 #[test]
 fn test_parse_or_ok() {
-    let rules = rules!{};
+    let rules = rules! {};
     {
         let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
         let rules = vec![
@@ -132,7 +132,7 @@ fn test_parse_or_ok() {
 
 #[test]
 fn test_parse_or_fail() {
-    let rules = rules!{};
+    let rules = rules! {};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
     let and_rules = vec![
         Expression::Simple(Atom::Literal("cc".to_string())),
@@ -145,7 +145,7 @@ fn test_parse_or_fail() {
 
 #[test]
 fn test_parse_repeat_ok() {
-    let rules = rules!{};
+    let rules = rules! {};
     let repeat_literal = |literal, min, max: Option<NRep>| {
         Expression::Repeat(RepInfo {
             expression: Box::new(Expression::Simple(Atom::Literal(literal))),
@@ -203,7 +203,7 @@ fn test_parse_repeat_ok() {
 
 #[test]
 fn test_parse_repeat_fail() {
-    let rules = rules!{};
+    let rules = rules! {};
     let repeat_literal = |literal, min, max: Option<NRep>| {
         Expression::Repeat(RepInfo {
             expression: Box::new(Expression::Simple(Atom::Literal(literal))),

@@ -29,10 +29,7 @@ pub struct Error(pub String, pub Option<String>);
 /// ```
 
 pub fn error(desc: &str, ast_context: Option<&str>) -> Error {
-    Error(
-        desc.to_string(),
-        ast_context.and_then(|a| Some(a.to_string())),
-    )
+    Error(desc.to_string(), ast_context.map(|a| a.to_string()))
 }
 
 /// Information of a node
@@ -386,14 +383,16 @@ pub fn consume_node_get_subnodes_for_rule_name_is<'a>(
 ) -> Result<(&'a [Node], &'a [Node]), Error> {
     let (node, nodes) = split_first_nodes(nodes)?;
     match node {
-        Node::Rule((n, sub_nodes)) => if n == name {
-            Ok((nodes, sub_nodes))
-        } else {
-            Err(error(
-                &format!("expected {} node, received {}", name, n),
-                None,
-            ))
-        },
+        Node::Rule((n, sub_nodes)) => {
+            if n == name {
+                Ok((nodes, sub_nodes))
+            } else {
+                Err(error(
+                    &format!("expected {} node, received {}", name, n),
+                    None,
+                ))
+            }
+        }
         unknown => Err(error(
             &format!("expected {} Node::Rule, received {:?}", name, unknown),
             None,

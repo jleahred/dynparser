@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 //! Tools to execute parser of a expression
 
-use ast;
+use crate::ast;
 use std::result;
 
 //-----------------------------------------------------------------------

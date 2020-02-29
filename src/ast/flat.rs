@@ -14,7 +14,7 @@
 //! of node. The end 'Rule'
 //!
 
-use ast::{self, error, Error};
+use crate::ast::{self, error, Error};
 use idata::cont::IVec;
 use std::result::Result;
 

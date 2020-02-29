@@ -3,8 +3,8 @@
 //  mod peg  TEST
 //
 //-----------------------------------------------------------------------
-use parse;
-use peg;
+use crate::parse;
+use crate::peg;
 
 #[test]
 fn validate_peg1() {

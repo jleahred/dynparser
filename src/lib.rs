@@ -134,7 +134,7 @@ extern crate idata;
 /// }
 /// ```
 #[macro_export]
-#[cfg_attr(feature = "cargo-clippy", allow(let_and_return))]
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::let_and_return))]
 macro_rules! rules {
     ($($n:expr => $e:expr),*) => {{
         use $crate::parser::expression;

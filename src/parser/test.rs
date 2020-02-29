@@ -4,11 +4,11 @@
 //
 //-----------------------------------------------------------------------
 
-use parser::{expression::parse, Status};
+use crate::parser::{expression::parse, Status};
 
 #[test]
 fn test_parse_expr_lit() {
-    let rules = rules!{"main" => lit!("aaa")};
+    let rules = rules! {"main" => lit!("aaa")};
     let status_init = Status::init("aaaaaaaaaaaaaaaa", &rules);
 
     let (status, _) = parse(status_init).ok().unwrap();
@@ -19,7 +19,7 @@ fn test_parse_expr_lit() {
 
 #[test]
 fn test_parse_expr_and_ok() {
-    let rules = rules!{"main" => and![lit!("aa"), and![lit!("bb"), lit!("cc")]]};
+    let rules = rules! {"main" => and![lit!("aa"), and![lit!("bb"), lit!("cc")]]};
     let status_init = Status::init("aabbcc", &rules);
 
     let (status, _) = parse(status_init).ok().unwrap();
@@ -30,7 +30,7 @@ fn test_parse_expr_and_ok() {
 
 #[test]
 fn test_parse_expr_or_ok() {
-    let rules = rules!{"main" => or![lit!("bb"), and![lit!("aa"), lit!("bb")]]};
+    let rules = rules! {"main" => or![lit!("bb"), and![lit!("aa"), lit!("bb")]]};
     let status_init = Status::init("aabb", &rules);
 
     let (status, _) = parse(status_init).ok().unwrap();
@@ -41,7 +41,7 @@ fn test_parse_expr_or_ok() {
 
 #[test]
 fn test_parse_expr_not_ok() {
-    let rules = rules!{"main" => not!(lit!("bb"))};
+    let rules = rules! {"main" => not!(lit!("bb"))};
     let status_init = Status::init("aa", &rules);
 
     let (status, _) = parse(status_init).ok().unwrap();
@@ -52,7 +52,7 @@ fn test_parse_expr_not_ok() {
 
 #[test]
 fn test_parse_expr_repeat_ok() {
-    let rules = rules!{"main" => rep![lit!("aa"), 3]};
+    let rules = rules! {"main" => rep![lit!("aa"), 3]};
     {
         let status_init = Status::init("aaaaaa", &rules);
 
