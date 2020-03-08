@@ -72,7 +72,8 @@ fn error_peg_s(s: &str) -> Error {
 }
 
 impl Error {
-    fn ipush(self, desc: &str) -> Self {
+    /// add an error description
+    pub fn ipush(self, desc: &str) -> Self {
         Error::Peg((desc.to_string(), Some(Box::new(self))))
     }
 }

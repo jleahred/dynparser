@@ -37,6 +37,18 @@ pub enum Atom {
 #[derive(Debug)]
 pub struct MatchRules(pub(crate) String, pub(crate) Vec<(char, char)>);
 
+impl MatchRules {
+    ///  get a reference to set of chars of match rule
+    pub fn chars(&self) -> &str {
+        &self.0
+    }
+
+    ///  get a reference to vector of ranges (from, to )of match rule
+    pub fn ranges(&self) -> &Vec<(char, char)> {
+        &self.1
+    }
+}
+
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 //

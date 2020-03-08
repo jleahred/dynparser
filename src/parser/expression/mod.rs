@@ -31,7 +31,7 @@ pub(crate) type ResultExpr<'a> = result::Result<(Status<'a>, Vec<ast::Node>), Er
 /// A rule can be registered just once
 /// The starting rule is main
 #[derive(Debug)]
-pub struct SetOfRules(pub(crate) HashMap<String, Expression>);
+pub struct SetOfRules(pub HashMap<String, Expression>);
 
 impl SetOfRules {
     /// Initialize a set of rules with a hashmap of <String, Expression>
@@ -117,7 +117,7 @@ pub enum Expression {
 
 /// Opaque type to manage multiple expressions
 #[derive(Debug)]
-pub struct MultiExpr(pub(crate) Vec<Expression>);
+pub struct MultiExpr(pub Vec<Expression>);
 
 impl MultiExpr {
     /// Creates a new instance of ```MultiExpr``` from a vector
@@ -129,9 +129,12 @@ impl MultiExpr {
 /// Opaque type to manage repetition subexpression
 #[derive(Debug)]
 pub struct RepInfo {
-    pub(crate) expression: Box<Expression>,
-    pub(crate) min: NRep,
-    pub(crate) max: Option<NRep>,
+    /// expresion
+    pub expression: Box<Expression>,
+    /// min repetions
+    pub min: NRep,
+    /// max repetions
+    pub max: Option<NRep>,
 }
 
 impl RepInfo {
@@ -148,7 +151,13 @@ impl RepInfo {
 
 /// Number of repetitions of rule
 #[derive(Debug)]
-pub(crate) struct NRep(pub(crate) usize);
+pub struct NRep(pub(crate) usize);
+
+impl std::fmt::Display for NRep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
